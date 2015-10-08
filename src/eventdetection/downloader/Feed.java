@@ -4,13 +4,12 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
 
 import eventdetection.common.ID;
 import eventdetection.common.IDAble;
 import eventdetection.common.Source;
 
-public interface Feed extends Supplier<List<RawArticle>>, IDAble {
+public interface Feed extends Downloader, IDAble {
 	@Override
 	public List<RawArticle> get();
 	

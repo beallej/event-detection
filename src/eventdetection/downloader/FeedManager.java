@@ -9,13 +9,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
-import java.util.function.Supplier;
 
 import eventdetection.common.ID;
 import eventdetection.common.IDAble;
 import eventdetection.temporarylibraryplaceholders.IOExceptedFunction;
 
-public class FeedManager implements Supplier<List<RawArticle>> {
+public class FeedManager implements Downloader {
 	private final Map<ID, Scraper> scrapers;
 	private final Map<ID, Feed> feeds;
 	
@@ -62,7 +61,7 @@ public class FeedManager implements Supplier<List<RawArticle>> {
 	@Override
 	public List<RawArticle> get() {
 		List<RawArticle> out = new ArrayList<>();
-		for (Supplier<List<RawArticle>> downloader : feeds.values())
+		for (Downloader downloader : feeds.values())
 			out.addAll(downloader.get());
 		return out;
 	}
