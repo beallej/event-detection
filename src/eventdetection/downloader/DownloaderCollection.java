@@ -1,23 +1,45 @@
 package eventdetection.downloader;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-import java.util.function.Supplier;
 
+/**
+ * Implements a {@link Downloader} that queries a list of other {@link Downloader Downloaders} and returns the
+ * {@link RawArticle RawArticles} that they find.
+ * 
+ * @author Joshua Lipstone
+ */
 public class DownloaderCollection implements Downloader {
-	private final List<Downloader> downloaders;
+	private final Collection<Downloader> downloaders;
 	
+	/**
+	 * Creates an empty {@link DownloaderCollection}
+	 */
 	public DownloaderCollection() {
 		downloaders = new ArrayList<>();
 	}
 	
-	public DownloaderCollection(List<Downloader> downloaders) {
+	/**
+	 * Creates a {@link DownloaderCollection} that contains the {@link Downloader Downloaders} within the given
+	 * {@link Collection}
+	 * 
+	 * @param downloaders
+	 *            the {@link Collection} of {@link Downloader Downloaders}
+	 */
+	public DownloaderCollection(Collection<Downloader> downloaders) {
 		this();
-		this.getDownloaders().addAll(downloaders);
+		getDownloaders().addAll(downloaders);
 	}
 	
+	/**
+	 * Adds the given {@link Downloader} to this {@link DownloaderCollection}
+	 * 
+	 * @param downloader
+	 *            the {@link Downloader} to add
+	 */
 	public void addDownloader(Downloader downloader) {
-		this.getDownloaders().add(downloader);
+		getDownloaders().add(downloader);
 	}
 	
 	@Override
@@ -29,9 +51,9 @@ public class DownloaderCollection implements Downloader {
 	}
 	
 	/**
-	 * @return the downloaders that this {@link DownloaderCollection} forwards to
+	 * @return the {@link Downloader Downloaders} to which this {@link DownloaderCollection} forwards
 	 */
-	public List<Downloader> getDownloaders() {
+	public Collection<Downloader> getDownloaders() {
 		return downloaders;
 	}
 }

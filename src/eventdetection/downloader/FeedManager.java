@@ -14,10 +14,25 @@ import eventdetection.common.ID;
 import eventdetection.common.IDAble;
 import eventdetection.temporarylibraryplaceholders.IOExceptedFunction;
 
+/**
+ * A system for loading and managing {@link Feed Feeds} and {@link Scraper Scrapers}.
+ * 
+ * @author Joshua Lipstone
+ */
 public class FeedManager implements Downloader {
 	private final Map<ID, Scraper> scrapers;
 	private final Map<ID, Feed> feeds;
 	
+	/**
+	 * Initializes a {@link FeedManager} with {@link Feed Feeds} and {@link Scraper Scrapers} from the given folders
+	 * 
+	 * @param feedFolder
+	 *            a {@link Path} to the folder containing JSON files describing the feeds in use
+	 * @param scraperFolder
+	 *            a {@link Path} to the folder containing JSON files describing the sources in use
+	 * @throws IOException
+	 *             if an error occurs while loading the JSON files
+	 */
 	public FeedManager(Path feedFolder, Path scraperFolder) throws IOException {
 		scrapers = new LinkedHashMap<>(); //We might want to keep the order consistent...
 		feeds = new LinkedHashMap<>(); //We might want to keep the order consistent...
