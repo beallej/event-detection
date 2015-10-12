@@ -16,11 +16,9 @@ import eventdetection.temporarylibraryplaceholders.Pair;
 public abstract class Scraper implements IDAble {
 	private final List<Pair<Pattern, String>> sectioning;
 	private final List<Pair<Pattern, String>> filtering;
-	private final String name;
 	private final ID id;
 	
-	public Scraper(String name, ID id, List<Pair<Pattern, String>> sectioning, List<Pair<Pattern, String>> filtering) {
-		this.name = name;
+	public Scraper(ID id, List<Pair<Pattern, String>> sectioning, List<Pair<Pattern, String>> filtering) {
 		this.sectioning = sectioning;
 		this.id = id;
 		this.filtering = filtering;
@@ -67,13 +65,6 @@ public abstract class Scraper implements IDAble {
 	}
 	
 	/**
-	 * @return the name
-	 */
-	public String getName() {
-		return name;
-	}
-	
-	/**
 	 * @return the {@link ID}
 	 */
 	@Override
@@ -90,7 +81,7 @@ public abstract class Scraper implements IDAble {
 		if (!(o instanceof Scraper))
 			return false;
 		Scraper s = (Scraper) o;
-		return name.equals(s.name) && sectioning.equals(s.sectioning) && filtering.equals(s.filtering);
+		return getID().equals(s.getID()) && sectioning.equals(s.sectioning) && filtering.equals(s.filtering);
 	}
 	
 	@Override

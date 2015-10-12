@@ -16,7 +16,6 @@ public interface Feed extends Downloader, IDAble {
 	@Override
 	public ID getID();
 	
-	public String getName();
 	
 	public String getLastSeen();
 	

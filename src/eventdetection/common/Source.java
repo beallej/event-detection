@@ -2,17 +2,12 @@ package eventdetection.common;
 
 import java.nio.file.Path;
 
-public interface Source extends IDAble {
+public abstract class Source implements IDAble {
 	
-	public double getReliability();
+	public abstract double getReliability();
 	
 	@Override
-	public ID getID();
-	
-	/**
-	 * @return the name
-	 */
-	public String getName();
+	public abstract ID getID();
 	
 	public static Source loadFromJSON(Path file) {
 		return null; //TODO Placeholder.  We should probably implement this
