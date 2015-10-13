@@ -15,7 +15,7 @@ import eventdetection.common.Source;
  * 
  * @author Joshua Lipstone
  */
-public abstract class Feed implements Downloader, IDAble {
+public abstract class Feed extends Downloader implements IDAble {
 	private final ID id;
 	private final Source source;
 	private final URL url;

@@ -10,7 +10,7 @@ import java.util.List;
  * 
  * @author Joshua Lipstone
  */
-public class DownloaderCollection implements Downloader {
+public class DownloaderCollection extends Downloader {
 	private final Collection<Downloader> downloaders;
 	
 	/**

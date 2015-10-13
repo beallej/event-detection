@@ -19,7 +19,7 @@ import eventdetection.temporarylibraryplaceholders.IOExceptedFunction;
  * 
  * @author Joshua Lipstone
  */
-public class FeedManager implements Downloader {
+public class FeedManager extends Downloader {
 	private final Map<ID, Scraper> scrapers;
 	private final Map<ID, Feed> feeds;
 	
