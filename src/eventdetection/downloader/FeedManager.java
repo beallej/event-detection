@@ -1,18 +1,13 @@
 package eventdetection.downloader;
 
 import java.io.IOException;
-import java.nio.file.DirectoryStream.Filter;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiFunction;
 
 import eventdetection.common.ID;
-import eventdetection.common.IDAble;
-import eventdetection.temporarylibraryplaceholders.IOExceptedFunction;
 
 /**
  * A system for loading and managing {@link Feed Feeds} and {@link Scraper Scrapers}.
@@ -41,48 +36,10 @@ public class FeedManager extends Downloader {
 	}
 	
 	/**
-	 * A helper method for loading {@link IDAble} objects from files.
-	 * 
-	 * @param loader
-	 *            the method used to load the {@link IDAble} object from a file
-	 * @param filter
-	 *            the method used to determine if the file has the correct extension
-	 * @param path
-	 *            a {@link Path} to a file or folder of files that define instances of the {@link IDAble} object
-	 * @param store
-	 *            the method used to store the constructed {@link IDAble} objects
-	 * @return a {@link List} of the IDs of the loaded objects
-	 * @throws IOException
-	 *             if an error occurs while loading from files
-	 */
-	public static <T extends IDAble> List<ID> loadItemsFromFile(IOExceptedFunction<Path, T> loader, Filter<Path> filter, Path path, BiFunction<ID, T, T> store) throws IOException {
-		List<ID> ids = new ArrayList<>();
-		if (Files.isRegularFile(path)) {
-			if (filter.accept(path)) {
-				T t = loader.apply(path);
-				store.apply(t.getID(), t);
-				ids.add(t.getID());
-			}
-			return ids;
-		}
-		for (Path p : Files.newDirectoryStream(path, filter)) {
-			try {
-				T t = loader.apply(p);
-				store.apply(t.getID(), t);
-				ids.add(t.getID());
-			}
-			catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-		return ids;
-	}
-	
-	/**
 	 * Adds a {@link Scraper} or a folder of {@link Scraper Scrapers} to this {@link FeedManager}.
 	 * 
 	 * @param path
-	 *            a {@link Path} to a JSON file defining a {@link Scraper} or a folder of {@link Scraper Scrapers}
+	 *            a {@link Path} to a JSON file defining a {@link Scraper} or a folder of files defining {@link Scraper Scrapers}
 	 * @return the IDs of the added {@link Scraper Scrapers}
 	 * @throws IOException
 	 *             if an error occurs while loading the JSON files
@@ -95,7 +52,7 @@ public class FeedManager extends Downloader {
 	 * Adds a {@link Feed} or a folder of {@link Feed Feeds} to this {@link FeedManager}.
 	 * 
 	 * @param path
-	 *            a {@link Path} to a JSON file defining a {@link Feed} or a folder of {@link Feed Feeds}
+	 *            a {@link Path} to a JSON file defining a {@link Feed} or a folder of files defining {@link Feed Feeds}
 	 * @return the IDs of the added {@link Feed Feeds}
 	 * @throws IOException
 	 *             if an error occurs while loading the JSON files

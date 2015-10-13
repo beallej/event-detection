@@ -72,10 +72,6 @@ public class Scraper implements IDAble {
 		return id;
 	}
 	
-	public static Scraper loadFromJSON(Path json) throws IOException {
-		return null; //TODO We can't implement this without a JSON library
-	}
-	
 	@Override
 	public boolean equals(Object o) {
 		if (!(o instanceof Scraper))
@@ -87,5 +83,18 @@ public class Scraper implements IDAble {
 	@Override
 	public int hashCode() {
 		return getID().hashCode();
+	}
+	
+	/**
+	 * Loads a {@link Scraper} from a JSON file
+	 * 
+	 * @param json
+	 *            a {@link Path} to the JSON file
+	 * @return the {@link Scraper} described in the JSON file
+	 * @throws IOException
+	 *             an I/O error occurs
+	 */
+	public static Scraper loadFromJSON(Path json) throws IOException {
+		return null; //TODO We can't implement this without a JSON library
 	}
 }

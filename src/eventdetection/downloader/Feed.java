@@ -17,6 +17,8 @@ import eventdetection.common.Source;
  */
 public abstract class Feed extends Downloader implements IDAble {
 	private final ID id;
+	private final List<ID> scraperIDs;
+	private String lastSeen;
 	private final Source source;
 	private final URL url;
 	private final Map<ID, Scraper> scrapers;
@@ -28,13 +30,19 @@ public abstract class Feed extends Downloader implements IDAble {
 	 *            the ID of the {@link Feed}
 	 * @param source
 	 *            the {@link Source} of the {@link Feed}
+	 * @param lastSeen
+	 *            the name of the last-seen article
+	 * @param scraperIDs
+	 *            the IDs of the {@link Scraper Scrapers} that the {@link Feed} can use
 	 * @param url
 	 *            the specific {@link URL} of the {@link Feed}
 	 * @param scrapers
 	 *            the {@link Scraper Scrapers} available to the {@link Feed}
 	 */
-	public Feed(ID id, Source source, URL url, Map<ID, Scraper> scrapers) {
+	public Feed(ID id, Source source, List<ID> scraperIDs, String lastSeen, URL url, Map<ID, Scraper> scrapers) {
 		this.id = id;
+		this.scraperIDs = scraperIDs;
+		this.lastSeen = lastSeen;
 		this.source = source;
 		this.url = url;
 		this.scrapers = scrapers;
@@ -67,6 +75,19 @@ public abstract class Feed extends Downloader implements IDAble {
 	 */
 	public URL getURL() {
 		return url;
+	}
+	
+	private Scraper getScraper() {
+		Scraper out = null;
+		for (ID id : scraperIDs)
+			if ((out = scrapers.get(id)) != null)
+				return out;
+		return null;
+	}
+	
+	@Override
+	public int hashCode() {
+		return getID().hashCode();
 	}
 	
 	/**

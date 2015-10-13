@@ -2,6 +2,11 @@ package eventdetection.common;
 
 import java.nio.file.Path;
 
+/**
+ * Represents a source of news information.
+ * 
+ * @author Joshua Lipstone
+ */
 public class Source implements IDAble {
 	private final ID id;
 	private final double reliability;
@@ -29,6 +34,11 @@ public class Source implements IDAble {
 	@Override
 	public ID getID() {
 		return id;
+	}
+	
+	@Override
+	public int hashCode() {
+		return getID().hashCode();
 	}
 	
 	public static Source loadFromJSON(Path file) {
