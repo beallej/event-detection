@@ -44,7 +44,9 @@ public abstract class Feed implements Downloader, IDAble {
 	public abstract List<RawArticle> get();
 	
 	@Override
-	public abstract ID getID();
+	public ID getID() {
+		return id;
+	}
 	
 	/**
 	 * @return the name of the last-seen article. Downloading proceeds from the article immediately after this one
@@ -56,7 +58,16 @@ public abstract class Feed implements Downloader, IDAble {
 	 * 
 	 * @return the {@link Source} that this {@link Feed} is from
 	 */
-	public abstract Source getSource();
+	public Source getSource() {
+		return source;
+	}
+	
+	/**
+	 * @return the {@link URL} of the {@link Feed}
+	 */
+	public URL getURL() {
+		return url;
+	}
 	
 	/**
 	 * Loads a {@link Feed} from a JSON file

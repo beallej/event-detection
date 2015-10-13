@@ -13,7 +13,7 @@ import eventdetection.common.ID;
 import eventdetection.common.IDAble;
 import eventdetection.temporarylibraryplaceholders.Pair;
 
-public abstract class Scraper implements IDAble {
+public class Scraper implements IDAble {
 	private final List<Pair<Pattern, String>> sectioning;
 	private final List<Pair<Pattern, String>> filtering;
 	private final ID id;
