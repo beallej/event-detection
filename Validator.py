@@ -107,8 +107,8 @@ class Query:
   # Only called if matchesArticle == true
   def addArticle(self, article):
       if articles.length > minArticles:
-        return true
+        return True
   
   def matchesArticle(self, article):
       # if article matches:
-        return true
+        return True
