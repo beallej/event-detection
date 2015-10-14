@@ -13,37 +13,104 @@ import eventdetection.common.ID;
 import eventdetection.common.IDAble;
 import eventdetection.temporarylibraryplaceholders.Pair;
 
+/**
+ * A mechanism for scraping article text from online sources
+ * 
+ * @author Joshua Lipstone
+ */
 public class Scraper implements IDAble {
 	private final List<Pair<Pattern, String>> sectioning;
 	private final List<Pair<Pattern, String>> filtering;
 	private final ID id;
 	
+	/**
+	 * Creates a {@link Scraper} with the given id and patterns.
+	 * 
+	 * @param id
+	 *            the ID of the {@link Scraper}
+	 * @param sectioning
+	 *            the pattern/replacement combinations used to extract article text from an article
+	 * @param filtering
+	 *            the pattern/replacement combinations used to clean the extracted text
+	 */
 	public Scraper(ID id, List<Pair<Pattern, String>> sectioning, List<Pair<Pattern, String>> filtering) {
 		this.sectioning = sectioning;
 		this.id = id;
 		this.filtering = filtering;
 	}
 	
+	/**
+	 * Scrapes the text from the page at the given URL.
+	 * 
+	 * @param url
+	 *            the URL of the page as a {@link String}
+	 * @return the scraped text
+	 * @throws IOException
+	 *             if the text cannot be read from the URL
+	 */
 	public String scrape(String url) throws IOException {
 		return scrape(new URL(url));
 	}
 	
+	/**
+	 * Scrapes the text from the page at the given {@link URL}.
+	 * 
+	 * @param url
+	 *            the {@link URL} of the page
+	 * @return the scraped text
+	 * @throws IOException
+	 *             if the text cannot be read from the {@link URL}
+	 */
 	public String scrape(URL url) throws IOException {
-		StringBuilder sb = new StringBuilder();
 		//This disables the delimiter and then uses the scanner to convert the stream from the URL into text
-		try (InputStream is = url.openStream(); Scanner sc = new Scanner(is, "UTF-16").useDelimiter("\\A")) {
-			while (sc.hasNext())
-				sb.append(sc.next());
+		try (InputStream is = url.openStream()) {
+			return scrape(is);
 		}
+	}
+	
+	/**
+	 * Scrapes the text in the given {@link InputStream}.
+	 * 
+	 * @param is
+	 *            the {@link InputStream} containing the text to scrape
+	 * @return the scraped text
+	 */
+	public String scrape(InputStream is) {
+		try (@SuppressWarnings("resource")
+		Scanner sc = new Scanner(is, "UTF-16").useDelimiter("\\A")) {
+			return scrape(sc);
+		}
+	}
+	
+	/**
+	 * Scrapes the text in the given {@link Scanner}.
+	 * 
+	 * @param sc
+	 *            the {@link Scanner} containing the text to scrape
+	 * @return the scraped text
+	 */
+	public String scrape(Scanner sc) {
+		StringBuilder sb = new StringBuilder();
+		while (sc.hasNext())
+			sb.append(sc.next());
 		return filter(separate(sb.toString(), sectioning), filtering);
 	}
 	
-	public static String separate(String text, List<Pair<Pattern, String>> rules) {
+	/**
+	 * Extracts the text that composes an article from the given page
+	 * 
+	 * @param page
+	 *            the page from which to extract the text as a {@link String}
+	 * @param rules
+	 *            the rules to use to extract the text
+	 * @return the extracted text
+	 */
+	public static String separate(String page, List<Pair<Pattern, String>> rules) {
 		StringBuffer sb = new StringBuffer();
 		for (Pair<Pattern, String> rule : rules) {
 			int offset = 0, lastEnd = 0;
 			boolean found = false;
-			Matcher m = rule.getX().matcher(text);
+			Matcher m = rule.getX().matcher(page);
 			while (m.find()) {
 				found = true;
 				m.appendReplacement(sb, rule.getY());
@@ -52,12 +119,21 @@ public class Scraper implements IDAble {
 				lastEnd = m.end();
 			}
 			if (found)
-				text = sb.toString();
+				page = sb.toString();
 			sb.delete(0, sb.length()); //Clear the buffer
 		}
-		return text;
+		return page;
 	}
 	
+	/**
+	 * Filters already scraped text.
+	 * 
+	 * @param text
+	 *            the text to filter
+	 * @param rules
+	 *            the rules to use to filter the text
+	 * @return the filtered text
+	 */
 	public static String filter(String text, List<Pair<Pattern, String>> rules) {
 		for (Pair<Pattern, String> rule : rules)
 			text = rule.getX().matcher(text).replaceAll(rule.getY());

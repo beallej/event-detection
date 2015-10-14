@@ -77,6 +77,9 @@ public abstract class Feed extends Downloader implements IDAble {
 		return url;
 	}
 	
+	/**
+	 * @return the {@link Scraper} to use or {@code null} if one is not found
+	 */
 	private Scraper getScraper() {
 		Scraper out = null;
 		for (ID id : scraperIDs)
