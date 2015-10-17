@@ -57,13 +57,14 @@
 
 	<patternset id="Debug">
 		<!--Add the names of debug classes that should be excluded from the packaged jar here.-->
-		<exclude name="testCases/**" />
+		<exclude name="**/testCases/**" />
 	</patternset>
 
 	<target name="javadoc">
 		<javadoc access="protected" author="true" destdir="${doc}" packagenames="*" source="1.8" splitindex="true" use="true" version="true">
 			<fileset dir="${src}">
 				<patternset refid="Build Excludes" />
+				<patternset refid="Debug" />
 			</fileset>
 			<classpath if:true="${use.libs}" refid="build.classpath" />
 		</javadoc>
@@ -88,7 +89,6 @@
 			<arg value="-c" />
 			<arg value="which brew" />
 		</exec>
-		<echo level="info" message="${brew.path}" />
 		<exec unless:set="brew.prefix" searchpath="true" executable="${brew.path}" outputproperty="brew.prefix">
 			<arg value="--prefix" />
 		</exec>
