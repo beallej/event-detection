@@ -11,10 +11,11 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
+import toberumono.utils.functions.IOExceptedFunction;
+
 import eventdetection.common.ID;
 import eventdetection.common.IDAble;
 import eventdetection.common.Source;
-import eventdetection.temporarylibraryplaceholders.IOExceptedFunction;
 
 /**
  * This represents an object that can download information from news sources.
@@ -63,6 +64,8 @@ public abstract class Downloader implements Supplier<List<RawArticle>> {
 	 *            a {@link Path} to a file or folder of files that define instances of the {@link IDAble} object
 	 * @param store
 	 *            the method used to store the constructed {@link IDAble} objects
+	 * @param <T>
+	 *            the type of the item to load. This will be implicitly set when this method is used correctly
 	 * @return a {@link List} of the IDs of the loaded objects
 	 * @throws IOException
 	 *             if an error occurs while loading from files

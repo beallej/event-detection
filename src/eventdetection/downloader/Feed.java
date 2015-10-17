@@ -3,8 +3,15 @@ package eventdetection.downloader;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import com.rometools.rome.feed.synd.SyndEntry;
+import com.rometools.rome.feed.synd.SyndFeed;
+import com.rometools.rome.io.FeedException;
+import com.rometools.rome.io.SyndFeedInput;
+import com.rometools.rome.io.XmlReader;
 
 import eventdetection.common.ID;
 import eventdetection.common.IDAble;
@@ -49,7 +56,23 @@ public abstract class Feed extends Downloader implements IDAble {
 	}
 	
 	@Override
-	public abstract List<RawArticle> get();
+	public List<RawArticle> get() {
+		List<RawArticle> out = new ArrayList<>();
+		Scraper s = getScraper();
+		if (s == null)
+			return out;
+		SyndFeedInput input = new SyndFeedInput();
+		try {
+			SyndFeed feed = input.build(new XmlReader(url));
+			for (SyndEntry e : feed.getEntries()) {
+				
+			}
+		}
+		catch (IllegalArgumentException | FeedException | IOException e) {
+			e.printStackTrace();
+		}
+		return out;
+	}
 	
 	@Override
 	public ID getID() {

@@ -1,6 +1,9 @@
 package eventdetection.common;
 
+import java.io.IOException;
 import java.nio.file.Path;
+
+import eventdetection.downloader.Scraper;
 
 /**
  * Represents a source of news information.
@@ -41,7 +44,16 @@ public class Source implements IDAble {
 		return getID().hashCode();
 	}
 	
-	public static Source loadFromJSON(Path file) {
+	/**
+	 * Loads a {@link Source} from a JSON file
+	 * 
+	 * @param json
+	 *            a {@link Path} to the JSON file
+	 * @return the {@link Scraper} described in the JSON file
+	 * @throws IOException
+	 *             an I/O error occurs
+	 */
+	public static Source loadFromJSON(Path json) throws IOException {
 		return null; //TODO Placeholder.  We should probably implement this
 	}
 }

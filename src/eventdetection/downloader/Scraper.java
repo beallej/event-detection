@@ -9,9 +9,10 @@ import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import toberumono.structures.tuples.Pair;
+
 import eventdetection.common.ID;
 import eventdetection.common.IDAble;
-import eventdetection.temporarylibraryplaceholders.Pair;
 
 /**
  * A mechanism for scraping article text from online sources
