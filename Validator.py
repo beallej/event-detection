@@ -1,41 +1,33 @@
 #We use term extraction and clustering methods found in this paper http://nlg18.csie.ntu.edu.tw:8080/lwku/c12.pdf
-class Validator :
-  def __init__(self, stoplist, multiwordTerms):
-    self.stoplist = stoplist
-    self.multiwordTerms = multiwordTerms
-    self.queries = []
+
+
+#TODO: TAKE STOPLIST FROM UML\
+#TODO: QUERYARTICLES[] -> QUERYARTICLELISTS
+#TODO: CHANGE GET QUERY ARTICLES FNNAME
+
+class AbstractValidator:
+  def __init__(self):
+      pass
+  def validate(self, Query, Article):
+      return 0.0
+
+
+class KeywordValidator(AbstractValidator):
+  def __init__(self):
+    self.queryArticleLists = []
 
   def addQuery(self, query):
-    self.queries.append(query)
+    queryArticleList = QueryArticleList(query)
+    self.queryArticleLists.append(queryArticleList)
 
-  def addToQueries(self, article):
-    foundQuery = False
-    for query in self.queries:
-      if query.matches(article):
-        query.addArticle(article)
-        foundQuery = True        
-        
-    #returns true if added to 1 or more queries
-    return foundQuery
-    
 
-  
 
-class Term: 
-  def __init__(self, text, weight):
-    self.text = text
-    self.weight = weight
-    self.substitutes = this.findSubstitutes()
-  
-  def getSubstitutes(self):
-    return self.substitutes
-  
-  # look up synonyms on wordnet, look up substitutable words in hierarchies (ex. Northfield for Minnesota)
-  def findSubstitutes(self):
-    # Return a list of substitutes for the term
-    substitutes = []
-    return substitutes
-    
+  def addToQueryArticleList(self, article):
+      queriesAddedTo = []
+      return queriesAddedTo
+
+  def getQueryArticleLists(self):
+      return self.queryArticleLists
     
 
 
@@ -68,47 +60,56 @@ class Article:
     self.body = body
     self.url = url
     self.source = source
-    
-    #N is the number of terms we want to have
-    self.terms = self.findTerms(n)
-    
-  def findTerms(self, n):
-    #stem, tag, filter terms
-    #assign term weights
-    #return n highest-weighted terms
-    terms = []
-    return terms
-  
-  def getTerms(self):
-    return self.terms
+
 
   def isLinkedTo(self, otherArticle):
     #returns true if otherAricle and self are semantically related
     return False
 
-  
+class QueryElement:
+    def __init__(self, role, word):
+      self.role = role
+      self.word = word
+      self.synonyms = self.getSynonyms()
+      self.hierarchies = self.getHierarchies()
+
+    def getSynonyms(self):
+        return []
+
+    def getHierarchies(self):
+        return []
+
   
 class Query:
   
-  def __init__(self, queryParts, threshold, minArticles):
+  def __init__(self, id, queryParts, threshold):
     self.threshold = threshold
-    self.minArticles = minArticles
-    self.elements = {}
-    
-    #Create a dictionary of part-of-speech : Term
-    #Example: self.elements["Subject"] = Term("Beyonce", 1)
-    #Empty query fields are not part of this new dictionary
-    for element in queryParts:
-      if self.elements[element] != "":
-        self.elements[element] = Term(queryParts[element], 1)
-        
-    self.articles = []
-  
-  # Only called if matchesArticle == true
-  def addArticle(self, article):
-      if articles.length > minArticles:
-        return True
-  
-  def matchesArticle(self, article):
-      # if article matches:
-        return True
+    self.id = id
+    self.subject = QueryElement("subject", queryParts["subject"])
+    self.verb = QueryElement("verb", queryParts["verb"])
+    self.directObj = QueryElement("directObj", queryParts["directObj"])
+    self.indirectObj = QueryElement("indirectObj", queryParts["indirectObj"])
+    self.location = QueryElement("location", queryParts["location"])
+
+  def getId(self):
+      return self.id
+
+  def getThreshold(self):
+      return self.threshold
+
+  def getElements(self):
+      return self.subject, self.verb, self.directObj, self.indirectObj, self.location
+
+class QueryArticleList:
+
+    def __init__(self, query):
+        self.query = query
+        self.articles = []
+
+    def addArticle(self, article):
+        return
+
+    def getNumArticles(self):
+        return len(self.articles)
+
+
