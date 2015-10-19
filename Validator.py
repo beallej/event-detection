@@ -1,9 +1,6 @@
 #We use term extraction and clustering methods found in this paper http://nlg18.csie.ntu.edu.tw:8080/lwku/c12.pdf
 
 
-#TODO: TAKE STOPLIST FROM UML\
-#TODO: QUERYARTICLES[] -> QUERYARTICLELISTS
-#TODO: CHANGE GET QUERY ARTICLES FNNAME
 
 class AbstractValidator:
   def __init__(self):
@@ -36,6 +33,7 @@ class Source:
     self.id = id
     self.name = name
     self.reliability = reliability
+      
   def getID(self):
     # Return source's ID
     return self.id
