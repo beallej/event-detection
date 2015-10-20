@@ -50,6 +50,7 @@
 		<include name="JSONLib.jar" />
 		<include name="**/rome*.jar" />
 		<include name="**/jdom*.jar" />
+		<include name="**/slf4j*.jar" />
 	</patternset>
 
 	<patternset id="Build Excludes">

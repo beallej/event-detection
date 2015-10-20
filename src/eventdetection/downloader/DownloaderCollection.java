@@ -61,7 +61,7 @@ public class DownloaderCollection extends Downloader {
 	public Collection<Downloader> getDownloaders() {
 		return downloaders;
 	}
-
+	
 	@Override
 	public void close() throws IOException {
 		if (closed)

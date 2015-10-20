@@ -28,6 +28,8 @@ import eventdetection.common.Source;
  * @author Joshua Lipstone
  */
 public class Feed extends Downloader implements IDAble, JSONRepresentable {
+	private static final SyndFeedInput input = new SyndFeedInput();
+	
 	private final String id;
 	private final List<String> scraperIDs;
 	private String lastSeen;
@@ -104,11 +106,14 @@ public class Feed extends Downloader implements IDAble, JSONRepresentable {
 		Scraper s = getScraper();
 		if (s == null)
 			return out;
-		SyndFeedInput input = new SyndFeedInput();
 		try {
 			SyndFeed feed = input.build(new XmlReader(url));
 			for (SyndEntry e : feed.getEntries()) {
-				System.out.println(e.getTitle());
+				String text = s.scrape(new URL(e.getLink()));
+				if (text == null)
+					continue;
+				RawArticle ra = new RawArticle(e.getTitle(), text, e.getLink(), getSource());
+				out.add(ra);
 			}
 		}
 		catch (IllegalArgumentException | FeedException | IOException e) {

@@ -2,6 +2,7 @@ package eventdetection.downloader;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.DirectoryStream.Filter;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -92,14 +93,16 @@ public abstract class Downloader implements Supplier<List<RawArticle>>, Closeabl
 			}
 			return ids;
 		}
-		for (Path p : Files.newDirectoryStream(path, filter)) {
-			try {
-				T t = loader.apply(p);
-				store.apply(t.getID(), t);
-				ids.add(t.getID());
-			}
-			catch (IOException e) {
-				e.printStackTrace();
+		try (DirectoryStream<Path> stream = Files.newDirectoryStream(path, p -> true)) {
+			for (Path p : stream) {
+				try {
+					T t = loader.apply(p);
+					store.apply(t.getID(), t);
+					ids.add(t.getID());
+				}
+				catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		return ids;

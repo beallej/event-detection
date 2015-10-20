@@ -100,7 +100,6 @@ public class Scraper implements IDAble, JSONRepresentable {
 	 *             if the text cannot be read from the {@link URL}
 	 */
 	public String scrape(URL url) throws IOException {
-		//This disables the delimiter and then uses the scanner to convert the stream from the URL into text
 		try (InputStream is = url.openStream()) {
 			return scrape(is);
 		}
@@ -114,8 +113,9 @@ public class Scraper implements IDAble, JSONRepresentable {
 	 * @return the scraped text
 	 */
 	public String scrape(InputStream is) {
+		//This disables the delimiter and then uses the scanner to convert the stream from the URL into text
 		try (@SuppressWarnings("resource")
-		Scanner sc = new Scanner(is, "UTF-16").useDelimiter("\\A")) {
+		Scanner sc = new Scanner(is).useDelimiter("\\A")) {
 			return scrape(sc);
 		}
 	}
@@ -131,7 +131,10 @@ public class Scraper implements IDAble, JSONRepresentable {
 		StringBuilder sb = new StringBuilder();
 		while (sc.hasNext())
 			sb.append(sc.next());
-		return filter(separate(sb.toString(), sectioning), filtering);
+		String separated = separate(sb.toString(), sectioning);
+		if (separated == null)
+			return null;
+		return filter(separated, filtering);
 	}
 	
 	/**
@@ -145,6 +148,7 @@ public class Scraper implements IDAble, JSONRepresentable {
 	 */
 	public static String separate(String page, List<Pair<Pattern, String>> rules) {
 		StringBuffer sb = new StringBuffer();
+		boolean didFind = false;
 		for (Pair<Pattern, String> rule : rules) {
 			int offset = 0, lastEnd = 0;
 			boolean found = false;
@@ -156,10 +160,14 @@ public class Scraper implements IDAble, JSONRepresentable {
 				offset = sb.length();
 				lastEnd = m.end();
 			}
-			if (found)
+			if (found) {
+				didFind = true;
 				page = sb.toString();
+			}
 			sb.delete(0, sb.length()); //Clear the buffer
 		}
+		if (!didFind)
+			return null;
 		return page;
 	}
 	

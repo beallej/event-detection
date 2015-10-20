@@ -1,5 +1,6 @@
 package eventdetection.downloader;
 
+import java.net.MalformedURLException;
 import java.net.URL;
 
 import eventdetection.common.Source;
@@ -13,6 +14,24 @@ public class RawArticle {
 	private final String title, text;
 	private final URL url;
 	private final Source source;
+	
+	/**
+	 * Initializes a {@link RawArticle}
+	 * 
+	 * @param title
+	 *            the title of the article
+	 * @param text
+	 *            the plain text of the article (from a {@link Scraper})
+	 * @param url
+	 *            the URL of the full article as a {@link String}
+	 * @param source
+	 *            the {@link Source} that the article is from
+	 * @throws MalformedURLException
+	 *             if the given <tt>url</tt> is incorrectly formatted
+	 */
+	public RawArticle(String title, String text, String url, Source source) throws MalformedURLException {
+		this(title, text, new URL(url), source);
+	}
 	
 	/**
 	 * Initializes a {@link RawArticle}
