@@ -3,6 +3,9 @@ package eventdetection.common;
 import java.io.IOException;
 import java.nio.file.Path;
 
+import toberumono.json.JSONObject;
+import toberumono.json.JSONSystem;
+
 import eventdetection.downloader.Scraper;
 
 /**
@@ -47,13 +50,14 @@ public class Source implements IDAble {
 	/**
 	 * Loads a {@link Source} from a JSON file
 	 * 
-	 * @param json
+	 * @param file
 	 *            a {@link Path} to the JSON file
 	 * @return the {@link Scraper} described in the JSON file
 	 * @throws IOException
 	 *             an I/O error occurs
 	 */
-	public static Source loadFromJSON(Path json) throws IOException {
-		return null; //TODO Placeholder.  We should probably implement this
+	public static Source loadFromJSON(Path file) throws IOException {
+		JSONObject json = (JSONObject) JSONSystem.loadJSON(file);
+		return new Source((String) json.get("id").value(), (Double) json.get("reliability").value());
 	}
 }
