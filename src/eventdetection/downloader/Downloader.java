@@ -13,7 +13,6 @@ import java.util.function.Supplier;
 
 import toberumono.utils.functions.IOExceptedFunction;
 
-import eventdetection.common.ID;
 import eventdetection.common.IDAble;
 import eventdetection.common.Source;
 
@@ -26,7 +25,7 @@ public abstract class Downloader implements Supplier<List<RawArticle>> {
 	/**
 	 * The available news {@link Source Sources}
 	 */
-	public static final Map<ID, Source> sources = new LinkedHashMap<>();
+	public static final Map<String, Source> sources = new LinkedHashMap<>();
 	
 	/**
 	 * Adds a {@link Source} or a folder of {@link Source Sources} to {@link #sources}.
@@ -38,8 +37,20 @@ public abstract class Downloader implements Supplier<List<RawArticle>> {
 	 * @throws IOException
 	 *             if an error occurs while loading the JSON files
 	 */
-	public static List<ID> loadSource(Path path) throws IOException {
+	public static List<String> loadSource(Path path) throws IOException {
 		return loadItemsFromFile(Source::loadFromJSON, p -> p.endsWith(".json"), path, sources::put);
+	}
+	
+	/**
+	 * Adds the given {@link Source}.
+	 * 
+	 * @param source
+	 *            the {@link Source} to add
+	 * @return the ID of the added {@link Source}
+	 */
+	public static String addSource(Source source) {
+		sources.put(source.getID(), source);
+		return source.getID();
 	}
 	
 	/**
@@ -49,7 +60,7 @@ public abstract class Downloader implements Supplier<List<RawArticle>> {
 	 *            the ID of the {@link Source} to remove
 	 * @return the removed {@link Source} or {@code null}
 	 */
-	public static Source removeSource(ID id) {
+	public static Source removeSource(String id) {
 		return sources.remove(id);
 	}
 	
@@ -70,8 +81,8 @@ public abstract class Downloader implements Supplier<List<RawArticle>> {
 	 * @throws IOException
 	 *             if an error occurs while loading from files
 	 */
-	public static <T extends IDAble> List<ID> loadItemsFromFile(IOExceptedFunction<Path, T> loader, Filter<Path> filter, Path path, BiFunction<ID, T, T> store) throws IOException {
-		List<ID> ids = new ArrayList<>();
+	public static <T extends IDAble> List<String> loadItemsFromFile(IOExceptedFunction<Path, T> loader, Filter<Path> filter, Path path, BiFunction<String, T, T> store) throws IOException {
+		List<String> ids = new ArrayList<>();
 		if (Files.isRegularFile(path)) {
 			if (filter.accept(path)) {
 				T t = loader.apply(path);

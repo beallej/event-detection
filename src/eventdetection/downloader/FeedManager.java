@@ -7,16 +7,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import eventdetection.common.ID;
-
 /**
  * A system for loading and managing {@link Feed Feeds} and {@link Scraper Scrapers}.
  * 
  * @author Joshua Lipstone
  */
 public class FeedManager extends Downloader {
-	private final Map<ID, Scraper> scrapers;
-	private final Map<ID, Feed> feeds;
+	private final Map<String, Scraper> scrapers;
+	private final Map<String, Feed> feeds;
 	
 	/**
 	 * Initializes a {@link FeedManager} with {@link Feed Feeds} and {@link Scraper Scrapers} from the given folders
@@ -44,7 +42,7 @@ public class FeedManager extends Downloader {
 	 * @throws IOException
 	 *             if an error occurs while loading the JSON files
 	 */
-	public List<ID> addScraper(Path path) throws IOException {
+	public List<String> addScraper(Path path) throws IOException {
 		return loadItemsFromFile(Scraper::loadFromJSON, p -> p.endsWith(".json"), path, scrapers::put);
 	}
 	
@@ -57,7 +55,7 @@ public class FeedManager extends Downloader {
 	 * @throws IOException
 	 *             if an error occurs while loading the JSON files
 	 */
-	public List<ID> addFeed(Path path) throws IOException {
+	public List<String> addFeed(Path path) throws IOException {
 		return loadItemsFromFile(p -> Feed.loadFromJSON(p, scrapers), p -> p.endsWith(".json"), path, feeds::put);
 	}
 	
@@ -68,7 +66,7 @@ public class FeedManager extends Downloader {
 	 *            the ID of the {@link Scraper} to remove
 	 * @return the removed {@link Scraper} or {@code null}
 	 */
-	public Scraper removeScraper(ID id) {
+	public Scraper removeScraper(String id) {
 		return scrapers.remove(id);
 	}
 	
@@ -79,7 +77,7 @@ public class FeedManager extends Downloader {
 	 *            the ID of the {@link Feed} to remove
 	 * @return the removed {@link Feed} or {@code null}
 	 */
-	public Feed removeFeed(ID id) {
+	public Feed removeFeed(String id) {
 		return feeds.remove(id);
 	}
 	

@@ -11,7 +11,7 @@ import eventdetection.downloader.Scraper;
  * @author Joshua Lipstone
  */
 public class Source implements IDAble {
-	private final ID id;
+	private final String id;
 	private final double reliability;
 	
 	/**
@@ -22,7 +22,7 @@ public class Source implements IDAble {
 	 * @param reliability
 	 *            the reliability coefficient of the {@link Source}
 	 */
-	public Source(ID id, double reliability) {
+	public Source(String id, double reliability) {
 		this.id = id;
 		this.reliability = reliability;
 	}
@@ -35,7 +35,7 @@ public class Source implements IDAble {
 	}
 	
 	@Override
-	public ID getID() {
+	public String getID() {
 		return id;
 	}
 	

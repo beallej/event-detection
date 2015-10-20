@@ -10,5 +10,5 @@ public interface IDAble {
 	/**
 	 * @return the ID of the object
 	 */
-	public ID getID();
+	public String getID();
 }

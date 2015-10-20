@@ -11,7 +11,6 @@ import java.util.regex.Pattern;
 
 import toberumono.structures.tuples.Pair;
 
-import eventdetection.common.ID;
 import eventdetection.common.IDAble;
 
 /**
@@ -22,7 +21,7 @@ import eventdetection.common.IDAble;
 public class Scraper implements IDAble {
 	private final List<Pair<Pattern, String>> sectioning;
 	private final List<Pair<Pattern, String>> filtering;
-	private final ID id;
+	private final String id;
 	
 	/**
 	 * Creates a {@link Scraper} with the given id and patterns.
@@ -34,7 +33,7 @@ public class Scraper implements IDAble {
 	 * @param filtering
 	 *            the pattern/replacement combinations used to clean the extracted text
 	 */
-	public Scraper(ID id, List<Pair<Pattern, String>> sectioning, List<Pair<Pattern, String>> filtering) {
+	public Scraper(String id, List<Pair<Pattern, String>> sectioning, List<Pair<Pattern, String>> filtering) {
 		this.sectioning = sectioning;
 		this.id = id;
 		this.filtering = filtering;
@@ -142,10 +141,10 @@ public class Scraper implements IDAble {
 	}
 	
 	/**
-	 * @return the {@link ID}
+	 * @return the ID
 	 */
 	@Override
-	public ID getID() {
+	public String getID() {
 		return id;
 	}
 	

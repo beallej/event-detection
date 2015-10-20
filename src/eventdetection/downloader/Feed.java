@@ -13,7 +13,6 @@ import com.rometools.rome.io.FeedException;
 import com.rometools.rome.io.SyndFeedInput;
 import com.rometools.rome.io.XmlReader;
 
-import eventdetection.common.ID;
 import eventdetection.common.IDAble;
 import eventdetection.common.Source;
 
@@ -23,12 +22,12 @@ import eventdetection.common.Source;
  * @author Joshua Lipstone
  */
 public abstract class Feed extends Downloader implements IDAble {
-	private final ID id;
-	private final List<ID> scraperIDs;
+	private final String id;
+	private final List<String> scraperIDs;
 	private String lastSeen;
 	private final Source source;
 	private final URL url;
-	private final Map<ID, Scraper> scrapers;
+	private final Map<String, Scraper> scrapers;
 	
 	/**
 	 * Initializes a {@link Feed}
@@ -46,7 +45,7 @@ public abstract class Feed extends Downloader implements IDAble {
 	 * @param scrapers
 	 *            the {@link Scraper Scrapers} available to the {@link Feed}
 	 */
-	public Feed(ID id, Source source, List<ID> scraperIDs, String lastSeen, URL url, Map<ID, Scraper> scrapers) {
+	public Feed(String id, Source source, List<String> scraperIDs, String lastSeen, URL url, Map<String, Scraper> scrapers) {
 		this.id = id;
 		this.scraperIDs = scraperIDs;
 		this.lastSeen = lastSeen;
@@ -75,14 +74,16 @@ public abstract class Feed extends Downloader implements IDAble {
 	}
 	
 	@Override
-	public ID getID() {
+	public String getID() {
 		return id;
 	}
 	
 	/**
 	 * @return the name of the last-seen article. Downloading proceeds from the article immediately after this one
 	 */
-	public abstract String getLastSeen();
+	public String getLastSeen() {
+		return lastSeen;
+	}
 	
 	/**
 	 * This is to account for news sites such as NYT and CNN having multiple feeds.
@@ -105,10 +106,10 @@ public abstract class Feed extends Downloader implements IDAble {
 	 */
 	private Scraper getScraper() {
 		Scraper out = null;
-		for (ID id : scraperIDs)
+		for (String id : scraperIDs)
 			if ((out = scrapers.get(id)) != null)
 				return out;
-		return null;
+		return out;
 	}
 	
 	@Override
