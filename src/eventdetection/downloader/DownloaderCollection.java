@@ -1,5 +1,6 @@
 package eventdetection.downloader;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -12,12 +13,14 @@ import java.util.List;
  */
 public class DownloaderCollection extends Downloader {
 	private final Collection<Downloader> downloaders;
+	private boolean closed;
 	
 	/**
 	 * Creates an empty {@link DownloaderCollection}
 	 */
 	public DownloaderCollection() {
 		downloaders = new ArrayList<>();
+		closed = false;
 	}
 	
 	/**
@@ -39,6 +42,8 @@ public class DownloaderCollection extends Downloader {
 	 *            the {@link Downloader} to add
 	 */
 	public void addDownloader(Downloader downloader) {
+		if (downloader == this)
+			return;
 		getDownloaders().add(downloader);
 	}
 	
@@ -55,5 +60,14 @@ public class DownloaderCollection extends Downloader {
 	 */
 	public Collection<Downloader> getDownloaders() {
 		return downloaders;
+	}
+
+	@Override
+	public void close() throws IOException {
+		if (closed)
+			return;
+		closed = true;
+		for (Downloader d : downloaders)
+			d.close();
 	}
 }

@@ -4,11 +4,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import toberumono.json.JSONArray;
+import toberumono.json.JSONData;
+import toberumono.json.JSONObject;
+import toberumono.json.JSONRepresentable;
+import toberumono.json.JSONString;
+import toberumono.json.JSONSystem;
 import toberumono.structures.tuples.Pair;
 
 import eventdetection.common.IDAble;
@@ -18,10 +26,17 @@ import eventdetection.common.IDAble;
  * 
  * @author Joshua Lipstone
  */
-public class Scraper implements IDAble {
+public class Scraper implements IDAble, JSONRepresentable {
 	private final List<Pair<Pattern, String>> sectioning;
 	private final List<Pair<Pattern, String>> filtering;
 	private final String id;
+	private final JSONObject json;
+	private static final Function<Pair<Pattern, String>, JSONData<?>> filterToJSON = e -> {
+		JSONArray arr = new JSONArray();
+		arr.add(new JSONString(e.getX().toString()));
+		arr.add(new JSONString(e.getY()));
+		return arr;
+	};
 	
 	/**
 	 * Creates a {@link Scraper} with the given id and patterns.
@@ -34,9 +49,32 @@ public class Scraper implements IDAble {
 	 *            the pattern/replacement combinations used to clean the extracted text
 	 */
 	public Scraper(String id, List<Pair<Pattern, String>> sectioning, List<Pair<Pattern, String>> filtering) {
+		this(id, sectioning, filtering, null);
+	}
+	
+	/**
+	 * Creates a {@link Scraper} with the given id and patterns.
+	 * 
+	 * @param id
+	 *            the ID of the {@link Scraper}
+	 * @param sectioning
+	 *            the pattern/replacement combinations used to extract article text from an article
+	 * @param filtering
+	 *            the pattern/replacement combinations used to clean the extracted text
+	 * @param json
+	 *            the {@link JSONObject} on which the {@link Scraper} is based
+	 */
+	public Scraper(String id, List<Pair<Pattern, String>> sectioning, List<Pair<Pattern, String>> filtering, JSONObject json) {
 		this.sectioning = sectioning;
 		this.id = id;
 		this.filtering = filtering;
+		if (json == null) {
+			json = new JSONObject();
+			json.put("id", new JSONString(getID()));
+			json.put("sectioning", JSONArray.wrap(sectioning, filterToJSON));
+			json.put("filtering", JSONArray.wrap(filtering, filterToJSON));
+		}
+		this.json = json;
 	}
 	
 	/**
@@ -171,6 +209,23 @@ public class Scraper implements IDAble {
 	 *             an I/O error occurs
 	 */
 	public static Scraper loadFromJSON(Path json) throws IOException {
-		return null; //TODO We can't implement this without a JSON library
+		JSONObject config = (JSONObject) JSONSystem.loadJSON(json);
+		String id = (String) config.get("id").value();
+		List<Pair<Pattern, String>> sectioning = new ArrayList<>();
+		for (JSONData<?> r : (JSONArray) config.get("sectioning").value()) {
+			JSONArray rule = (JSONArray) r.value();
+			sectioning.add(new Pair<>(Pattern.compile(rule.get(0).value().toString()), rule.get(1).value().toString()));
+		}
+		List<Pair<Pattern, String>> filtering = new ArrayList<>();
+		for (JSONData<?> r : (JSONArray) config.get("filtering").value()) {
+			JSONArray rule = (JSONArray) r.value();
+			filtering.add(new Pair<>(Pattern.compile(rule.get(0).value().toString()), rule.get(1).value().toString()));
+		}
+		return new Scraper(id, sectioning, filtering);
+	}
+	
+	@Override
+	public JSONObject toJSONObject() {
+		return json;
 	}
 }

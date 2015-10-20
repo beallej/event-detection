@@ -46,6 +46,8 @@
 		<!--Add the names of the libraries to be included here.-->
 		<include name="Structures.jar" />
 		<include name="Utils.jar" />
+		<include name="Lexer.jar" />
+		<include name="JSONLib.jar" />
 		<include name="**/rome*.jar" />
 		<include name="**/jdom*.jar" />
 	</patternset>

@@ -15,6 +15,7 @@ import java.util.Map;
 public class FeedManager extends Downloader {
 	private final Map<String, Scraper> scrapers;
 	private final Map<String, Feed> feeds;
+	private boolean closed;
 	
 	/**
 	 * Initializes a {@link FeedManager} with {@link Feed Feeds} and {@link Scraper Scrapers} from the given folders
@@ -31,6 +32,7 @@ public class FeedManager extends Downloader {
 		feeds = new LinkedHashMap<>(); //We might want to keep the order consistent...
 		loadItemsFromFile(Scraper::loadFromJSON, p -> p.endsWith(".json"), scraperFolder, scrapers::put);
 		loadItemsFromFile(p -> Feed.loadFromJSON(p, scrapers), p -> p.endsWith(".json"), feedFolder, feeds::put);
+		closed = false;
 	}
 	
 	/**
@@ -87,5 +89,14 @@ public class FeedManager extends Downloader {
 		for (Downloader downloader : feeds.values())
 			out.addAll(downloader.get());
 		return out;
+	}
+
+	@Override
+	public void close() throws IOException {
+		if (closed)
+			return;
+		closed = true;
+		for (Feed f : feeds.values())
+			f.close();
 	}
 }

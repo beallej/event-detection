@@ -13,6 +13,12 @@ import com.rometools.rome.io.FeedException;
 import com.rometools.rome.io.SyndFeedInput;
 import com.rometools.rome.io.XmlReader;
 
+import toberumono.json.JSONArray;
+import toberumono.json.JSONObject;
+import toberumono.json.JSONRepresentable;
+import toberumono.json.JSONString;
+import toberumono.json.JSONSystem;
+
 import eventdetection.common.IDAble;
 import eventdetection.common.Source;
 
@@ -21,13 +27,16 @@ import eventdetection.common.Source;
  * 
  * @author Joshua Lipstone
  */
-public abstract class Feed extends Downloader implements IDAble {
+public class Feed extends Downloader implements IDAble, JSONRepresentable {
 	private final String id;
 	private final List<String> scraperIDs;
 	private String lastSeen;
 	private final Source source;
 	private final URL url;
 	private final Map<String, Scraper> scrapers;
+	private final JSONObject json;
+	private final Path file;
+	private boolean closed;
 	
 	/**
 	 * Initializes a {@link Feed}
@@ -46,12 +55,47 @@ public abstract class Feed extends Downloader implements IDAble {
 	 *            the {@link Scraper Scrapers} available to the {@link Feed}
 	 */
 	public Feed(String id, Source source, List<String> scraperIDs, String lastSeen, URL url, Map<String, Scraper> scrapers) {
+		this(id, source, scraperIDs, lastSeen, url, scrapers, null, null);
+	}
+	
+	/**
+	 * Initializes a {@link Feed}
+	 * 
+	 * @param id
+	 *            the ID of the {@link Feed}
+	 * @param source
+	 *            the {@link Source} of the {@link Feed}
+	 * @param lastSeen
+	 *            the name of the last-seen article
+	 * @param scraperIDs
+	 *            the IDs of the {@link Scraper Scrapers} that the {@link Feed} can use
+	 * @param url
+	 *            the specific {@link URL} of the {@link Feed}
+	 * @param scrapers
+	 *            the {@link Scraper Scrapers} available to the {@link Feed}
+	 * @param json
+	 *            the {@link JSONObject} on which the {@link Feed} is based
+	 * @param file
+	 *            the {@link Path} to the file from which the {@link Feed} was loaded
+	 */
+	public Feed(String id, Source source, List<String> scraperIDs, String lastSeen, URL url, Map<String, Scraper> scrapers, JSONObject json, Path file) {
 		this.id = id;
-		this.scraperIDs = scraperIDs;
-		this.lastSeen = lastSeen;
 		this.source = source;
 		this.url = url;
+		this.lastSeen = lastSeen;
+		this.scraperIDs = scraperIDs;
 		this.scrapers = scrapers;
+		if (json == null) {
+			json = new JSONObject();
+			json.put("id", new JSONString(getID()));
+			json.put("source", new JSONString(source.getID()));
+			json.put("url", new JSONString(getURL().toString()));
+			json.put("scraperIDs", JSONArray.wrap(scraperIDs));
+			json.put("lastSeen", new JSONString(lastSeen));
+		}
+		this.json = json;
+		this.file = file;
+		closed = false;
 	}
 	
 	@Override
@@ -64,7 +108,7 @@ public abstract class Feed extends Downloader implements IDAble {
 		try {
 			SyndFeed feed = input.build(new XmlReader(url));
 			for (SyndEntry e : feed.getEntries()) {
-				
+				System.out.println(e.getTitle());
 			}
 		}
 		catch (IllegalArgumentException | FeedException | IOException e) {
@@ -128,7 +172,31 @@ public abstract class Feed extends Downloader implements IDAble {
 	 * @throws IOException
 	 *             an I/O error occurs
 	 */
-	public static Feed loadFromJSON(Path file, Map<ID, Scraper> scrapers) throws IOException {
-		return null; //TODO We can't implement this without a JSON library
+	@SuppressWarnings("unchecked")
+	public static Feed loadFromJSON(Path file, Map<String, Scraper> scrapers) throws IOException {
+		JSONObject json = (JSONObject) JSONSystem.loadJSON(file);
+		List<String> scraperIDs = new ArrayList<>();
+		for (JSONString s : (List<JSONString>) json.get("scraperIDs").value())
+			scraperIDs.add(s.value());
+		URL url = new URL((String) json.get("url").value());
+		Source source = Downloader.sources.get(json.get("source"));
+		String lastSeen = json.containsKey("lastSeen") ? (String) json.get("lastSeen").value() : null;
+		return new Feed((String) json.get("id").value(), source, scraperIDs, lastSeen, url, scrapers);
+	}
+	
+	@Override
+	public JSONObject toJSONObject() {
+		return json;
+	}
+	
+	@Override
+	public void close() throws IOException {
+		if (closed)
+			return;
+		closed = true;
+		if (lastSeen != null)
+			json.put("lastSeen", new JSONString(lastSeen));
+		if (file != null)
+			JSONSystem.writeJSON(toJSONObject(), file);
 	}
 }

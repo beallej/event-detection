@@ -1,5 +1,6 @@
 package eventdetection.downloader;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.DirectoryStream.Filter;
 import java.nio.file.Files;
@@ -21,7 +22,7 @@ import eventdetection.common.Source;
  * 
  * @author Joshua Lipstone
  */
-public abstract class Downloader implements Supplier<List<RawArticle>> {
+public abstract class Downloader implements Supplier<List<RawArticle>>, Closeable {
 	/**
 	 * The available news {@link Source Sources}
 	 */

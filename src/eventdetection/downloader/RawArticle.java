@@ -61,4 +61,11 @@ public class RawArticle {
 		return source;
 	}
 	
+	@Override
+	public String toString() {
+		String out = "Title: " + getTitle();
+		out += "\nURL: " + getUrl();
+		out += "\n" + getText();
+		return out;
+	}
 }
