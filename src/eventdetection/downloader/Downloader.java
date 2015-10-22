@@ -6,16 +6,23 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.DirectoryStream.Filter;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 import toberumono.utils.functions.IOExceptedFunction;
 
 import eventdetection.common.IDAble;
+import eventdetection.common.SQLExceptedFunction;
 import eventdetection.common.Source;
 
 /**
@@ -28,6 +35,7 @@ public abstract class Downloader implements Supplier<List<RawArticle>>, Closeabl
 	 * The available news {@link Source Sources}
 	 */
 	public static final Map<String, Source> sources = new LinkedHashMap<>();
+	private static Connection connection = null;
 	
 	/**
 	 * Adds a {@link Source} or a folder of {@link Source Sources} to {@link #sources}.
@@ -106,5 +114,59 @@ public abstract class Downloader implements Supplier<List<RawArticle>>, Closeabl
 			}
 		}
 		return ids;
+	}
+	
+	public static <T extends IDAble> List<String> loadItemsFromSQL(String table, SQLExceptedFunction<ResultSet, T> loader, BiFunction<String, T, T> store) throws SQLException, IOException {
+		List<String> ids = new ArrayList<>();
+		Connection con = getConnection();
+		String statement = "SELECT *" + "\n" +
+				"FROM " + table;
+		try (PreparedStatement stmt = con.prepareStatement(statement)) {
+			ResultSet rs = stmt.executeQuery();
+			if (!rs.first()) //Set the pointer to the first row and test if it is not valid
+				return ids;
+			do {
+				T t = loader.apply(rs);
+				store.apply(t.getID(), t);
+				ids.add(t.getID());
+			} while (rs.next()); //While the next row is valid
+		}
+		return ids;
+	}
+	
+	/**
+	 * Generates a connection using JDBC using arguments from the command line.<br>
+	 * Currently works for:
+	 * <ul>
+	 * <li>MySQL</li>
+	 * </ul>
+	 * 
+	 * @return a {@link Connection} based on the command line arguments
+	 * @throws SQLException
+	 *             if something goes wrong while creating the {@link Connection}
+	 */
+	public static Connection getConnection() throws SQLException {
+		if (Downloader.connection != null)
+			return Downloader.connection;
+		String dbtype = System.getProperty("db.type");
+		if (dbtype == null)
+			return null;
+		Properties connectionProps = new Properties();
+		String connection = "jdbc:";
+		switch (dbtype) {
+			case "mysql":
+				connection += dbtype + "://";
+				if (System.getProperty("db.server") != null)
+					connection += System.getProperty("db.server");
+				if (System.getProperty("db.port") != null)
+					connection += ":" + System.getProperty("db.port");
+				connection += "/" + System.getProperty("db.name", "eventdetection");
+				break;
+			default:
+				return null;
+		}
+		connectionProps.put("user", System.getProperty("db.user", "root"));
+		connectionProps.put("password", System.getProperty("db.password", "password"));
+		return Downloader.connection = DriverManager.getConnection(connection, connectionProps);
 	}
 }

@@ -1,8 +1,11 @@
 package eventdetection.downloader;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -195,6 +198,28 @@ public class Feed extends Downloader implements IDAble, JSONRepresentable {
 		Source source = Downloader.sources.get(json.get("source"));
 		String lastSeen = json.containsKey("lastSeen") ? (String) json.get("lastSeen").value() : null;
 		return new Feed((String) json.get("id").value(), source, scraperIDs, lastSeen, url, scrapers);
+	}
+	
+	/**
+	 * Loads a {@link Feed} from SQL data.
+	 * 
+	 * @param rs
+	 *            the {@link ResultSet} thats currently select row should be used to generate the {@link Feed}
+	 * @param scrapers
+	 *            the available {@link Scraper Scrapers}
+	 * @return the {@link Feed} described in the current row in the SQL table
+	 * @throws SQLException
+	 *             an SQL error occurs
+	 * @throws MalformedURLException
+	 *             an I/O error occurs
+	 */
+	@SuppressWarnings("unchecked")
+	public static Feed loadFromSQL(ResultSet rs, Map<String, Scraper> scrapers) throws SQLException, MalformedURLException {
+		System.out.println(rs.getType());
+		List<String> scraperIDs = new ArrayList<>();
+		for (JSONString s : (List<JSONString>) JSONSystem.parseJSON(rs.getString("scrapers")))
+			scraperIDs.add(s.value());
+		return new Feed(rs.getString("id"), Downloader.sources.get(rs.getString("source")), scraperIDs, rs.getString("lastseen"), new URL(rs.getString("url")), scrapers);
 	}
 	
 	@Override
