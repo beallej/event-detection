@@ -47,6 +47,14 @@ public class Source implements IDAble {
 		return getID().hashCode();
 	}
 	
+	@Override
+	public boolean equals(Object o) {
+		if (o == null || !(o instanceof Source))
+			return false;
+		Source s = (Source) o;
+		return getID().equals(s.getID()) && getReliability() == s.getReliability();
+	}
+	
 	/**
 	 * Loads a {@link Source} from a JSON file
 	 * 

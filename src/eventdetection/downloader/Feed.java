@@ -166,8 +166,16 @@ public class Feed extends Downloader implements IDAble, JSONRepresentable {
 		return getID().hashCode();
 	}
 	
+	@Override
+	public boolean equals(Object o) {
+		if (o == null || !(o instanceof Feed))
+			return false;
+		Feed f = (Feed) o;
+		return getID().equals(f.getID());
+	}
+	
 	/**
-	 * Loads a {@link Feed} from a JSON file
+	 * Loads a {@link Feed} from a JSON file.
 	 * 
 	 * @param file
 	 *            a {@link Path} to the JSON file

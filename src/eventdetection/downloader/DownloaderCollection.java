@@ -62,6 +62,26 @@ public class DownloaderCollection extends Downloader {
 		return downloaders;
 	}
 	
+	/**
+	 * @return {@code true} if the {@link DownloaderCollection DownloaderCollection's} backing {@link Collection} is equal to
+	 *         the backing {@link Collection} of the other {@link DownloaderCollection}, otherwise {@code false}
+	 */
+	@Override
+	public boolean equals(Object o) {
+		if (o == null || !(o instanceof DownloaderCollection))
+			return false;
+		DownloaderCollection dc = (DownloaderCollection) o;
+		return getDownloaders().equals(dc.getDownloaders());
+	}
+	
+	/**
+	 * @return the hash code of the {@link DownloaderCollection DownloaderCollection's} backing {@link Collection}
+	 */
+	@Override
+	public int hashCode() {
+		return getDownloaders().hashCode();
+	}
+	
 	@Override
 	public void close() throws IOException {
 		if (closed)
