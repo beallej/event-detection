@@ -1,6 +1,7 @@
 #We use term extraction and clustering methods found in this paper http://nlg18.csie.ntu.edu.tw:8080/lwku/c12.pdf
 
-
+from nltk import pos_tag, word_tokenize
+from nltk.corpus import stopwords
 
 class AbstractValidator:
   def __init__(self):
@@ -17,14 +18,37 @@ class KeywordValidator(AbstractValidator):
     queryArticleList = QueryArticleList(query)
     self.queryArticleLists.append(queryArticleList)
 
-
-
   def addToQueryArticleList(self, article):
       queriesAddedTo = []
       return queriesAddedTo
 
   def getQueryArticleLists(self):
       return self.queryArticleLists
+
+  def validate(self, Query, Article):
+      maxMatchValue = 0
+      matchValue = 0
+      querySynonyms = Query.getSynonyms() # {NN: {word1: [list of synonym], word2: [list of synonym],...}, VB..}
+      articleKeyword = Article.getKeyword() #{NN: [list of keywords], VB:[list of verb keywords]}
+      for pos in querySynonyms:
+
+        for queryWord in querySynonyms[pos]:
+          maxMatchValue += 2
+          if pos in articleKeyword:
+            articleKeywordWithSameTag = articleKeyword[pos]
+            #Compare main key. If match, matchValue += 2
+            if queryWord in articleKeywordWithSameTag:
+              matchValue += 2
+            else:
+              for synonym in querySynonyms[pos][queryWord]:
+                if synonym in articleKeywordWithSameTag:
+                  matchValue += 1
+                  break
+      matchPercentage = matchValue/maxMatchValue
+      return matchPercentage
+
+          #if cannot find, compare synonym. Stop when found
+
     
 
 
@@ -58,11 +82,19 @@ class Article:
     self.body = body
     self.url = url
     self.source = source
+    self.keyword = self.extractKeyword()
 
+  def extractKeyword(self):
+    return {'NN': self.body.split()}
+
+  def getKeyword(self):
+    return self.keyword
 
   def isLinkedTo(self, otherArticle):
     #returns true if otherAricle and self are semantically related
     return False
+  def getTitle(self):
+    return self.title
 
 class QueryElement:
     def __init__(self, role, word):
@@ -88,9 +120,33 @@ class Query:
     self.directObj = QueryElement("directObj", queryParts["directObj"])
     self.indirectObj = QueryElement("indirectObj", queryParts["indirectObj"])
     self.location = QueryElement("location", queryParts["location"])
+    self.query = queryParts["query"]
+    self.stopList = set(stopwords.words('english'))
+
+
+    self.queryTagged = self.tagQuery()
+    self.synonymsWithTag = {}
+    self.getSynonymsWithTag()
+
+
 
   def getId(self):
       return self.id
+
+  def tagQuery(self):
+      return pos_tag(word_tokenize(self.query))
+
+
+  def getSynonymsWithTag(self): #Assume have already
+      for taggedWord in self.queryTagged:
+        if taggedWord[0].lower() not in self.stopList:
+          if taggedWord[1] not in self.synonymsWithTag:
+            self.synonymsWithTag[taggedWord[1]] = {}
+          self.synonymsWithTag[taggedWord[1]][taggedWord[0]] = []#getoneWordSynonym()
+
+
+  def getSynonyms(self):
+      return self.synonymsWithTag
 
   def getThreshold(self):
       return self.threshold
