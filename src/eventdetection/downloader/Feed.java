@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -42,6 +43,7 @@ public class Feed extends Downloader implements IDAble, JSONRepresentable {
 	private final JSONObject json;
 	private final Path file;
 	private boolean closed;
+	private boolean writeSQL;
 	
 	/**
 	 * Initializes a {@link Feed}
@@ -215,11 +217,12 @@ public class Feed extends Downloader implements IDAble, JSONRepresentable {
 	 */
 	@SuppressWarnings("unchecked")
 	public static Feed loadFromSQL(ResultSet rs, Map<String, Scraper> scrapers) throws SQLException, MalformedURLException {
-		System.out.println(rs.getType());
 		List<String> scraperIDs = new ArrayList<>();
 		for (JSONString s : (List<JSONString>) JSONSystem.parseJSON(rs.getString("scrapers")))
 			scraperIDs.add(s.value());
-		return new Feed(rs.getString("id"), Downloader.sources.get(rs.getString("source")), scraperIDs, rs.getString("lastseen"), new URL(rs.getString("url")), scrapers);
+		Feed out = new Feed(rs.getString("id"), Downloader.sources.get(rs.getString("source")), scraperIDs, rs.getString("lastseen"), new URL(rs.getString("url")), scrapers);
+		out.writeSQL = true;
+		return out;
 	}
 	
 	@Override
@@ -232,8 +235,18 @@ public class Feed extends Downloader implements IDAble, JSONRepresentable {
 		if (closed)
 			return;
 		closed = true;
+		if (writeSQL) {
+			try {
+				PreparedStatement ps = Downloader.getConnection().prepareStatement("update feeds set lastseen = ? where id = ?");
+				ps.setString(1, getLastSeen());
+				ps.setString(2, getID());
+			}
+			catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
 		if (lastSeen != null)
-			json.put("lastSeen", new JSONString(lastSeen));
+			json.put("lastSeen", new JSONString(getLastSeen()));
 		if (file != null)
 			JSONSystem.writeJSON(toJSONObject(), file);
 	}

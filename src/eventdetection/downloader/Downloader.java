@@ -116,12 +116,29 @@ public abstract class Downloader implements Supplier<List<RawArticle>>, Closeabl
 		return ids;
 	}
 	
+	/**
+	 * A helper method for loading {@link IDAble} objects from files.
+	 * 
+	 * @param table
+	 *            the name of the table from which to load the items
+	 * @param loader
+	 *            the method used to load the {@link IDAble} object from a file
+	 * @param store
+	 *            the method used to store the constructed {@link IDAble} objects
+	 * @param <T>
+	 *            the type of the item to load. This will be implicitly set when this method is used correctly
+	 * @return a {@link List} of the IDs of the loaded objects
+	 * @throws SQLException
+	 *             if an error occurs while loading
+	 * @throws IOException
+	 *             if an error occurs while loading
+	 */
 	public static <T extends IDAble> List<String> loadItemsFromSQL(String table, SQLExceptedFunction<ResultSet, T> loader, BiFunction<String, T, T> store) throws SQLException, IOException {
 		List<String> ids = new ArrayList<>();
 		Connection con = getConnection();
-		String statement = "SELECT *" + "\n" +
-				"FROM " + table;
+		String statement = "select * from ?";
 		try (PreparedStatement stmt = con.prepareStatement(statement)) {
+			stmt.setString(1, table);
 			ResultSet rs = stmt.executeQuery();
 			if (!rs.first()) //Set the pointer to the first row and test if it is not valid
 				return ids;
