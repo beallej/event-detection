@@ -10,9 +10,9 @@ public class DownloaderController {
 		try (DownloaderCollection dc = new DownloaderCollection()) {
 			FeedManager fm = new FeedManager(Paths.get("./Feeds/"), Paths.get("./Scrapers/"));
 			dc.addDownloader(fm);
-			for (RawArticle ra : dc.get()) {
-				System.out.println(ra.toString());
-			}
+			NLPFunction nlpf = new NLPFunction();
+			for (RawArticle ra : dc.get())
+				System.out.println(nlpf.apply(ra).toString());
 		}
 	}
 }
