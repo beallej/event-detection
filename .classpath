@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="lib" path="event-detection.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Brewed"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/CoreNLP"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/JDOM"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/ROME"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/SLF4J"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>

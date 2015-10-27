@@ -12,7 +12,7 @@ public class DownloaderController {
 			dc.addDownloader(fm);
 			NLPFunction nlpf = new NLPFunction();
 			for (RawArticle ra : dc.get())
-				System.out.println(nlpf.apply(ra).toString());
+				nlpf.apply(ra).toString();
 		}
 	}
 }

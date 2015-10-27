@@ -3,9 +3,6 @@ package eventdetection.downloader;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 import eventdetection.common.Source;
 
@@ -13,9 +10,7 @@ public class Article {
 	private final String title, text;
 	private final URL url;
 	private final Source source;
-	private List<String> keywords;
-	private Map<String, String> tags;
-	private HashMap<String, String> tags;
+	
 	/**
 	 * Initializes a {@link RawArticle}
 	 * 
@@ -30,8 +25,8 @@ public class Article {
 	 * @throws MalformedURLException
 	 *             if the given <tt>url</tt> is incorrectly formatted
 	 */
-	public Article(String title, String text, String url, Source source, List<String> keywords) throws MalformedURLException {
-		this(title, text, new URL(url), source, keywords);
+	public RawArticle(String title, String text, String url, Source source) throws MalformedURLException {
+		this(title, text, new URL(url), source);
 	}
 	
 	/**
@@ -46,12 +41,11 @@ public class Article {
 	 * @param source
 	 *            the {@link Source} that the article is from
 	 */
-	public Article(String title, String text, URL url, Source source, List<String> keywords) {
+	public RawArticle(String title, String text, URL url, Source source) {
 		this.title = title;
 		this.text = text;
 		this.url = url;
 		this.source = source;
-		this.keywords = keywords;
 	}
 	
 	/**
@@ -80,14 +74,6 @@ public class Article {
 	 */
 	public final Source getSource() {
 		return source;
-	}
-	
-	/**
-	 * @return the keywords associated with the article
-	 */
-	
-	public final List<String> getKeywords(){
-		return keywords;
 	}
 	
 	@Override
