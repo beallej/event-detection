@@ -12,8 +12,7 @@
 
 import re
 import operator
-from nltk.tokenize import TweetTokenizer
-from nltk.stem.snowball import SnowballStemmer
+
 
 debug = False
 test = False
@@ -169,21 +168,6 @@ class Rake(object):
         self.__min_char_length = min_char_length
         self.__max_words_length = max_words_length
         self.__min_keyword_frequency = min_keyword_frequency
-
-    def run_stemmed(self,text):
-        text = re.sub(r'https?://.+\s', "", text)
-        sentence_list_unstemmed = split_sentences(text)
-        sentence_list = []
-        tknzr = TweetTokenizer()
-        for sentence in sentence_list_unstemmed:
-            tokens = tknzr.tokenize(sentence)
-            stemmed = []
-            for token in tokens:
-                stemmed.append(SnowballStemmer("english").stem(token))
-            text = " ".join(stemmed)
-            sentence_list.append(text)
-        to_run = "! ".join(sentence_list)
-        return self.run(to_run)
 
 
     def run(self, text):
