@@ -1,13 +1,11 @@
-package eventdetection.downloader;
-
+package eventdetection.common;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import eventdetection.common.Source;
+import eventdetection.downloader.Scraper;
 
 public class Article {
 	private final String title, text;
@@ -15,9 +13,9 @@ public class Article {
 	private final Source source;
 	private List<String> keywords;
 	private Map<String, String> tags;
-	private HashMap<String, String> tags;
+	
 	/**
-	 * Initializes a {@link RawArticle}
+	 * Initializes a {@link Article}
 	 * 
 	 * @param title
 	 *            the title of the article
@@ -35,7 +33,7 @@ public class Article {
 	}
 	
 	/**
-	 * Initializes a {@link RawArticle}
+	 * Initializes a {@link Article}
 	 * 
 	 * @param title
 	 *            the title of the article
@@ -86,7 +84,7 @@ public class Article {
 	 * @return the keywords associated with the article
 	 */
 	
-	public final List<String> getKeywords(){
+	public final List<String> getKeywords() {
 		return keywords;
 	}
 	
