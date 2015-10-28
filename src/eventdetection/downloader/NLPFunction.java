@@ -15,17 +15,21 @@ import eventdetection.common.Article;
 
 public class NLPFunction implements Function<RawArticle, Article> {
 	private static final String delimiter = "_";
-
-	@Override
-	public Article apply(RawArticle t) {
+	private static final StanfordCoreNLP pipeline;
+	
+	static {
 		// creates a StanfordCoreNLP object, with POS tagging, lemmatization,
 		// NER, parsing, and coreference resolution
 		Properties props = new Properties();
 		props.setProperty("annotators", "tokenize, ssplit, pos, lemma, ner, parse, dcoref");
-		StanfordCoreNLP pipeline = new StanfordCoreNLP(props);
+		pipeline = new StanfordCoreNLP(props);
+	}
+
+	@Override
+	public Article apply(RawArticle t) {
 
 		// read some text in the text variable
-		String text = t.toString();
+		String text = t.getText();
 
 		// create an empty Annotation just with the given text
 		Annotation document = new Annotation(text);
@@ -42,19 +46,14 @@ public class NLPFunction implements Function<RawArticle, Article> {
 		for (CoreMap sentence : sentences) {
 			// traversing the words in the current sentence
 			// a CoreLabel is a CoreMap with additional token-specific methods
-			for (CoreLabel token : sentence.get(TokensAnnotation.class)) {
+			for (CoreLabel token : sentence.get(TokensAnnotation.class))
 				sb.append(token.word()).append(delimiter).append(token.get(PartOfSpeechAnnotation.class)).append(" ");
-				// this is the text of the token
-				//String pos = token.get(PartOfSpeechAnnotation.class);
-				//System.out.println("WORD: " + token.toString() + "     POS: " + pos.toString());
-			}
 
 			// this is the parse tree of the current sentence
 			// Tree tree = sentence.get(TreeAnnotation.class);
 
 			// System.out.println(tree.toString());
 		}
-		System.out.println(sb.toString());
 		return new Article(t.getTitle(), sb.toString().trim(), t.getText(), t.getUrl(), t.getSource());
 
 	}
