@@ -18,10 +18,16 @@ sure you still have 4 slashes.\n")
         threshold = None
 
         query = Query(1, queryParts, threshold)
+        sample_file = open("cancer.txt", 'r')
+        text = sample_file.read()
 
-        articlePool = [Article("Article 1 about Beyonce", "Beyonce song", "url", "source"), \
-                       Article("Article 2 about Beyonce", "Beyonce song", "url", "source"), \
-                       Article("Article 3 about Race", "Race song", "url", "source")]
+        sample_file3 = open("ukraine.txt", 'r')
+        text3 = sample_file3.read()
+        articlePool = [Article("Fake article", "meow", "url", "source"),\
+                        Article("Food experts agree: WHO report on cancer and meat is spot on", text, "url", "source"),\
+                       Article("Fraud Claims Delay Elections in Two Ukrainian Cities", text3, "url", "source")]
+        for article in articlePool:
+            print(article.keyword)
         
 
 
@@ -30,7 +36,7 @@ sure you still have 4 slashes.\n")
         for article in articlePool:
             keywordValidator = KeywordValidator()
             matchPercentage = keywordValidator.validate(query, article)
-            if matchPercentage > 0.4:
+            if matchPercentage > 0.2:
                 numMatchingArticle += 1
                 print(article.getTitle())
         if numMatchingArticle == 0:
