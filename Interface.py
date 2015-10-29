@@ -1,5 +1,6 @@
 import sys
 from Validator import *
+from nltk import pos_tag, word_tokenize
 
 def main():
     userInput = input("Please enter query, in the form of :Subject/Verb/Direct Object/Indirect Object/\
@@ -10,7 +11,7 @@ sure you still have 4 slashes.\n")
         if userInput[0] == "" or userInput[1] == "" :
             print("Subject and Verb are required!")
             return
-        queryParts = {"subject": userInput[0], "verb": userInput[1], "directObj": userInput[2], \
+        queryParts = {"query": ' '.join(userInput), "subject": userInput[0], "verb": userInput[1], "directObj": userInput[2], \
         "indirectObj": userInput[3], "location" : userInput[4]}
 
         # put into database -> get id
@@ -18,7 +19,23 @@ sure you still have 4 slashes.\n")
 
         query = Query(1, queryParts, threshold)
 
-        print(queryParts)
+        articlePool = [Article("Article 1 about Beyonce", "Beyonce song", "url", "source"), \
+                       Article("Article 2 about Beyonce", "Beyonce song", "url", "source"), \
+                       Article("Article 3 about Race", "Race song", "url", "source")]
+        
+
+
+        print("RESULT:\nArticles that matched:")
+        numMatchingArticle = 0
+        for article in articlePool:
+            keywordValidator = KeywordValidator()
+            matchPercentage = keywordValidator.validate(query, article)
+            if matchPercentage > 0.4:
+                numMatchingArticle += 1
+                print(article.getTitle())
+        if numMatchingArticle == 0:
+            print("No matching articles")
+
     else:
         print("Please enter exactly 5 elements.")
 
