@@ -55,6 +55,5 @@ public class NLPFunction implements Function<RawArticle, Article> {
 			// System.out.println(tree.toString());
 		}
 		return new Article(t.getTitle(), sb.toString().trim(), t.getText(), t.getUrl(), t.getSource());
-
 	}
 }

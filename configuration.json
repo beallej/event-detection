@@ -1,0 +1,27 @@
+{
+	"articles" : {
+		"deletion-delay" : {
+			"years"		: 0,
+			"months"	: 0,
+			"weeks"		: 1,
+			"days"		: 0,
+			"hours"		: 0,
+			"minutes"	: 0,
+			"seconds"	: 0
+		}
+	},
+	"database" : {
+		"server"	: "localhost",
+		"port"		: null,
+		"type"		: "MySQL",
+		"name"		: "event_detection",
+		"user"		: "root",
+		"pass"		: null
+	},
+	"paths" : {
+		"sources"	: ["./sources"],
+		"feeds"		: ["./feeds"],
+		"scrapers"	: ["./scrapers"],
+		"articles"	: ["./articles"]
+	}
+}
