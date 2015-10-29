@@ -15,6 +15,5 @@ CREATE TABLE IF NOT EXISTS feeds (
 CREATE TABLE IF NOT EXISTS articles (
 	id INT UNSIGNED AUTO_INCREMENT, title varchar(255), source varchar(255), url blob, filename blob default NULL,
 	primary key (id),
-	foreign key (source) references sources(id),
-	unique key (filename(100))
+	foreign key (source) references sources(id)
 );
