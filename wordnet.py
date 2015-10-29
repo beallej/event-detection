@@ -24,9 +24,8 @@ def get_hypernyms(word, pos):
 
 def get_synonym_list(tagged_sequence):
 	"""Returns a dictionary of lists of synonyms for a tagged sequence of words"""
-	split_sequence = [tuple(word_tag.split("/")) for word_tag in tagged_sequence.split()]
 	results = defaultdict(dict)
-	for word_tag in split_sequence:
+	for word_tag in tagged_sequence:
 		word = word_tag[0]
 		tag = get_pos_tag_for_wordnet(word_tag[1])
 		results[tag][word] = get_synonyms(word, tag)
@@ -35,9 +34,8 @@ def get_synonym_list(tagged_sequence):
 
 def get_hypernym_list(tagged_sequence):
 	"""Returns a dictionary of lists of hypernyms for a tagged sequence of words"""
-	split_sequence = [tuple(word_tag.split("/")) for word_tag in tagged_sequence.split()]
 	results = defaultdict(dict)
-	for word_tag in split_sequence:
+	for word_tag in tagged_sequence:
 		word = word_tag[0]
 		tag = get_pos_tag_for_wordnet(word_tag[1])
 		results[tag][word] = get_hypernyms(word, tag)
