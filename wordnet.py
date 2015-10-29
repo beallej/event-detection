@@ -28,7 +28,7 @@ def get_synonym_list(tagged_sequence):
 	for word_tag in tagged_sequence:
 		word = word_tag[0]
 		tag = get_pos_tag_for_wordnet(word_tag[1])
-		results[tag][word] = get_synonyms(word, tag)
+		results[word_tag[1]][word] = get_synonyms(word, tag)
 	return results
 
 
@@ -38,7 +38,7 @@ def get_hypernym_list(tagged_sequence):
 	for word_tag in tagged_sequence:
 		word = word_tag[0]
 		tag = get_pos_tag_for_wordnet(word_tag[1])
-		results[tag][word] = get_hypernyms(word, tag)
+		results[word_tag[1]][word] = get_hypernyms(word, tag)
 	return results
 
 
