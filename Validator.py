@@ -189,8 +189,6 @@ class KeywordExtractor:
                     if lastTag not in keywords_tagged:
                         keywords_tagged[lastTag] = set()
                     keywords_tagged[lastTag].add(unstemmed)
-                else:
-                    print(keyword, firstTag, lastTag)
 
         return keywords_tagged
 
