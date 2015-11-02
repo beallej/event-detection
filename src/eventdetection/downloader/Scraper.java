@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.nio.file.Path;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -208,6 +210,32 @@ public class Scraper implements IDAble, JSONRepresentable {
 	}
 	
 	/**
+	 * Loads a {@link Feed} from SQL data.
+	 * 
+	 * @param rs
+	 *            the {@link ResultSet} thats currently select row should be used to generate the {@link Feed}
+	 * @return the {@link Feed} described in the current row in the SQL table
+	 * @throws SQLException
+	 *             an SQL error occurs
+	 */
+	public static Scraper loadFromSQL(ResultSet rs) throws SQLException {
+		return new Scraper(rs.getString("id"), jsonArrayToPairs(rs.getString("sectioning")), jsonArrayToPairs(rs.getString("filtering")));
+	}
+	
+	private static final List<Pair<Pattern, String>> jsonArrayToPairs(String json) {
+		return jsonArrayToPairs((JSONArray) JSONSystem.parseJSON(json));
+	}
+	
+	private static final List<Pair<Pattern, String>> jsonArrayToPairs(JSONArray array) {
+		List<Pair<Pattern, String>> pairs = new ArrayList<>();
+		for (JSONData<?> s : array) {
+			JSONArray a = (JSONArray) s;
+			pairs.add(new Pair<>(Pattern.compile(a.get(0).toString()), a.get(1).toString()));
+		}
+		return pairs;
+	}
+	
+	/**
 	 * Loads a {@link Scraper} from a JSON file
 	 * 
 	 * @param json
@@ -219,17 +247,7 @@ public class Scraper implements IDAble, JSONRepresentable {
 	public static Scraper loadFromJSON(Path json) throws IOException {
 		JSONObject config = (JSONObject) JSONSystem.loadJSON(json);
 		String id = (String) config.get("id").value();
-		List<Pair<Pattern, String>> sectioning = new ArrayList<>();
-		for (JSONData<?> r : (JSONArray) config.get("sectioning").value()) {
-			JSONArray rule = (JSONArray) r.value();
-			sectioning.add(new Pair<>(Pattern.compile(rule.get(0).value().toString()), rule.get(1).value().toString()));
-		}
-		List<Pair<Pattern, String>> filtering = new ArrayList<>();
-		for (JSONData<?> r : (JSONArray) config.get("filtering").value()) {
-			JSONArray rule = (JSONArray) r.value();
-			filtering.add(new Pair<>(Pattern.compile(rule.get(0).value().toString()), rule.get(1).value().toString()));
-		}
-		return new Scraper(id, sectioning, filtering);
+		return new Scraper(id, jsonArrayToPairs((JSONArray) config.get("sectioning")), jsonArrayToPairs((JSONArray) config.get("filtering")));
 	}
 	
 	@Override

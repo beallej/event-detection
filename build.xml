@@ -51,7 +51,7 @@
 		<include name="**/rome*.jar" />
 		<include name="**/jdom*.jar" />
 		<include name="**/slf4j*.jar" />
-		<include name="**/stanford-corenlp-*.jar" />
+		<include name="**/stanford-corenlp*.jar" />
 		<include name="**/postgresql*.jar" />
 	</patternset>
 

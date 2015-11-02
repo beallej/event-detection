@@ -2,8 +2,6 @@ package eventdetection.common;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
 
 import eventdetection.downloader.Scraper;
 
@@ -11,15 +9,15 @@ public class Article {
 	private final String title, taggedText, rawText;
 	private final URL url;
 	private final Source source;
-	// private final List<String> keywords;
-	private final Map<String, String> tags;
-
+	
 	/**
 	 * Initializes a {@link Article}
 	 * 
 	 * @param title
 	 *            the title of the article
-	 * @param text
+	 * @param taggedText
+	 *            the PoS tagged text of the article
+	 * @param rawText
 	 *            the plain text of the article (from a {@link Scraper})
 	 * @param url
 	 *            the URL of the full article as a {@link String}
@@ -31,13 +29,15 @@ public class Article {
 	public Article(String title, String taggedText, String rawText, String url, Source source) throws MalformedURLException {
 		this(title, taggedText, rawText, new URL(url), source);
 	}
-
+	
 	/**
 	 * Initializes a {@link Article}
 	 * 
 	 * @param title
 	 *            the title of the article
-	 * @param text
+	 * @param taggedText
+	 *            the PoS tagged text of the article
+	 * @param rawText
 	 *            the plain text of the article (from a {@link Scraper})
 	 * @param url
 	 *            the {@link URL} of the full article
@@ -50,44 +50,43 @@ public class Article {
 		this.rawText = rawText;
 		this.url = url;
 		this.source = source;
-		this.tags = new HashMap<>();
 	}
-
+	
 	/**
 	 * @return the title
 	 */
 	public final String getTitle() {
 		return title;
 	}
-
+	
 	/**
 	 * @return the PoS tagged text
 	 */
 	public final String getTaggedText() {
 		return taggedText;
 	}
-
+	
 	/**
 	 * @return the scraped text
 	 */
 	public final String getRawText() {
 		return rawText;
 	}
-
+	
 	/**
 	 * @return the {@link URL} of the full article
 	 */
 	public final URL getUrl() {
 		return url;
 	}
-
+	
 	/**
 	 * @return the {@link Source}
 	 */
 	public final Source getSource() {
 		return source;
 	}
-
+	
 	@Override
 	public String toString() {
 		String out = "Title: " + getTitle();

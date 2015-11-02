@@ -2,6 +2,8 @@ package eventdetection.downloader;
 
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.sql.SQLException;
+import java.util.LinkedHashSet;
 import java.util.Map.Entry;
 
 import toberumono.json.JSONArray;
@@ -9,9 +11,11 @@ import toberumono.json.JSONData;
 import toberumono.json.JSONObject;
 import toberumono.json.JSONSystem;
 
+import eventdetection.common.ArticleManager;
+
 public class DownloaderController {
 	
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException, SQLException {
 		JSONObject config = null;
 		if (args.length > 0) {
 			config = (JSONObject) JSONSystem.loadJSON(Paths.get(args[0]));
@@ -22,20 +26,25 @@ public class DownloaderController {
 				Object val = e.getValue().value();
 				if (val == null)
 					continue;
-				System.setProperty(key, val.toString());
+				System.setProperty(key, val.toString().toLowerCase());
 			}
 		}
 		try (DownloaderCollection dc = new DownloaderCollection()) {
-			if (config != null) {
-				JSONObject paths = (JSONObject) config.get("paths");
-				for (JSONData<?> str : ((JSONArray) paths.get("sources")).value())
-					Downloader.loadSource(Paths.get(str.toString()));
-			}
-			FeedManager fm = new FeedManager(Paths.get("./Feeds/"), Paths.get("./Scrapers/"));
+			JSONObject paths = (JSONObject) config.get("paths");
+			for (JSONData<?> str : ((JSONArray) paths.get("sources")).value())
+				Downloader.loadSource(Paths.get(str.toString()));
+			ArticleManager am = new ArticleManager(dc.getConnection(), "articles",
+					((JSONArray) paths.get("articles")).stream().collect(LinkedHashSet::new, (s, p) -> s.add(Paths.get(p.toString())), LinkedHashSet::addAll));
+			FeedManager fm = new FeedManager();
+			for (JSONData<?> str : ((JSONArray) paths.get("scrapers")).value())
+				fm.addScraper(Paths.get(str.toString()));
+			for (JSONData<?> str : ((JSONArray) paths.get("feeds")).value())
+				fm.addFeed(Paths.get(str.toString()));
+			fm.addFeed(Downloader.getConnection(), "feeds");
 			dc.addDownloader(fm);
 			NLPFunction nlpf = new NLPFunction();
 			for (RawArticle ra : dc.get())
-				nlpf.apply(ra).toString();
+				am.store(nlpf.apply(ra));
 		}
 	}
 }

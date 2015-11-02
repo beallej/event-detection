@@ -22,38 +22,40 @@ public class NLPFunction implements Function<RawArticle, Article> {
 		// NER, parsing, and coreference resolution
 		Properties props = new Properties();
 		props.setProperty("annotators", "tokenize, ssplit, pos, lemma, ner, parse, dcoref");
-		pipeline = new StanfordCoreNLP(props);
+		pipeline = System.getProperty("enable.pos", "false").toLowerCase().charAt(0) == 't' ? new StanfordCoreNLP(props) : null;
 	}
-
+	
 	@Override
-	public Article apply(RawArticle t) {
-
+	public Article apply(RawArticle article) {
 		// read some text in the text variable
-		String text = t.getText();
-
-		// create an empty Annotation just with the given text
-		Annotation document = new Annotation(text);
-
-		// run all Annotators on this text
-		pipeline.annotate(document);
-
-		// these are all the sentences in this document
-		// a CoreMap is essentially a Map that uses class objects as keys and
-		// has values with custom types
-		List<CoreMap> sentences = document.get(SentencesAnnotation.class);
+		String text = article.getText(), tagged = article.getText();
 		
-		StringBuilder sb = new StringBuilder((int) (t.getText().length() * 1.5));
-		for (CoreMap sentence : sentences) {
-			// traversing the words in the current sentence
-			// a CoreLabel is a CoreMap with additional token-specific methods
-			for (CoreLabel token : sentence.get(TokensAnnotation.class))
-				sb.append(token.word()).append(delimiter).append(token.get(PartOfSpeechAnnotation.class)).append(" ");
-
-			// this is the parse tree of the current sentence
-			// Tree tree = sentence.get(TreeAnnotation.class);
-
-			// System.out.println(tree.toString());
+		if (pipeline != null) {
+			// create an empty Annotation just with the given text
+			Annotation document = new Annotation(text);
+			
+			// run all Annotators on this text
+			pipeline.annotate(document);
+			
+			// these are all the sentences in this document
+			// a CoreMap is essentially a Map that uses class objects as keys and
+			// has values with custom types
+			List<CoreMap> sentences = document.get(SentencesAnnotation.class);
+			
+			StringBuilder sb = new StringBuilder((int) (text.length() * 1.5));
+			for (CoreMap sentence : sentences) {
+				// traversing the words in the current sentence
+				// a CoreLabel is a CoreMap with additional token-specific methods
+				for (CoreLabel token : sentence.get(TokensAnnotation.class))
+					sb.append(token.word()).append(delimiter).append(token.get(PartOfSpeechAnnotation.class)).append(" ");
+					
+				// this is the parse tree of the current sentence
+				// Tree tree = sentence.get(TreeAnnotation.class);
+				
+				// System.out.println(tree.toString());
+			}
+			tagged = sb.toString().trim();
 		}
-		return new Article(t.getTitle(), sb.toString().trim(), t.getText(), t.getUrl(), t.getSource());
+		return new Article(article.getTitle(), tagged, text, article.getUrl(), article.getSource());
 	}
 }

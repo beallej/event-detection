@@ -114,11 +114,14 @@ public class Feed extends Downloader implements IDAble, JSONRepresentable {
 		try {
 			SyndFeed feed = input.build(new XmlReader(url));
 			for (SyndEntry e : feed.getEntries()) {
+				if (e.getLink().equals(lastSeen))
+					break;
 				String text = s.scrape(new URL(e.getLink()));
 				if (text == null)
 					continue;
 				RawArticle ra = new RawArticle(e.getTitle(), text, e.getLink(), getSource());
 				out.add(ra);
+				lastSeen = e.getLink();
 			}
 		}
 		catch (IllegalArgumentException | FeedException | IOException e) {
@@ -240,6 +243,7 @@ public class Feed extends Downloader implements IDAble, JSONRepresentable {
 				PreparedStatement ps = Downloader.getConnection().prepareStatement("update feeds set lastseen = ? where id = ?");
 				ps.setString(1, getLastSeen());
 				ps.setString(2, getID());
+				ps.executeUpdate();
 			}
 			catch (SQLException e) {
 				e.printStackTrace();

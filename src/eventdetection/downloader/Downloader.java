@@ -48,7 +48,7 @@ public abstract class Downloader implements Supplier<List<RawArticle>>, Closeabl
 	 *             if an error occurs while loading the JSON files
 	 */
 	public static List<String> loadSource(Path path) throws IOException {
-		return loadItemsFromFile(Source::loadFromJSON, p -> p.endsWith(".json"), path, sources::put);
+		return loadItemsFromFile(Source::loadFromJSON, p -> p.toString().endsWith(".json"), path, sources::put);
 	}
 	
 	/**
@@ -101,7 +101,7 @@ public abstract class Downloader implements Supplier<List<RawArticle>>, Closeabl
 			}
 			return ids;
 		}
-		try (DirectoryStream<Path> stream = Files.newDirectoryStream(path, p -> true)) {
+		try (DirectoryStream<Path> stream = Files.newDirectoryStream(path, filter)) {
 			for (Path p : stream) {
 				try {
 					T t = loader.apply(p);
@@ -133,14 +133,38 @@ public abstract class Downloader implements Supplier<List<RawArticle>>, Closeabl
 	 * @throws IOException
 	 *             if an error occurs while loading
 	 */
-	public static <T extends IDAble> List<String> loadItemsFromSQL(String table, SQLExceptedFunction<ResultSet, T> loader, BiFunction<String, T, T> store) throws SQLException, IOException {
+	public static <T extends IDAble> List<String> loadItemsFromSQL(String table, SQLExceptedFunction<ResultSet, T> loader, BiFunction<String, T, T> store)
+			throws SQLException, IOException {
+		return loadItemsFromSQL(table, getConnection(), loader, store);
+	}
+	
+	/**
+	 * A helper method for loading {@link IDAble} objects from files.
+	 * 
+	 * @param table
+	 *            the name of the table from which to load the items
+	 * @param connection
+	 *            a {@link Connection} to the database to use
+	 * @param loader
+	 *            the method used to load the {@link IDAble} object from a file
+	 * @param store
+	 *            the method used to store the constructed {@link IDAble} objects
+	 * @param <T>
+	 *            the type of the item to load. This will be implicitly set when this method is used correctly
+	 * @return a {@link List} of the IDs of the loaded objects
+	 * @throws SQLException
+	 *             if an error occurs while loading
+	 * @throws IOException
+	 *             if an error occurs while loading
+	 */
+	public static <T extends IDAble> List<String> loadItemsFromSQL(String table, Connection connection, SQLExceptedFunction<ResultSet, T> loader, BiFunction<String, T, T> store)
+			throws SQLException, IOException {
 		List<String> ids = new ArrayList<>();
 		Connection con = getConnection();
-		String statement = "select * from ?";
+		String statement = "select * from " + table;
 		try (PreparedStatement stmt = con.prepareStatement(statement)) {
-			stmt.setString(1, table);
 			ResultSet rs = stmt.executeQuery();
-			if (!rs.first()) //Set the pointer to the first row and test if it is not valid
+			if (!rs.next()) //Set the pointer to the first row and test if it is not valid
 				return ids;
 			do {
 				T t = loader.apply(rs);
@@ -163,27 +187,27 @@ public abstract class Downloader implements Supplier<List<RawArticle>>, Closeabl
 	 *             if something goes wrong while creating the {@link Connection}
 	 */
 	public static Connection getConnection() throws SQLException {
-		if (Downloader.connection != null)
-			return Downloader.connection;
+		if (connection != null)
+			return connection;
 		String dbtype = System.getProperty("db.type");
 		if (dbtype == null)
 			return null;
 		Properties connectionProps = new Properties();
 		String connection = "jdbc:";
 		switch (dbtype) {
-			case "mysql":
+			case "postgresql":
 				connection += dbtype + "://";
 				if (System.getProperty("db.server") != null)
 					connection += System.getProperty("db.server");
 				if (System.getProperty("db.port") != null)
 					connection += ":" + System.getProperty("db.port");
-				connection += "/" + System.getProperty("db.name", "eventdetection");
+				connection += "/" + System.getProperty("db.name", "event_detection");
 				break;
 			default:
 				return null;
 		}
 		connectionProps.put("user", System.getProperty("db.user", "root"));
-		connectionProps.put("password", System.getProperty("db.password", "password"));
+		connectionProps.put("password", System.getProperty("db.password", ""));
 		return Downloader.connection = DriverManager.getConnection(connection, connectionProps);
 	}
 }

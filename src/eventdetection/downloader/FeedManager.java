@@ -1,7 +1,11 @@
 package eventdetection.downloader;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -18,6 +22,15 @@ public class FeedManager extends Downloader {
 	private boolean closed;
 	
 	/**
+	 * Initializes a {@link FeedManager} without any {@link Feed Feeds} or {@link Scraper Scrapers}.
+	 */
+	public FeedManager() {
+		scrapers = new LinkedHashMap<>(); //We might want to keep the order consistent...
+		feeds = new LinkedHashMap<>(); //We might want to keep the order consistent...
+		closed = false;
+	}
+	
+	/**
 	 * Initializes a {@link FeedManager} with {@link Feed Feeds} and {@link Scraper Scrapers} from the given folders
 	 * 
 	 * @param feedFolder
@@ -28,24 +41,37 @@ public class FeedManager extends Downloader {
 	 *             if an error occurs while loading the JSON files
 	 */
 	public FeedManager(Path feedFolder, Path scraperFolder) throws IOException {
-		scrapers = new LinkedHashMap<>(); //We might want to keep the order consistent...
-		feeds = new LinkedHashMap<>(); //We might want to keep the order consistent...
-		loadItemsFromFile(Scraper::loadFromJSON, p -> p.endsWith(".json"), scraperFolder, scrapers::put);
-		loadItemsFromFile(p -> Feed.loadFromJSON(p, scrapers), p -> p.endsWith(".json"), feedFolder, feeds::put);
-		closed = false;
+		this();
+		if (Files.exists(scraperFolder))
+			loadItemsFromFile(Scraper::loadFromJSON, p -> p.toString().endsWith(".json"), scraperFolder, scrapers::put);
+		if (Files.exists(feedFolder))
+			loadItemsFromFile(p -> Feed.loadFromJSON(p, scrapers), p -> p.toString().endsWith(".json"), feedFolder, feeds::put);
+	}
+	
+	public FeedManager(Connection sqlConnection, String feedTable, String scraperTable) throws SQLException, IOException {
+		this();
+		if (scraperTable != null)
+			addScraper(sqlConnection, scraperTable);
+		if (feedTable != null)
+			addFeed(sqlConnection, feedTable);
 	}
 	
 	/**
 	 * Adds a {@link Scraper} or a folder of {@link Scraper Scrapers} to this {@link FeedManager}.
 	 * 
 	 * @param path
-	 *            a {@link Path} to a JSON file defining a {@link Scraper} or a folder of files defining {@link Scraper Scrapers}
+	 *            a {@link Path} to a JSON file defining a {@link Scraper} or a folder of files defining {@link Scraper
+	 *            Scrapers}
 	 * @return the IDs of the added {@link Scraper Scrapers}
 	 * @throws IOException
 	 *             if an error occurs while loading the JSON files
 	 */
 	public List<String> addScraper(Path path) throws IOException {
-		return loadItemsFromFile(Scraper::loadFromJSON, p -> p.endsWith(".json"), path, scrapers::put);
+		return loadItemsFromFile(Scraper::loadFromJSON, p -> p.toString().endsWith(".json"), path, scrapers::put);
+	}
+	
+	public List<String> addScraper(Connection connection, String table) throws SQLException, IOException {
+		return loadItemsFromSQL(table, connection, Scraper::loadFromSQL, scrapers::put);
 	}
 	
 	/**
@@ -58,7 +84,11 @@ public class FeedManager extends Downloader {
 	 *             if an error occurs while loading the JSON files
 	 */
 	public List<String> addFeed(Path path) throws IOException {
-		return loadItemsFromFile(p -> Feed.loadFromJSON(p, scrapers), p -> p.endsWith(".json"), path, feeds::put);
+		return loadItemsFromFile(p -> Feed.loadFromJSON(p, scrapers), p -> p.toString().endsWith(".json"), path, feeds::put);
+	}
+	
+	public List<String> addFeed(Connection connection, String table) throws SQLException, IOException {
+		return loadItemsFromSQL(table, connection, rs -> Feed.loadFromSQL(rs, scrapers), feeds::put);
 	}
 	
 	/**
@@ -90,7 +120,7 @@ public class FeedManager extends Downloader {
 			out.addAll(downloader.get());
 		return out;
 	}
-
+	
 	@Override
 	public void close() throws IOException {
 		if (closed)
