@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 brew tap 'toberumono/tap'
-brew install 'toberumono/tap/utils' 'toberumono/tap/structures' 'toberumono/tap/lexer' 'toberumono/tap/json-library' 'postgresql'
+brew install 'toberumono/tap/utils' 'toberumono/tap/structures' 'toberumono/tap/lexer' 'toberumono/tap/json-library'
+brew install 'postgresql' '--devel'
 echo '------------------Setting Up PostgreSQL Database---------------------'
 sudo gem install lunchy
 initdb /usr/local/var/postgres
