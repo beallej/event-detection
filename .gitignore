@@ -1,1 +1,5 @@
 __pycache__/
+doc
+bin
+.classpath
+articles
