@@ -7,6 +7,8 @@ import RAKEtutorialmaster.rake as rake
 from nltk.stem.wordnet import WordNetLemmatizer
 import nltk
 import re
+import math
+import sys
 from RAKEtutorialmaster.rake  import split_sentences
 
 
@@ -92,12 +94,22 @@ class KeywordCandidate:
 
 class KeywordExtractor:
     def __init__(self):
-        pass
+        self.lemmatizer = WordNetLemmatizer()
     def extractKeywords(self, article):
+
+        #All words in an keyword must contain >= 4 letters
+        #All keywords must contain <= 3 words
+        #Keywors in title must appear at least once
+        #Keywords in body must appear at least c times, where c is depending on the number of characters in the
+        #article if the article is short
+
+        c = math.ceil(len(article.body)/2000)
+        c = min(c, 3)
+
         rake_object_title = rake.Rake("RAKEtutorialmaster/SmartStoplist.txt", 4, 3, 1)
-        rake_object_body = rake.Rake("RAKEtutorialmaster/SmartStoplist.txt", 4, 3, 3)
-        titleKeywords = self.rakeKeywords(article.title, rake_object_title)
-        allKeywords = self.rakeKeywords(article.body, rake_object_body)
+        rake_object_body = rake.Rake("RAKEtutorialmaster/SmartStoplist.txt", 4, 3, c)
+        titleKeywords = self.rakeKeywords(article.title, rake_object_title, False)
+        allKeywords = self.rakeKeywords(article.body, rake_object_body, True)
         for pos in titleKeywords:
             if pos in allKeywords:
                 allKeywords[pos].update(titleKeywords[pos])
@@ -109,36 +121,58 @@ class KeywordExtractor:
     def getNeighbors(self, i, tokens):
          #a keyword is a max of 3 words long -- these are the possible keywords that a stem could belong to
         neighbors = []
-        if i - 2 >= 0:
-            neighbors.extend([" ".join([tokens[i-2][0].lower(), tokens[i-1][0].lower(), tokens[i][0].lower()]),
-                     " ".join([tokens[i-1][0].lower(), tokens[i][0].lower()])])
-        elif i - 1 >= 0:
-            neighbors.append(" ".join([tokens[i-1][0].lower(), tokens[i][0].lower()]))
-        if i + 2 < len(tokens):
-            neighbors.extend([" ".join([tokens[i][0].lower(), tokens[i+1][0].lower(), tokens[i+2][0].lower()]),
-                              " ".join([tokens[i][0].lower(), tokens[i+1][0].lower()])])
-        elif i + 1 < len(tokens):
-            neighbors.append(" ".join([tokens[i][0].lower(), tokens[i+1][0].lower()]))
+
+        def getNeighborsToLeft():
+            if i - 2 >= 0:
+                neighbors.extend([" ".join([tokens[i-2][0].lower(), tokens[i-1][0].lower(), tokens[i][0].lower()]),
+                         " ".join([tokens[i-1][0].lower(), tokens[i][0].lower()])])
+            elif i - 1 >= 0:
+                neighbors.append(" ".join([tokens[i-1][0].lower(), tokens[i][0].lower()]))
+
+        def getNeighborsToRight():
+            if i + 2 < len(tokens):
+                print(i+2, len(tokens), tokens[i:])
+                neighbors.extend([" ".join([tokens[i][0].lower(), tokens[i+1][0].lower(), tokens[i+2][0].lower()]),
+                                  " ".join([tokens[i][0].lower(), tokens[i+1][0].lower()])])
+            elif i + 1 < len(tokens):
+                neighbors.append(" ".join([tokens[i][0].lower(), tokens[i+1][0].lower()]))
+
+        getNeighborsToLeft()
+        getNeighborsToRight()
         return neighbors
 
 
-    def rakeKeywords(self, text, rake_object):
+    def rakeKeywords(self, text, rake_object, tagged):
         text = re.sub(r'https?://.+\s', "", text)
         sentence_list_unstemmed = split_sentences(text)
         sentence_list = []
-        wnl = WordNetLemmatizer()
         candidate_keywords = {}
-        for sentence in sentence_list_unstemmed:
-            tokens =  nltk.word_tokenize(sentence)
+        print(text)
 
-            #THIS IS WHY I AM SLOW
-            tokens_tagged = pos_tag(tokens)
+        for sentence in sentence_list_unstemmed:
+            # tokens_tagged =  nltk.word_tokenize(sentence)
+            if tagged:
+                tokens_tagged = sentence.split(" ")
+            else:
+                tokens_tagged = pos_tag(nltk.word_tokenize(sentence))
             stemmed = []
+            tokens_tagged = [x for x in tokens_tagged if re.match(r'^\s*$', x) == None]
             for i in range(len(tokens_tagged)):
                 token = tokens_tagged[i]
-                word = token[0].lower()
-                tag = token[1]
-                stem = self.stemmatize(word, wnl)
+                while re.match(r'^\s*$', token) != None:
+                    i += 1
+                    token = tokens_tagged[i]
+                if tagged:
+                    try:
+                         word, tag = token.split("_")
+                    except:
+                        print(token)
+                        sys.exit()
+                else:
+                    word = token[0]
+                    tag = token[1]
+                word = word.lower()
+                stem = self.stemmatize(word)
                 stemmed.append(stem)
                 neighbors = self.getNeighbors(i, tokens_tagged)
                 stem_instance = KeywordCandidate(word, neighbors, tag)
@@ -192,6 +226,14 @@ class KeywordExtractor:
 
         return keywords_tagged
 
+    def getTagAndOriginalFromKeyword(self, keyword, keywordInstances):
+        for instance in keywordInstances:
+            for context in instance.contexts:
+                context_stemmed = self.stemmatize(context)
+                if keyword == context_stemmed:
+                    return instance.tag, context
+        return "XXX", None
+
     def getMultiwordPos(self, keyword, candidate_keywords):
         subKeywords = word_tokenize(keyword)
         firstWord = subKeywords[0]
@@ -200,28 +242,15 @@ class KeywordExtractor:
         firstInstances = candidate_keywords[firstWord]
         lastInstances = candidate_keywords[lastWord]
 
-        firstTag = "XXX"
-        lastTag = "XXX"
-        unstemmed = "XXX"
-        lemmatizer = WordNetLemmatizer()
-        for instance in firstInstances:
-            for context in instance.contexts:
-                context_stemmed = self.stemmatize(context, lemmatizer)
-                if keyword == context_stemmed:
-                    firstTag = instance.tag
-                    unstemmed = context
-                    break
-        for instance in lastInstances:
-            for context in instance.contexts:
-                context_stemmed = self.stemmatize(context, lemmatizer)
-                if keyword == context_stemmed:
-                    lastTag = instance.tag
-                    unstemmed = context
-                    break
+
+        firstTag, firstUnstemmed = self.getTagAndOriginalFromKeyword(keyword, firstInstances)
+        lastTag, lastUnstemmed = self.getTagAndOriginalFromKeyword(keyword, lastInstances)
+        unstemmed = firstUnstemmed if firstUnstemmed != None else lastUnstemmed if lastUnstemmed != None else "XXX"
+
         return firstTag, lastTag, unstemmed
 
-    def stemmatize(self,word, lemmatizer):
-        lemma = lemmatizer.lemmatize(word)
+    def stemmatize(self,word):
+        lemma = self.lemmatizer.lemmatize(word)
         stem = (SnowballStemmer("english").stem(lemma))
         return stem
 

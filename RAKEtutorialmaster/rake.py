@@ -63,7 +63,7 @@ def split_sentences(text):
 
     #top one is most recent from tutorial
     #sentence_delimiters = re.compile(u'[\\[\\]\n.!?,;:\t\\-\\"\\(\\)\\\'\u2019\u2013]')
-    sentence_delimiters = re.compile(u'[(.!?,;:\t\\\\"\\(\\)\\\'\u2019\u2013)]_\1|\\s\\-\\s')
+    sentence_delimiters = re.compile(u'[.!?,;:\t\\\\"\\(\\)\\\'\u2019\u2013]_.|\\s\\-\\s')
     sentences = sentence_delimiters.split(text)
     return sentences
 
