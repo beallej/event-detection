@@ -72,6 +72,8 @@ public class ArticleManager {
 			do {
 				boolean deleted = false;
 				for (Path store : storage) {
+					if (!Files.exists(store))
+						continue;
 					Path path = store.resolve(rs.getString("filename"));
 					if (!Files.exists(path))
 						continue;
@@ -103,8 +105,11 @@ public class ArticleManager {
 				if (!rs.next())
 					return null;
 				String filename = makeFilename(rs.getInt("id"), article.getSource(), article.getTitle());
-				rs.updateString("filename", filename);
-				rs.updateRow();
+				try (PreparedStatement stm = connection.prepareStatement("update " + table + " set filename = ? where id = ?")) {
+					stm.setString(1, filename);
+					stm.setLong(2, rs.getLong("id"));
+					stm.executeUpdate();
+				}
 				Path path = storage.iterator().next().resolve(filename);
 				try {
 					if (!Files.exists(path.getParent()))
