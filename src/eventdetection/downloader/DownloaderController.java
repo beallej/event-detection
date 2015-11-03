@@ -16,18 +16,15 @@ import eventdetection.common.ArticleManager;
 public class DownloaderController {
 	
 	public static void main(String[] args) throws IOException, SQLException {
-		JSONObject config = null;
-		if (args.length > 0) {
-			config = (JSONObject) JSONSystem.loadJSON(Paths.get(args[0]));
-			for (Entry<String, JSONData<?>> e : ((JSONObject) config.get("database")).entrySet()) {
-				String key = "db." + e.getKey();
-				if (System.getProperty(key) != null)
-					continue;
-				Object val = e.getValue().value();
-				if (val == null)
-					continue;
-				System.setProperty(key, val.toString().toLowerCase());
-			}
+		JSONObject config = (JSONObject) JSONSystem.loadJSON(Paths.get(args.length > 0 ? args[0] : "configuration.json"));
+		for (Entry<String, JSONData<?>> e : ((JSONObject) config.get("database")).entrySet()) {
+			String key = "db." + e.getKey();
+			if (System.getProperty(key) != null)
+				continue;
+			Object val = e.getValue().value();
+			if (val == null)
+				continue;
+			System.setProperty(key, val.toString().toLowerCase());
 		}
 		try (DownloaderCollection dc = new DownloaderCollection()) {
 			JSONObject paths = (JSONObject) config.get("paths");
