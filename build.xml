@@ -32,7 +32,7 @@
 	<!--What to pack into the .jar in addition to the compiled code.-->
 	<property unless:set="package.doc" name="package.doc" value="true" />
 	<property unless:set="package.src" name="package.src" value="true" />
-	<property unless:set="package.libs" name="package.libs" value="true" />
+	<property unless:set="package.libs" name="package.libs" value="false" />
 	<property unless:set="package.nativelibs" name="package.nativelibs" value="${use.nativelibs}" />
 
 	<!--Construct the location of the output .jar file-->
