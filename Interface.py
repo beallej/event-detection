@@ -21,7 +21,7 @@ sure you still have 4 slashes.\n")
         sample_file = open("cancer.txt", 'r')
         text = sample_file.read()
 
-        sample_file3 = open("brown.txt", 'r')
+        sample_file3 = open("articles.9_CNN_Sunken_ship\'s_owners_sue.txt", 'r')
         text3 = sample_file3.read()
         articlePool = [Article("", text3, "url", "source")]
                        #  Article("Food experts agree: WHO report on cancer and meat is spot on", text, "url", "source"),\

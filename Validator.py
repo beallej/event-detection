@@ -9,7 +9,7 @@ import nltk
 import re
 import math
 import sys
-from RAKEtutorialmaster.rake  import split_sentences
+from RAKEtutorialmaster.rake  import split_sentences_tagged
 
 
 class AbstractValidator:
@@ -108,8 +108,9 @@ class KeywordExtractor:
 
         rake_object_title = rake.Rake("RAKEtutorialmaster/SmartStoplist.txt", 4, 3, 1)
         rake_object_body = rake.Rake("RAKEtutorialmaster/SmartStoplist.txt", 4, 3, c)
-        titleKeywords = self.rakeKeywords(article.title, rake_object_title, False)
         allKeywords = self.rakeKeywords(article.body, rake_object_body, True)
+        titleKeywords = self.rakeKeywords(article.title, rake_object_title, False)
+
         for pos in titleKeywords:
             if pos in allKeywords:
                 allKeywords[pos].update(titleKeywords[pos])
@@ -121,21 +122,28 @@ class KeywordExtractor:
     def getNeighbors(self, i, tokens):
          #a keyword is a max of 3 words long -- these are the possible keywords that a stem could belong to
         neighbors = []
-
+        token = tokens[i].split("_")[0]
         def getNeighborsToLeft():
+
+            if i - 1 >= 0:
+                token1 = tokens[i-1].split("_")[0]
+                token3 = token1 + " " + token
+                neighbors.append(token3)
             if i - 2 >= 0:
-                neighbors.extend([" ".join([tokens[i-2][0].lower(), tokens[i-1][0].lower(), tokens[i][0].lower()]),
-                         " ".join([tokens[i-1][0].lower(), tokens[i][0].lower()])])
-            elif i - 1 >= 0:
-                neighbors.append(" ".join([tokens[i-1][0].lower(), tokens[i][0].lower()]))
+                token2 = tokens[i-2].split("_")[0]
+                token3 = token2 + " " + neighbors[-1]
+                neighbors.append(token3)
 
         def getNeighborsToRight():
+
+            if i + 1 < len(tokens):
+                token1 = tokens[i+1].split("_")[0]
+                token3 = token + " " + token1
+                neighbors.append(token3)
             if i + 2 < len(tokens):
-                print(i+2, len(tokens), tokens[i:])
-                neighbors.extend([" ".join([tokens[i][0].lower(), tokens[i+1][0].lower(), tokens[i+2][0].lower()]),
-                                  " ".join([tokens[i][0].lower(), tokens[i+1][0].lower()])])
-            elif i + 1 < len(tokens):
-                neighbors.append(" ".join([tokens[i][0].lower(), tokens[i+1][0].lower()]))
+                token2 = tokens[i+2].split("_")[0]
+                token3 = neighbors[-1] + " " + token2
+                neighbors.append(token3)
 
         getNeighborsToLeft()
         getNeighborsToRight()
@@ -144,30 +152,25 @@ class KeywordExtractor:
 
     def rakeKeywords(self, text, rake_object, tagged):
         text = re.sub(r'https?://.+\s', "", text)
-        sentence_list_unstemmed = split_sentences(text)
+        sentence_list_unstemmed = split_sentences_tagged(text)
         sentence_list = []
         candidate_keywords = {}
-        print(text)
 
         for sentence in sentence_list_unstemmed:
-            # tokens_tagged =  nltk.word_tokenize(sentence)
             if tagged:
-                tokens_tagged = sentence.split(" ")
+                tokens = sentence.split(" ")
+                tokens_tagged = []
+                for token in tokens:
+                    if re.search('_', token) != None:
+                        tokens_tagged.append(token)
             else:
                 tokens_tagged = pos_tag(nltk.word_tokenize(sentence))
             stemmed = []
-            tokens_tagged = [x for x in tokens_tagged if re.match(r'^\s*$', x) == None]
             for i in range(len(tokens_tagged)):
                 token = tokens_tagged[i]
-                while re.match(r'^\s*$', token) != None:
-                    i += 1
-                    token = tokens_tagged[i]
                 if tagged:
-                    try:
-                         word, tag = token.split("_")
-                    except:
-                        print(token)
-                        sys.exit()
+                    word, tag = token.split("_")
+
                 else:
                     word = token[0]
                     tag = token[1]
@@ -213,6 +216,7 @@ class KeywordExtractor:
                 #to be verb keyword. If both are true, added to both parts of speech lists
 
                 firstTag, lastTag, unstemmed = self.getMultiwordPos(keyword, candidate_keywords)
+
                 #starts with verb
                 if firstTag[0] == 'V':
                     if firstTag not in keywords_tagged:
@@ -229,7 +233,12 @@ class KeywordExtractor:
     def getTagAndOriginalFromKeyword(self, keyword, keywordInstances):
         for instance in keywordInstances:
             for context in instance.contexts:
-                context_stemmed = self.stemmatize(context)
+                context_pieces = context.split(" ")
+                context_stemmed = []
+                for piece in context_pieces:
+                    context_stemmed.append(self.stemmatize(piece))
+                context_stemmed = " ".join(context_stemmed)
+                print(keyword, context_stemmed, context)
                 if keyword == context_stemmed:
                     return instance.tag, context
         return "XXX", None
@@ -241,8 +250,6 @@ class KeywordExtractor:
 
         firstInstances = candidate_keywords[firstWord]
         lastInstances = candidate_keywords[lastWord]
-
-
         firstTag, firstUnstemmed = self.getTagAndOriginalFromKeyword(keyword, firstInstances)
         lastTag, lastUnstemmed = self.getTagAndOriginalFromKeyword(keyword, lastInstances)
         unstemmed = firstUnstemmed if firstUnstemmed != None else lastUnstemmed if lastUnstemmed != None else "XXX"
