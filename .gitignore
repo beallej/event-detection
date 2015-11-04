@@ -3,3 +3,5 @@ doc
 bin
 .classpath
 articles
+venv/
+*.pyc

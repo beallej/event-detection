@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+{% block content %}
+  {% if query["matched"] %}
+    {% for article in query["matched_articles"] %}
+      Title: {{ article["title"] }}
+    {% endfor %}
+  {% else %}
+    Query not yet matched
+  {% endif %}
+
+  <div class="row">
+    <div class="col-xs-12">
+      <a href="{{ url_for('queries') }}"><i class="fa fa-arrow-left"></i> Back to All Queries</a>
+    </div>
+  </div>
+{% endblock %}

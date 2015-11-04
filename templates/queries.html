@@ -1,0 +1,40 @@
+{% extends "layout.html" %}
+{% block content %}
+  <h2>Add a Query</h2>
+  <form class="form-inline" action="{{ url_for('queries') }}" method="post">
+    <input class="form-control" placeholder="subject" name="subject"></input>
+    <input class="form-control" placeholder="verb" name="verb"></input>
+    <input class="form-control" placeholder="direct object" name="direct-object"></input>
+    <input class="form-control" placeholder="indirect object" name="indirect-object"></input>
+    <input class="form-control" placeholder="location" name="location"></input>
+    <button class="btn btn-default" type="submit">Add Query</button>
+  </form>
+
+  <h2>Current Queries</h2>
+  <table class="table table-striped">
+    <thead>
+      <th>Subject</th>
+      <th>Verb</th>
+      <th>Direct Object</th>
+      <th>Indirect Object</th>
+      <th>Location</th>
+      <th>Matched</th>
+    </thead>
+    <tbody>
+      {% for query in queries %}
+        <tr>
+          <td>{{ query["subject"] }}</td>
+          <td>{{ query["verb"] }}</td>
+          <td>{{ query["direct object"] }}</td>
+          <td>{{ query["indirect object"] or "" }}</td>
+          <td>{{ query["location"] or "" }}</td>
+          {% if query["matched"] %}
+            <td><i class="fa fa-check"></i></td>
+          {% else %}
+            <td><i class="fa fa-times"></i></td>
+          {% endif %}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
