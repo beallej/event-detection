@@ -75,13 +75,17 @@ def split_sentences_tagged(text):
     text = re.sub(u"\.\.\._\:", u":_:", text)
     text = re.sub(u"\\s\\-_-\\s", u":_:", text)
 
+
+
     sentence_delimiters = re.compile(u'([-.!?,;:\t\\\\"\\(\\)\\\'\u2019\u2013])_\\1')
     punct_only = re.compile(u'[\'-.!?,;:\t\\\\"\\(\\)\\\'\u2019\u2013]')
     sentences = sentence_delimiters.split(text)
     sentences_no_punct = []
+
     for s in sentences:
         if s != None and re.search("_", s) != None:
             sentences_no_punct.append(s)
+
     return sentences_no_punct
 
 
