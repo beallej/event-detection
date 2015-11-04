@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS feeds (
 );
 
 CREATE TABLE IF NOT EXISTS articles (
-	id serial, title varchar(255), source varchar(255), url text, filename text default NULL,
+	id serial, title varchar(255), source varchar(255), url text, filename text default NULL, text[] keywords,
 	primary key (id),
 	foreign key (source) references sources(id)
 );
