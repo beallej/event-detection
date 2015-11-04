@@ -27,7 +27,7 @@ def queries():
     else:
         # Get lists of query from database
         cursor.execute("SELECT subject, verb, direct_obj, indirect_obj, location FROM queries;")
-        queries = self.cursor
+        queries = cursor
         '''
         queries = [
                     {"subject": "sub",
