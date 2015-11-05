@@ -12,7 +12,7 @@
 
 import re
 import operator
-
+import sys
 
 debug = False
 test = False
@@ -54,18 +54,39 @@ def separate_words(text, min_word_return_size):
             words.append(current_word)
     return words
 
-
 def split_sentences(text):
     """
     Utility function to return a list of sentences.
     @param text The text that must be split in to sentences.
     """
-
-    #top one is most recent from tutorial
-    #sentence_delimiters = re.compile(u'[\\[\\]\n.!?,;:\t\\-\\"\\(\\)\\\'\u2019\u2013]')
     sentence_delimiters = re.compile(u'[.!?,;:\t\\\\"\\(\\)\\\'\u2019\u2013]|\\s\\-\\s')
     sentences = sentence_delimiters.split(text)
     return sentences
+
+def split_sentences_tagged(text):
+    """
+    Utility function to return a list of sentences.
+    @param text The taggedtext that must be split in to sentences.
+    """
+
+    #remove long/annoying delimiting punctuation
+
+    text = re.sub('``_``', ":_:", text)
+    text = re.sub(u"\.\.\._\:", u":_:", text)
+    text = re.sub(u"\\s\\-_-\\s", u":_:", text)
+
+
+
+    sentence_delimiters = re.compile(u'([-.!?,;:\t\\\\"\\(\\)\\\'\u2019\u2013])_\\1')
+    punct_only = re.compile(u'[\'-.!?,;:\t\\\\"\\(\\)\\\'\u2019\u2013]')
+    sentences = sentence_delimiters.split(text)
+    sentences_no_punct = []
+
+    for s in sentences:
+        if s != None and re.search("_", s) != None:
+            sentences_no_punct.append(s)
+
+    return sentences_no_punct
 
 
 def build_stop_word_regex(stop_word_file_path):
