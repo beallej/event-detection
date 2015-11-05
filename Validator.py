@@ -51,15 +51,15 @@ class KeywordValidator(AbstractValidator):
 
           #if cannot find, compare synonym. Stop when found
 
-    
+
 
 
 class Source:
-  def __init__(self, id, name, reliability):    
+  def __init__(self, id, name, reliability):
     self.id = id
     self.name = name
     self.reliability = reliability
-      
+
   def getID(self):
     # Return source's ID
     return self.id
@@ -95,7 +95,7 @@ class Article:
     return self.keyword
 
   def isLinkedTo(self, otherArticle):
-    #returns true if otherAricle and self are semantically related
+    """returns true if otherAricle and self are semantically related"""
     return False
   def getTitle(self):
     return self.title
@@ -104,59 +104,54 @@ class QueryElement:
     def __init__(self, role, word):
       self.role = role
       self.word = word
-      self.synonyms = self.getSynonyms()
-      self.hierarchies = self.getHierarchies()
+      self.synonyms = self.get_synonyms()
+      self.hierarchies = self.get_hierarchies()
 
-    def getSynonyms(self):
+    def get_synonyms(self):
         return []
 
-    def getHierarchies(self):
+    def get_hierarchies(self):
         return []
 
-  
+
 class Query:
-  
-  def __init__(self, id, queryParts, threshold):
+
+  def __init__(self, id, query_parts, threshold):
     self.threshold = threshold
     self.id = id
     self.subject = QueryElement("subject", queryParts["subject"])
     self.verb = QueryElement("verb", queryParts["verb"])
-    self.directObj = QueryElement("directObj", queryParts["directObj"])
-    self.indirectObj = QueryElement("indirectObj", queryParts["indirectObj"])
+    self.direct_obj = QueryElement("direct_obj", queryParts["direct_obj"])
+    self.indirect_obj = QueryElement("indirect_obj", queryParts["indirect_obj"])
     self.location = QueryElement("location", queryParts["location"])
-    self.query = queryParts["query"]
-    self.stopList = set(stopwords.words('english'))
+    self.query = query_parts["query"]
+    self.stop_list = set(stopwords.words("english"))
 
+    self.query_tagged = self.tag_query()
+    self.synonyms_with_tag = {}
+    self.get_synonyms_with_tag()
 
-    self.queryTagged = self.tagQuery()
-    self.synonymsWithTag = {}
-    self.getSynonymsWithTag()
-
-
-
-  def getId(self):
+  def get_id(self):
       return self.id
 
-  def tagQuery(self):
+  def tag_query(self):
       return pos_tag(word_tokenize(self.query))
 
+  def get_synonyms_with_tag(self): #Assume have already
+      for tagged_word in self.query_tagged:
+        if tagged_word[0].lower() not in self.stop_list:
+          if taggedWord[1] not in self.synonyms_with_tag:
+            self.synonyms_with_tag[tagged_word[1]] = {}
+          self.synonyms_with_tag[tagged_word[1]][tagged_word[0]] = []
 
-  def getSynonymsWithTag(self): #Assume have already
-      for taggedWord in self.queryTagged:
-        if taggedWord[0].lower() not in self.stopList:
-          if taggedWord[1] not in self.synonymsWithTag:
-            self.synonymsWithTag[taggedWord[1]] = {}
-          self.synonymsWithTag[taggedWord[1]][taggedWord[0]] = []#getoneWordSynonym()
+  def get_synonyms(self):
+      return self.synonyms_with_tag
 
-
-  def getSynonyms(self):
-      return self.synonymsWithTag
-
-  def getThreshold(self):
+  def get_threshold(self):
       return self.threshold
 
-  def getElements(self):
-      return self.subject, self.verb, self.directObj, self.indirectObj, self.location
+  def get_elements(self):
+      return self.subject, self.verb, self.direct_obj, self.indirect_obj, self.location
 
 class QueryArticleList:
 
