@@ -23,7 +23,9 @@ wget '-N' '--directory-prefix=../' 'http://nlp.stanford.edu/software/stanford-co
 unzip '../stanford-corenlp-full-2015-04-20.zip' '-d' '../'
 echo '------------------Setting Up PostgreSQL Database---------------------'
 ( ( "$(which lunchy)" == "lunchy not found" ) || ( "$(which lunchy)" == "" ) ) && sudo gem install lunchy
-initdb /usr/local/var/postgres
+initdb "$(brew --prefix)/var/postgres"
+mkdir -p "~/Library/LaunchAgents"
+ln -sfv "$(brew --prefix)/opt/postgresql/*.plist" "~/Library/LaunchAgents"
 lunchy start postgresql
 createdb event_detection
 psql event_detection < setup.sql
