@@ -69,7 +69,7 @@ public class RawArticle {
 	/**
 	 * @return the {@link URL} of the full article
 	 */
-	public final URL getUrl() {
+	public final URL getURL() {
 		return url;
 	}
 	
@@ -83,7 +83,7 @@ public class RawArticle {
 	@Override
 	public String toString() {
 		String out = "Title: " + getTitle();
-		out += "\nURL: " + getUrl();
+		out += "\nURL: " + getURL();
 		out += "\n" + getText();
 		return out;
 	}

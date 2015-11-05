@@ -12,6 +12,7 @@ import java.sql.Statement;
 import java.time.Instant;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Iterator;
 
 import eventdetection.downloader.POSTagger;
 import eventdetection.downloader.RawArticle;
@@ -25,25 +26,25 @@ public class ArticleManager {
 	private final Connection connection;
 	private final String table;
 	private final Collection<Path> storage;
-	private final boolean posTagging;
+	private final boolean posTaggingEnabled;
 	
 	/**
 	 * Initializes an {@link ArticleManager}.
 	 * 
 	 * @param connection
 	 *            a {@link Connection} to the database in use
-	 * @param table
+	 * @param articleTable
 	 *            the name of the table holding the {@link Article Articles}
-	 * @param storage
+	 * @param articleStorage
 	 *            the places where {@link Article Articles} are stored
-	 * @param posTagging
+	 * @param posTaggingEnabled
 	 *            whether the {@link Article Articles} should POS tagged
 	 */
-	public ArticleManager(Connection connection, String table, Collection<Path> storage, boolean posTagging) {
+	public ArticleManager(Connection connection, String articleTable, Collection<Path> articleStorage, boolean posTaggingEnabled) {
 		this.connection = connection;
-		this.table = table;
-		this.storage = storage;
-		this.posTagging = posTagging;
+		this.table = articleTable;
+		this.storage = articleStorage;
+		this.posTaggingEnabled = posTaggingEnabled;
 	}
 	
 	/**
@@ -56,8 +57,8 @@ public class ArticleManager {
 	 * @throws IOException
 	 *             if an I/O error occurs
 	 */
-	public void cleanUpArticles(Calendar oldest) throws SQLException, IOException {
-		cleanUpArticles(oldest.toInstant());
+	public void removeArticlesBefore(Calendar oldest) throws SQLException, IOException {
+		removeArticlesBefore(oldest.toInstant());
 	}
 	
 	/**
@@ -70,7 +71,7 @@ public class ArticleManager {
 	 * @throws IOException
 	 *             if an I/O error occurs
 	 */
-	public void cleanUpArticles(Instant oldest) throws SQLException, IOException {
+	public void removeArticlesBefore(Instant oldest) throws SQLException, IOException {
 		String statement = "select * from " + table;
 		try (PreparedStatement stmt = connection.prepareStatement(statement)) {
 			ResultSet rs = stmt.executeQuery();
@@ -101,7 +102,7 @@ public class ArticleManager {
 	
 	/**
 	 * Stores the given {@link Article} in the first path in the {@link Collection} of storage {@link Path Paths} as defined
-	 * by its iterator.
+	 * by its {@link Iterator}.
 	 * 
 	 * @param article
 	 *            the {@link Article} to store
@@ -183,11 +184,11 @@ public class ArticleManager {
 	 */
 	public Article process(RawArticle ra) {
 		String title = ra.getTitle(), text = ra.getText();
-		if (posTagging) {
+		if (posTaggingEnabled) {
 			title = POSTagger.tag(title);
 			text = POSTagger.tag(text);
 		}
-		return new Article(title, text, ra.getUrl(), ra.getSource(), posTagging);
+		return new Article(title, text, ra.getURL(), ra.getSource(), isPOSTaggingEnabled());
 	}
 	
 	/**
@@ -202,5 +203,12 @@ public class ArticleManager {
 	 */
 	public String getTable() {
 		return table;
+	}
+	
+	/**
+	 * @return {@code true} if POS tagging is enabled
+	 */
+	public boolean isPOSTaggingEnabled() {
+		return posTaggingEnabled;
 	}
 }

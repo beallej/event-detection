@@ -52,7 +52,7 @@ public class DownloaderController {
 					((JSONArray) paths.get("articles")).stream().collect(LinkedHashSet::new, (s, p) -> s.add(Paths.get(p.toString())), LinkedHashSet::addAll),
 					((JSONBoolean) articles.get("enable-pos-tagging")).value());
 			Calendar oldest = computeOldest((JSONObject) articles.get("deletion-delay"));
-			am.cleanUpArticles(oldest);
+			am.removeArticlesBefore(oldest);
 			FeedManager fm = new FeedManager();
 			for (JSONData<?> str : ((JSONArray) paths.get("scrapers")).value())
 				fm.addScraper(Paths.get(str.toString()));
