@@ -30,7 +30,7 @@ public class NLPFunction implements Function<RawArticle, Article> {
 		// read some text in the text variable
 		String text = article.getText();
 		if (pipeline == null)
-			return new Article(article.getTitle(), article.getText(), article.getUrl(), article.getSource(), false);
+			return new Article(article.getTitle(), article.getText(), article.getURL(), article.getSource(), false);
 		
 		if (pipeline != null) {
 			// create an empty Annotation just with the given text
@@ -58,6 +58,6 @@ public class NLPFunction implements Function<RawArticle, Article> {
 			}
 			text = sb.toString().trim();
 		}
-		return new Article(article.getTitle(), text, article.getUrl(), article.getSource(), true);
+		return new Article(article.getTitle(), text, article.getURL(), article.getSource(), true);
 	}
 }

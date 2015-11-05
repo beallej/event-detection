@@ -15,8 +15,9 @@ import eventdetection.downloader.Scraper;
  * 
  * @author Joshua Lipstone
  */
-public class Source implements IDAble {
-	private final String id;
+public class Source implements IDAble<Integer> {
+	private final int id;
+	private final String name;
 	private final double reliability;
 	
 	/**
@@ -24,11 +25,14 @@ public class Source implements IDAble {
 	 * 
 	 * @param id
 	 *            the ID of the {@link Source}
+	 * @param name
+	 *            the name of the {@link Source}
 	 * @param reliability
 	 *            the reliability coefficient of the {@link Source}
 	 */
-	public Source(String id, double reliability) {
+	public Source(int id, String name, double reliability) {
 		this.id = id;
+		this.name = name;
 		this.reliability = reliability;
 	}
 	
@@ -40,13 +44,20 @@ public class Source implements IDAble {
 	}
 	
 	@Override
-	public String getID() {
+	public Integer getID() {
 		return id;
+	}
+	
+	/**
+	 * @return the {@link Source Source's} name
+	 */
+	public String getName() {
+		return name;
 	}
 	
 	@Override
 	public int hashCode() {
-		return getID().hashCode();
+		return (getName() + getID()).hashCode();
 	}
 	
 	@Override
@@ -54,7 +65,7 @@ public class Source implements IDAble {
 		if (o == null || !(o instanceof Source))
 			return false;
 		Source s = (Source) o;
-		return getID().equals(s.getID()) && getReliability() == s.getReliability();
+		return getID() == s.getID() && getName().equals(s.getName()) && getReliability() == s.getReliability();
 	}
 	
 	/**
@@ -68,7 +79,7 @@ public class Source implements IDAble {
 	 */
 	public static Source loadFromJSON(Path file) throws IOException {
 		JSONObject json = (JSONObject) JSONSystem.loadJSON(file);
-		return new Source((String) json.get("id").value(), (Double) json.get("reliability").value());
+		return new Source(-1, (String) json.get("name").value(), (Double) json.get("reliability").value());
 	}
 	
 	/**
@@ -81,6 +92,6 @@ public class Source implements IDAble {
 	 *             an SQL error occurs
 	 */
 	public static Source loadFromSQL(ResultSet rs) throws SQLException {
-		return new Source(rs.getString("id"), rs.getDouble("reliability"));
+		return new Source(rs.getInt("id"), rs.getString("source_name"), rs.getDouble("reliability"));
 	}
 }
