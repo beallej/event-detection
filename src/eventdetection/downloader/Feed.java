@@ -233,11 +233,10 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 	 * @throws MalformedURLException
 	 *             an I/O error occurs
 	 */
-	@SuppressWarnings("unchecked")
 	public static Feed loadFromSQL(ResultSet rs, Map<String, Scraper> scrapers) throws SQLException, MalformedURLException {
 		List<String> scraperIDs = new ArrayList<>();
-		for (JSONString s : (List<JSONString>) JSONSystem.parseJSON(rs.getString("scrapers")))
-			scraperIDs.add(s.value());
+		for (String s : (String[]) rs.getArray("scrapers").getArray())
+			scraperIDs.add(s);
 		Feed out = new Feed(rs.getInt("id"), rs.getString("feed_name"), Downloader.sources.get(rs.getString("source")), scraperIDs, rs.getString("lastseen"), new URL(rs.getString("url")), scrapers);
 		out.writeSQL = true;
 		return out;
