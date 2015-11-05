@@ -46,6 +46,7 @@ public class DownloaderController {
 		try (DownloaderCollection dc = new DownloaderCollection()) {
 			JSONObject paths = (JSONObject) config.get("paths");
 			JSONObject articles = (JSONObject) config.get("articles");
+			Downloader.loadSource(Downloader.getConnection(), "sources");
 			for (JSONData<?> str : ((JSONArray) paths.get("sources")).value())
 				Downloader.loadSource(Paths.get(str.toString()));
 			ArticleManager am = new ArticleManager(dc.getConnection(), "articles",

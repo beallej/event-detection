@@ -52,6 +52,23 @@ public abstract class Downloader implements Supplier<List<RawArticle>>, Closeabl
 	}
 	
 	/**
+	 * Loads the {@link Source Sources} in an SQL table.
+	 * 
+	 * @param connection
+	 *            a {@link Connection} to a SQL server
+	 * @param table
+	 *            the name of the table containing the {@link Source Sources}
+	 * @return a {@link List} of the IDs of the loaded {@link Source Sources}
+	 * @throws SQLException
+	 *             if an error occurs in the SQL connection
+	 * @throws IOException
+	 *             if an I/O error occurs
+	 */
+	public static List<Integer> loadSource(Connection connection, String table) throws SQLException, IOException {
+		return loadItemsFromSQL(table, Source::loadFromSQL, sources::put);
+	}
+	
+	/**
 	 * Adds the given {@link Source}.
 	 * 
 	 * @param source
