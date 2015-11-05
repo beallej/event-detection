@@ -92,6 +92,16 @@ public class ArticleManager {
 		}
 	}
 	
+	/**
+	 * Stores the given {@link Article} in the first path in the {@link Collection} of storage {@link Path Paths} as defined
+	 * by its iterator.
+	 * 
+	 * @param article
+	 *            the {@link Article} to store
+	 * @return the {@link Path} that points to the file in which the article was stored
+	 * @throws SQLException
+	 *             if an issue with the SQL server occurs
+	 */
 	public Path store(Article article) throws SQLException {
 		String statement = "insert into " + table + " (title, url, source) values (?, ?, ?)";
 		try (PreparedStatement stmt = connection.prepareStatement(statement)) {
@@ -117,7 +127,9 @@ public class ArticleManager {
 					Files.write(path, article.getTaggedText().getBytes());
 				}
 				catch (IOException e) {
-					rs.deleteRow();
+					try (Statement stm = connection.createStatement()) {
+						stm.executeUpdate("delete from " + table + " where id = " + rs.getLong("id"));
+					}
 					return null;
 				}
 				return path;
@@ -125,10 +137,32 @@ public class ArticleManager {
 		}
 	}
 	
+	/**
+	 * Constructs the file name for an {@link Article}.
+	 * 
+	 * @param id
+	 *            the {@link Article Article's} id in the database
+	 * @param source
+	 *            the {@link Source} of the {@link Article}
+	 * @param title
+	 *            the title of the {@link Article}
+	 * @return the file name as a {@link String}
+	 */
 	public String makeFilename(int id, Source source, String title) {
 		return makeFilename(id, source.getID(), title);
 	}
 	
+	/**
+	 * Constructs the file name for an {@link Article}.
+	 * 
+	 * @param id
+	 *            the {@link Article Article's} id in the database
+	 * @param source
+	 *            the id of the {@link Source} of the {@link Article} as a {@link String}
+	 * @param title
+	 *            the title of the {@link Article}
+	 * @return the file name as a {@link String}
+	 */
 	public String makeFilename(int id, String source, String title) {
 		return id + "_" + source + "_" + title.replaceAll("[:/\\s]", "_") + ".txt";
 	}

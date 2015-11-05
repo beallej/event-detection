@@ -5,6 +5,11 @@ import java.net.URL;
 
 import eventdetection.downloader.Scraper;
 
+/**
+ * Represents an {@link Article} that has been processed.
+ * 
+ * @author Joshua Lipstone
+ */
 public class Article {
 	private final String title, taggedText, rawText;
 	private final URL url;
