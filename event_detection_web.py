@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request
 import psycopg2
+from psycopg2.extras import RealDictCursor
 import sys
 
 app = Flask(__name__)
@@ -8,7 +9,7 @@ def connect_database()
     # Establish connction with database
     try:
         conn = psycopg2.connect(user="root", database="event_detection")
-        cursor = conn.cursor()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
         
     except:
         print("ERROR: Cannot establish connection with SQL database")
@@ -34,6 +35,7 @@ def queries():
         # Get lists of query from database
         cursor.execute("SELECT subject, verb, direct_obj, indirect_obj, location FROM queries;")
         queries = cursor.fetchall()
+        
         '''
         queries = [
                     {"subject": "sub",
