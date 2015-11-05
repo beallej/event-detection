@@ -14,9 +14,7 @@ echo '------------------Setting Up PostgreSQL Database---------------------'
 sudo gem install lunchy
 initdb /usr/local/var/postgres
 lunchy start postgresql
-lunchy stop postgresql
 createdb event_detection
-lunchy start postgresql
 psql event_detection < setup.sql
 psql event_detection < seeds.sql
 echo '------------------Generating Eclipse User Libraries------------------'
