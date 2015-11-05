@@ -12,7 +12,7 @@ wget '-N' '--directory-prefix=../' 'https://jdbc.postgresql.org/download/postgre
 wget '-N' '--directory-prefix=../' 'http://nlp.stanford.edu/software/stanford-corenlp-full-2015-04-20.zip'
 unzip '../stanford-corenlp-full-2015-04-20.zip'
 echo '------------------Setting Up PostgreSQL Database---------------------'
-sudo gem install lunchy
+( "$(which lunchy)" == "" ) && sudo gem install lunchy
 initdb /usr/local/var/postgres
 lunchy start postgresql
 createdb event_detection
