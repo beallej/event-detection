@@ -13,6 +13,9 @@ import java.time.Instant;
 import java.util.Calendar;
 import java.util.Collection;
 
+import eventdetection.downloader.POSTagger;
+import eventdetection.downloader.RawArticle;
+
 /**
  * A mechanism for managing articles.
  * 
@@ -22,6 +25,7 @@ public class ArticleManager {
 	private final Connection connection;
 	private final String table;
 	private final Collection<Path> storage;
+	private final boolean posTagging;
 	
 	/**
 	 * Initializes an {@link ArticleManager}.
@@ -29,14 +33,17 @@ public class ArticleManager {
 	 * @param connection
 	 *            a {@link Connection} to the database in use
 	 * @param table
-	 *            the name of the table holding the articles
+	 *            the name of the table holding the {@link Article Articles}
 	 * @param storage
-	 *            the places where articles are stored
+	 *            the places where {@link Article Articles} are stored
+	 * @param posTagging
+	 *            whether the {@link Article Articles} should POS tagged
 	 */
-	public ArticleManager(Connection connection, String table, Collection<Path> storage) {
+	public ArticleManager(Connection connection, String table, Collection<Path> storage, boolean posTagging) {
 		this.connection = connection;
 		this.table = table;
 		this.storage = storage;
+		this.posTagging = posTagging;
 	}
 	
 	/**
@@ -106,7 +113,7 @@ public class ArticleManager {
 		String statement = "insert into " + table + " (title, url, source) values (?, ?, ?)";
 		try (PreparedStatement stmt = connection.prepareStatement(statement)) {
 			stmt.setString(1, article.getTitle());
-			stmt.setString(2, article.getUrl().toString());
+			stmt.setString(2, article.getURL().toString());
 			stmt.setString(3, article.getSource().getID());
 			stmt.executeUpdate();
 			String sql = "select * from " + table + " as arts group by arts.id having arts.id >= all (select a.id from " + table + " as a)";
@@ -124,7 +131,7 @@ public class ArticleManager {
 				try {
 					if (!Files.exists(path.getParent()))
 						Files.createDirectories(path.getParent());
-					Files.write(path, article.getTaggedText().getBytes());
+					Files.write(path, article.getText().getBytes());
 				}
 				catch (IOException e) {
 					try (Statement stm = connection.createStatement()) {
@@ -165,6 +172,22 @@ public class ArticleManager {
 	 */
 	public String makeFilename(int id, String source, String title) {
 		return id + "_" + source + "_" + title.replaceAll("[:/\\s]", "_") + ".txt";
+	}
+	
+	/**
+	 * Converts a {@link RawArticle} into an {@link Article}. This applies pos tagging to both the title and text.
+	 * 
+	 * @param ra
+	 *            the {@link RawArticle} to process
+	 * @return the processed {@link RawArticle} as an {@link Article}
+	 */
+	public Article process(RawArticle ra) {
+		String title = ra.getTitle(), text = ra.getText();
+		if (posTagging) {
+			title = POSTagger.tag(title);
+			text = POSTagger.tag(text);
+		}
+		return new Article(title, text, ra.getUrl(), ra.getSource(), posTagging);
 	}
 	
 	/**
