@@ -118,8 +118,8 @@ class KeywordExtractor:
 
         rake_object_title = rake.Rake("RAKEtutorialmaster/SmartStoplist.txt", 4, 3, 1)
         rake_object_body = rake.Rake("RAKEtutorialmaster/SmartStoplist.txt", 4, 3, count_limit)
-        all_keywords = self.rake_keywords(article.body, rake_object_body, True)
-        title_keywords = self.rake_keywords(article.title, rake_object_title, False)
+        all_keywords = self.rake_keywords(article.body, rake_object_body)
+        title_keywords = self.rake_keywords(article.title, rake_object_title)
 
         for pos in title_keywords:
             if pos in all_keywords:
@@ -132,35 +132,13 @@ class KeywordExtractor:
     get_neighbors
     returns list of keywords a stem could belong to in this part of the text (a keyword is a max of 3 words long)
     """
-    def get_neighbors(self, i, tokens, tagged):
+    def get_neighbors(self, i, tokens):
          #a keyword is a max of 3 words long -- these are the possible keywords that a stem could belong to
         neighbors = []
-        if tagged:
-            token = tokens[i].split("_")[0]
-        else:
-            token = tokens[i][0]
+
+        token = tokens[i].split("_")[0]
 
         def get_neighbors_to_left():
-            if i - 1 >= 0:
-                token1 = tokens[i-1][0]
-                token3 = token1 + " " + token
-                neighbors.append(token3)
-            if i - 2 >= 0:
-                token2 = tokens[i-2][0]
-                token3 = token2 + " " + neighbors[-1]
-                neighbors.append(token3)
-
-        def get_neighbors_to_right():
-            if i + 1 < len(tokens):
-                token1 = tokens[i+1][0]
-                token3 = token + " " + token1
-                neighbors.append(token3)
-            if i + 2 < len(tokens):
-                token2 = tokens[i+2][0]
-                token3 = neighbors[-1] + " " + token2
-                neighbors.append(token3)
-
-        def get_neighbors_to_left_tagged():
             if i - 1 >= 0:
                 token1 = tokens[i-1].split("_")[0]
                 token3 = token1 + " " + token
@@ -170,7 +148,7 @@ class KeywordExtractor:
                 token3 = token2 + " " + neighbors[-1]
                 neighbors.append(token3)
 
-        def get_neighbors_to_right_tagged():
+        def get_neighbors_to_right():
             if i + 1 < len(tokens):
                 token1 = tokens[i+1].split("_")[0]
                 token3 = token + " " + token1
@@ -179,12 +157,9 @@ class KeywordExtractor:
                 token2 = tokens[i+2].split("_")[0]
                 token3 = neighbors[-1] + " " + token2
                 neighbors.append(token3)
-        if tagged:
-            get_neighbors_to_left_tagged()
-            get_neighbors_to_right_tagged()
-        else:
-            get_neighbors_to_left()
-            get_neighbors_to_right()
+
+        get_neighbors_to_left()
+        get_neighbors_to_right()
 
         return neighbors
 
@@ -196,44 +171,33 @@ class KeywordExtractor:
     retrieves parts of speech for keywords
     {part of speech: [list of keywords with that part of speech]}
     """
-    def rake_keywords(self, text, rake_object, tagged):
+    def rake_keywords(self, text, rake_object):
 
         #remove url stuff
         text = re.sub(r'https?://.+\s', "", text)
 
         #split into sentences
-        if tagged:
-            sentence_list_unstemmed = split_sentences_tagged(text)
-        else:
-            sentence_list_unstemmed = split_sentences(text)
-
+        sentence_list_unstemmed = split_sentences_tagged(text)
 
         sentence_list = []
         candidate_keywords = {}
         for sentence in sentence_list_unstemmed:
-            if tagged:
-                tokens = sentence.split(" ")
-                tokens_tagged = []
-                for token in tokens:
-                    if re.search('_', token) != None:
-                        tokens_tagged.append(token)
-            else:
-                tokens_tagged = pos_tag(nltk.word_tokenize(sentence))
+
+            tokens = sentence.split(" ")
+            tokens_tagged = []
+            for token in tokens:
+                if re.search('_', token) != None:
+                    tokens_tagged.append(token)
 
            #preprocess each token
             stemmed = []
             for i in range(len(tokens_tagged)):
                 token = tokens_tagged[i]
-                if tagged:
-                    word, tag = token.split("_")
-
-                else:
-                    word = token[0]
-                    tag = token[1]
+                word, tag = token.split("_")
                 word = word.lower()
                 stem = self.stemmatize(word)
                 stemmed.append(stem)
-                neighbors = self.get_neighbors(i, tokens_tagged, tagged)
+                neighbors = self.get_neighbors(i, tokens_tagged)
                 stem_instance = KeywordCandidate(word, neighbors, tag)
 
                 if stem in candidate_keywords:
