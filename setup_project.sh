@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 working_dir="$(pwd)"
-if [ "$(which brew)" != "" ] && [ "$(which brew)" == "brew not found" ]; then
+if [ "$(which brew)" != "" ] && [ "$(which brew)" != "brew not found" ]; then
 	brew tap 'toberumono/tap'
 	brew install 'toberumono/tap/utils' 'toberumono/tap/structures' 'toberumono/tap/lexer' 'toberumono/tap/json-library' 'wget'
 	brew install 'postgresql' '--devel'
 else
 	cd ../
 	git clone "https://github.com/Toberumono/JSON-library.git"
-	git checkout "$(git describe --tags)"
 	cd 'JSON-library'
+	git checkout "$(git describe --tags)"
 	./build_brewless.sh
 	cd "$working_dir"
 fi
