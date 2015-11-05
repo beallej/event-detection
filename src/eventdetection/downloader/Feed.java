@@ -18,6 +18,7 @@ import com.rometools.rome.io.SyndFeedInput;
 import com.rometools.rome.io.XmlReader;
 
 import toberumono.json.JSONArray;
+import toberumono.json.JSONNumber;
 import toberumono.json.JSONObject;
 import toberumono.json.JSONRepresentable;
 import toberumono.json.JSONString;
@@ -31,10 +32,11 @@ import eventdetection.common.Source;
  * 
  * @author Joshua Lipstone
  */
-public class Feed extends Downloader implements IDAble, JSONRepresentable {
+public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentable {
 	private static final SyndFeedInput input = new SyndFeedInput();
 	
-	private final String id;
+	private final int id;
+	private final String name;
 	private final List<String> scraperIDs;
 	private String lastSeen;
 	private final Source source;
@@ -50,10 +52,12 @@ public class Feed extends Downloader implements IDAble, JSONRepresentable {
 	 * 
 	 * @param id
 	 *            the ID of the {@link Feed}
+	 * @param name
+	 *            the name of the {@link Feed}
 	 * @param source
 	 *            the {@link Source} of the {@link Feed}
 	 * @param lastSeen
-	 *            the name of the last-seen article
+	 *            the url of the last-seen article
 	 * @param scraperIDs
 	 *            the IDs of the {@link Scraper Scrapers} that the {@link Feed} can use
 	 * @param url
@@ -61,8 +65,8 @@ public class Feed extends Downloader implements IDAble, JSONRepresentable {
 	 * @param scrapers
 	 *            the {@link Scraper Scrapers} available to the {@link Feed}
 	 */
-	public Feed(String id, Source source, List<String> scraperIDs, String lastSeen, URL url, Map<String, Scraper> scrapers) {
-		this(id, source, scraperIDs, lastSeen, url, scrapers, null, null);
+	public Feed(int id, String name, Source source, List<String> scraperIDs, String lastSeen, URL url, Map<String, Scraper> scrapers) {
+		this(id, name, source, scraperIDs, lastSeen, url, scrapers, null, null);
 	}
 	
 	/**
@@ -70,10 +74,12 @@ public class Feed extends Downloader implements IDAble, JSONRepresentable {
 	 * 
 	 * @param id
 	 *            the ID of the {@link Feed}
+	 * @param name
+	 *            the name of the {@link Feed}
 	 * @param source
 	 *            the {@link Source} of the {@link Feed}
 	 * @param lastSeen
-	 *            the name of the last-seen article
+	 *            the url of the last-seen article
 	 * @param scraperIDs
 	 *            the IDs of the {@link Scraper Scrapers} that the {@link Feed} can use
 	 * @param url
@@ -85,8 +91,9 @@ public class Feed extends Downloader implements IDAble, JSONRepresentable {
 	 * @param file
 	 *            the {@link Path} to the file from which the {@link Feed} was loaded
 	 */
-	public Feed(String id, Source source, List<String> scraperIDs, String lastSeen, URL url, Map<String, Scraper> scrapers, JSONObject json, Path file) {
+	public Feed(int id, String name, Source source, List<String> scraperIDs, String lastSeen, URL url, Map<String, Scraper> scrapers, JSONObject json, Path file) {
 		this.id = id;
+		this.name = name;
 		this.source = source;
 		this.url = url;
 		this.lastSeen = lastSeen;
@@ -94,8 +101,9 @@ public class Feed extends Downloader implements IDAble, JSONRepresentable {
 		this.scrapers = scrapers;
 		if (json == null) {
 			json = new JSONObject();
-			json.put("id", new JSONString(getID()));
-			json.put("source", new JSONString(source.getID()));
+			json.put("id", new JSONNumber<>(getID()));
+			json.put("name", new JSONString(getName()));
+			json.put("source", new JSONNumber<>(source.getID()));
 			json.put("url", new JSONString(getURL().toString()));
 			json.put("scraperIDs", JSONArray.wrap(scraperIDs));
 			json.put("lastSeen", new JSONString(lastSeen));
@@ -131,8 +139,15 @@ public class Feed extends Downloader implements IDAble, JSONRepresentable {
 	}
 	
 	@Override
-	public String getID() {
+	public Integer getID() {
 		return id;
+	}
+	
+	/**
+	 * @return the name
+	 */
+	public String getName() {
+		return name;
 	}
 	
 	/**
@@ -171,7 +186,7 @@ public class Feed extends Downloader implements IDAble, JSONRepresentable {
 	
 	@Override
 	public int hashCode() {
-		return getID().hashCode();
+		return (getName() + getID()).hashCode();
 	}
 	
 	@Override
@@ -179,7 +194,7 @@ public class Feed extends Downloader implements IDAble, JSONRepresentable {
 		if (o == null || !(o instanceof Feed))
 			return false;
 		Feed f = (Feed) o;
-		return getID().equals(f.getID());
+		return getID() == f.getID() && getName().equals(f.getName());
 	}
 	
 	/**
@@ -202,7 +217,7 @@ public class Feed extends Downloader implements IDAble, JSONRepresentable {
 		URL url = new URL((String) json.get("url").value());
 		Source source = Downloader.sources.get(json.get("source"));
 		String lastSeen = json.containsKey("lastSeen") ? (String) json.get("lastSeen").value() : null;
-		return new Feed((String) json.get("id").value(), source, scraperIDs, lastSeen, url, scrapers);
+		return new Feed(-1, (String) json.get("name").value(), source, scraperIDs, lastSeen, url, scrapers);
 	}
 	
 	/**
@@ -223,7 +238,7 @@ public class Feed extends Downloader implements IDAble, JSONRepresentable {
 		List<String> scraperIDs = new ArrayList<>();
 		for (JSONString s : (List<JSONString>) JSONSystem.parseJSON(rs.getString("scrapers")))
 			scraperIDs.add(s.value());
-		Feed out = new Feed(rs.getString("id"), Downloader.sources.get(rs.getString("source")), scraperIDs, rs.getString("lastseen"), new URL(rs.getString("url")), scrapers);
+		Feed out = new Feed(rs.getInt("id"), rs.getString("feed_name"), Downloader.sources.get(rs.getString("source")), scraperIDs, rs.getString("lastseen"), new URL(rs.getString("url")), scrapers);
 		out.writeSQL = true;
 		return out;
 	}
@@ -242,7 +257,7 @@ public class Feed extends Downloader implements IDAble, JSONRepresentable {
 			try {
 				PreparedStatement ps = Downloader.getConnection().prepareStatement("update feeds set lastseen = ? where id = ?");
 				ps.setString(1, getLastSeen());
-				ps.setString(2, getID());
+				ps.setInt(2, getID());
 				ps.executeUpdate();
 			}
 			catch (SQLException e) {

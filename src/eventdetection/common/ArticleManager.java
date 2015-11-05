@@ -115,7 +115,7 @@ public class ArticleManager {
 		try (PreparedStatement stmt = connection.prepareStatement(statement)) {
 			stmt.setString(1, article.getTitle());
 			stmt.setString(2, article.getURL().toString());
-			stmt.setString(3, article.getSource().getID());
+			stmt.setInt(3, article.getSource().getID());
 			stmt.executeUpdate();
 			String sql = "select * from " + table + " as arts group by arts.id having arts.id >= all (select a.id from " + table + " as a)";
 			try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -171,7 +171,7 @@ public class ArticleManager {
 	 *            the title of the {@link Article}
 	 * @return the file name as a {@link String}
 	 */
-	public String makeFilename(int id, String source, String title) {
+	public String makeFilename(int id, int source, String title) {
 		return id + "_" + source + "_" + title.replaceAll("[:/\\s]", "_") + ".txt";
 	}
 	
