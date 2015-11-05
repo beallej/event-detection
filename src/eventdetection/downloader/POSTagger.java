@@ -2,7 +2,7 @@ package eventdetection.downloader;
 
 import java.util.List;
 import java.util.Properties;
-import java.util.function.Function;
+import java.util.regex.Pattern;
 
 import edu.stanford.nlp.ling.CoreAnnotations.PartOfSpeechAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations.SentencesAnnotation;
@@ -11,11 +11,17 @@ import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 import edu.stanford.nlp.util.CoreMap;
-import eventdetection.common.Article;
 
-public class NLPFunction implements Function<RawArticle, Article> {
+/**
+ * A wrapper for the CoreNLP API.
+ * 
+ * @author Joshua Lipstone
+ */
+public class POSTagger {
 	private static final String delimiter = "_";
 	private static final StanfordCoreNLP pipeline;
+	private static final Pattern newline = Pattern.compile("\n", Pattern.LITERAL);
+	private static final Pattern untagger = Pattern.compile("([^_\\s]+)_([^_\\s]+)");
 	
 	static {
 		// creates a StanfordCoreNLP object, with POS tagging, lemmatization,
@@ -25,16 +31,20 @@ public class NLPFunction implements Function<RawArticle, Article> {
 		pipeline = System.getProperty("enable.pos", "true").toLowerCase().charAt(0) == 't' ? new StanfordCoreNLP(props) : null;
 	}
 	
-	@Override
-	public Article apply(RawArticle article) {
-		// read some text in the text variable
-		String text = article.getText();
+	/**
+	 * Tags the given text. This keeps paragraphs.
+	 * 
+	 * @param text
+	 *            the text to tag.
+	 * @return the tagged text
+	 */
+	public static String tag(String text) {
 		if (pipeline == null)
-			return new Article(article.getTitle(), article.getText(), article.getUrl(), article.getSource(), false);
-		
-		if (pipeline != null) {
+			return text;
+		StringBuilder sb = new StringBuilder((int) (text.length() * 1.5));
+		for (String paragraph : newline.split(text)) { //This allows the annotated text to retain paragraph breaks.
 			// create an empty Annotation just with the given text
-			Annotation document = new Annotation(text);
+			Annotation document = new Annotation(paragraph);
 			
 			// run all Annotators on this text
 			pipeline.annotate(document);
@@ -44,20 +54,28 @@ public class NLPFunction implements Function<RawArticle, Article> {
 			// has values with custom types
 			List<CoreMap> sentences = document.get(SentencesAnnotation.class);
 			
-			StringBuilder sb = new StringBuilder((int) (text.length() * 1.5));
 			for (CoreMap sentence : sentences) {
 				// traversing the words in the current sentence
 				// a CoreLabel is a CoreMap with additional token-specific methods
-				for (CoreLabel token : sentence.get(TokensAnnotation.class))
+				List<CoreLabel> tokens = sentence.get(TokensAnnotation.class);
+				for (CoreLabel token : tokens)
 					sb.append(token.word()).append(delimiter).append(token.get(PartOfSpeechAnnotation.class)).append(" ");
-					
-				// this is the parse tree of the current sentence
-				// Tree tree = sentence.get(TreeAnnotation.class);
-				
-				// System.out.println(tree.toString());
+				if (tokens.size() > 0)
+					sb.deleteCharAt(sb.length() - 1);
 			}
-			text = sb.toString().trim();
+			sb.append("\n");
 		}
-		return new Article(article.getTitle(), text, article.getUrl(), article.getSource(), true);
+		return sb.toString().trim();
+	}
+	
+	/**
+	 * Untags the given text. This process is comprised of using regex to remove the _tag suffixes from each word.
+	 * 
+	 * @param text
+	 *            the text to untag
+	 * @return the untagged text
+	 */
+	public static String untag(String text) {
+		return untagger.matcher(text).replaceAll("$1");
 	}
 }

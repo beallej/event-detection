@@ -3,7 +3,7 @@ package eventdetection.common;
 import java.net.MalformedURLException;
 import java.net.URL;
 
-import eventdetection.downloader.Scraper;
+import eventdetection.downloader.POSTagger;
 
 /**
  * Represents an {@link Article} that has been processed.
@@ -11,50 +11,51 @@ import eventdetection.downloader.Scraper;
  * @author Joshua Lipstone
  */
 public class Article {
-	private final String title, taggedText, rawText;
+	private final String title, text;
 	private final URL url;
 	private final Source source;
+	private final boolean isTagged;
 	
 	/**
 	 * Initializes a {@link Article}
 	 * 
 	 * @param title
-	 *            the title of the article
-	 * @param taggedText
-	 *            the PoS tagged text of the article
-	 * @param rawText
-	 *            the plain text of the article (from a {@link Scraper})
+	 *            the title of the article, which can be PoS tagged
+	 * @param text
+	 *            the text of the article, which can be PoS tagged
 	 * @param url
 	 *            the URL of the full article as a {@link String}
 	 * @param source
 	 *            the {@link Source} that the article is from
+	 * @param isTagged
+	 *            whether the {@link Article} have tagged text
 	 * @throws MalformedURLException
 	 *             if the given <tt>url</tt> is incorrectly formatted
 	 */
-	public Article(String title, String taggedText, String rawText, String url, Source source) throws MalformedURLException {
-		this(title, taggedText, rawText, new URL(url), source);
+	public Article(String title, String text, String url, Source source, boolean isTagged) throws MalformedURLException {
+		this(title, text, new URL(url), source, isTagged);
 	}
 	
 	/**
 	 * Initializes a {@link Article}
 	 * 
 	 * @param title
-	 *            the title of the article
-	 * @param taggedText
-	 *            the PoS tagged text of the article
-	 * @param rawText
-	 *            the plain text of the article (from a {@link Scraper})
+	 *            the title of the article, which can be PoS tagged
+	 * @param text
+	 *            the text of the article, which can be PoS tagged
 	 * @param url
 	 *            the {@link URL} of the full article
 	 * @param source
 	 *            the {@link Source} that the article is from
+	 * @param isTagged
+	 *            whether the {@link Article} have tagged text
 	 */
-	public Article(String title, String taggedText, String rawText, URL url, Source source) {
+	public Article(String title, String text, URL url, Source source, boolean isTagged) {
 		this.title = title;
-		this.taggedText = taggedText;
-		this.rawText = rawText;
+		this.text = text;
 		this.url = url;
 		this.source = source;
+		this.isTagged = isTagged;
 	}
 	
 	/**
@@ -65,23 +66,16 @@ public class Article {
 	}
 	
 	/**
-	 * @return the PoS tagged text
+	 * @return the text of the article, which can be PoS tagged
 	 */
-	public final String getTaggedText() {
-		return taggedText;
-	}
-	
-	/**
-	 * @return the scraped text
-	 */
-	public final String getRawText() {
-		return rawText;
+	public final String getText() {
+		return text;
 	}
 	
 	/**
 	 * @return the {@link URL} of the full article
 	 */
-	public final URL getUrl() {
+	public final URL getURL() {
 		return url;
 	}
 	
@@ -92,11 +86,31 @@ public class Article {
 		return source;
 	}
 	
+	/**
+	 * @return an {@link Article} with the untagged version of the text. If the {@link Article} does not have POS tags, it
+	 *         returns itself.
+	 */
+	public Article untag() {
+		if (!isTagged)
+			return this;
+		return new Article(POSTagger.untag(getTitle()), POSTagger.untag(getText()), getURL(), getSource(), false);
+	}
+	
+	/**
+	 * @return an {@link Article} with the tagged version of the text. If the {@link Article} has POS tags, it returns
+	 *         itself.
+	 */
+	public Article tag() {
+		if (isTagged)
+			return this;
+		return new Article(POSTagger.tag(getTitle()), POSTagger.tag(getText()), getURL(), getSource(), false);
+	}
+	
 	@Override
 	public String toString() {
 		String out = "Title: " + getTitle();
-		out += "\nURL: " + getUrl();
-		out += "\n" + getTaggedText();
+		out += "\nURL: " + getURL();
+		out += "\n" + getText();
 		return out;
 	}
 }

@@ -8,6 +8,7 @@ import java.util.LinkedHashSet;
 import java.util.Map.Entry;
 
 import toberumono.json.JSONArray;
+import toberumono.json.JSONBoolean;
 import toberumono.json.JSONData;
 import toberumono.json.JSONObject;
 import toberumono.json.JSONSystem;
@@ -44,11 +45,13 @@ public class DownloaderController {
 		}
 		try (DownloaderCollection dc = new DownloaderCollection()) {
 			JSONObject paths = (JSONObject) config.get("paths");
+			JSONObject articles = (JSONObject) config.get("articles");
 			for (JSONData<?> str : ((JSONArray) paths.get("sources")).value())
 				Downloader.loadSource(Paths.get(str.toString()));
 			ArticleManager am = new ArticleManager(dc.getConnection(), "articles",
-					((JSONArray) paths.get("articles")).stream().collect(LinkedHashSet::new, (s, p) -> s.add(Paths.get(p.toString())), LinkedHashSet::addAll));
-			Calendar oldest = computeOldest((JSONObject) ((JSONObject) config.get("articles")).get("deletion-delay"));
+					((JSONArray) paths.get("articles")).stream().collect(LinkedHashSet::new, (s, p) -> s.add(Paths.get(p.toString())), LinkedHashSet::addAll),
+					((JSONBoolean) articles.get("enable-pos-tagging")).value());
+			Calendar oldest = computeOldest((JSONObject) articles.get("deletion-delay"));
 			am.cleanUpArticles(oldest);
 			FeedManager fm = new FeedManager();
 			for (JSONData<?> str : ((JSONArray) paths.get("scrapers")).value())
@@ -57,9 +60,10 @@ public class DownloaderController {
 				fm.addFeed(Paths.get(str.toString()));
 			fm.addFeed(Downloader.getConnection(), "feeds");
 			dc.addDownloader(fm);
-			NLPFunction nlpf = new NLPFunction();
-			for (RawArticle ra : dc.get())
-				am.store(nlpf.apply(ra));
+			for (RawArticle ra : dc.get()) {
+				am.store(am.process(ra));
+				System.out.println("Processed: " + ra.getTitle());
+			}
 		}
 	}
 	
