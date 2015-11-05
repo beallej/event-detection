@@ -109,11 +109,18 @@ public class ArticleManager {
 	 * @return the {@link Path} that points to the file in which the article was stored
 	 * @throws SQLException
 	 *             if an issue with the SQL server occurs
+	 * @throws IOException
+	 *             if the storage directory does not exist and cannot be created or the article file cannot be written to
+	 *             disk
 	 */
-	public Path store(Article article) throws SQLException {
+	public Path store(Article article) throws SQLException, IOException {
+		Path storagePath = storage.iterator().next();
+		if (!Files.exists(storagePath))
+			Files.createDirectories(storagePath);
 		String statement = "insert into " + table + " (title, url, source) values (?, ?, ?)";
 		try (PreparedStatement stmt = connection.prepareStatement(statement)) {
-			stmt.setString(1, article.getTitle());
+			String untaggedTitle = article.getUntagged().getTitle();
+			stmt.setString(1, untaggedTitle);
 			stmt.setString(2, article.getURL().toString());
 			stmt.setInt(3, article.getSource().getID());
 			stmt.executeUpdate();
@@ -122,25 +129,25 @@ public class ArticleManager {
 				ResultSet rs = ps.executeQuery();
 				if (!rs.next())
 					return null;
-				String filename = makeFilename(rs.getInt("id"), article.getSource(), article.getTitle());
+				String filename = makeFilename(rs.getInt("id"), article.getSource(), untaggedTitle);
 				try (PreparedStatement stm = connection.prepareStatement("update " + table + " set filename = ? where id = ?")) {
 					stm.setString(1, filename);
 					stm.setLong(2, rs.getLong("id"));
 					stm.executeUpdate();
 				}
-				Path path = storage.iterator().next().resolve(filename);
+				Path filePath = storagePath.resolve(filename);
 				try {
-					if (!Files.exists(path.getParent()))
-						Files.createDirectories(path.getParent());
-					Files.write(path, article.getText().getBytes());
+					StringBuilder fileText = new StringBuilder(article.getTitle().length() + article.getText().length() + 14); //14 is the length of the section dividers
+					fileText.append("TITLE:\n").append(article.getTitle()).append("\nTEXT:\n").append(article.getText());
+					Files.write(filePath, fileText.toString().getBytes());
 				}
 				catch (IOException e) {
 					try (Statement stm = connection.createStatement()) {
 						stm.executeUpdate("delete from " + table + " where id = " + rs.getLong("id"));
 					}
-					return null;
+					throw e;
 				}
-				return path;
+				return filePath;
 			}
 		}
 	}
