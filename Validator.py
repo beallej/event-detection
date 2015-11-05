@@ -115,11 +115,11 @@ class Query:
     def __init__(self, id, query_parts, threshold):
         self.threshold = threshold
         self.id = id
-        self.subject = QueryElement("subject", queryParts["subject"])
-        self.verb = QueryElement("verb", queryParts["verb"])
-        self.direct_obj = QueryElement("direct_obj", queryParts["direct_obj"])
-        self.indirect_obj = QueryElement("indirect_obj", queryParts["indirect_obj"])
-        self.location = QueryElement("location", queryParts["location"])
+        self.subject = QueryElement("subject", query_parts["subject"])
+        self.verb = QueryElement("verb", query_parts["verb"])
+        self.direct_obj = QueryElement("direct_obj", query_parts["direct_obj"])
+        self.indirect_obj = QueryElement("indirect_obj", query_parts["indirect_obj"])
+        self.location = QueryElement("location", query_parts["location"])
         self.query = query_parts["query"]
         self.stop_list = set(stopwords.words("english"))
 
@@ -136,7 +136,7 @@ class Query:
     def get_synonyms_with_tag(self): #Assume have already
         for tagged_word in self.query_tagged:
             if tagged_word[0].lower() not in self.stop_list:
-                if taggedWord[1] not in self.synonyms_with_tag:
+                if tagged_word[1] not in self.synonyms_with_tag:
                     self.synonyms_with_tag[tagged_word[1]] = {}
                 self.synonyms_with_tag[tagged_word[1]][tagged_word[0]] = []
 
