@@ -11,8 +11,8 @@ sure you still have 4 slashes.\n")
         if userInput[0] == "" or userInput[1] == "" :
             print("Subject and Verb are required!")
             return
-        queryParts = {"query": ' '.join(userInput), "subject": userInput[0], "verb": userInput[1], "directObj": userInput[2], \
-        "indirectObj": userInput[3], "location" : userInput[4]}
+        queryParts = {"query": ' '.join(userInput), "subject": userInput[0], "verb": userInput[1], "direct_obj": userInput[2], \
+        "indirect_obj": userInput[3], "location" : userInput[4]}
 
         # put into database -> get id
         threshold = None
