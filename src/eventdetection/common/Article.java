@@ -15,6 +15,7 @@ public class Article {
 	private final URL url;
 	private final Source source;
 	private final boolean isTagged;
+	private Article alternate;
 	
 	/**
 	 * Initializes a {@link Article}
@@ -93,7 +94,9 @@ public class Article {
 	public Article untag() {
 		if (!isTagged)
 			return this;
-		return new Article(POSTagger.untag(getTitle()), POSTagger.untag(getText()), getURL(), getSource(), false);
+		if (alternate != null)
+			return alternate;
+		return alternate = new Article(POSTagger.untag(getTitle()), POSTagger.untag(getText()), getURL(), getSource(), false);
 	}
 	
 	/**
@@ -103,7 +106,9 @@ public class Article {
 	public Article tag() {
 		if (isTagged)
 			return this;
-		return new Article(POSTagger.tag(getTitle()), POSTagger.tag(getText()), getURL(), getSource(), false);
+		if (alternate != null)
+			return alternate;
+		return alternate = new Article(POSTagger.tag(getTitle()), POSTagger.tag(getText()), getURL(), getSource(), true);
 	}
 	
 	@Override
