@@ -18,14 +18,12 @@ sure you still have 4 slashes.\n")
         threshold = None
 
         query = Query(1, queryParts, threshold)
-        sample_file = open("cancer.txt", 'r')
+        sample_file = open("test.txt", 'r')
         text = sample_file.read()
 
-        sample_file3 = open("articles.9_CNN_Sunken_ship\'s_owners_sue.txt", 'r')
+        sample_file3 = open("articles/13_CNN_Tiger_NNP_bites_VBZ_woman_NN_in_IN_Halloween_NNP_zoo_NN_trespass_NN.txt", 'r')
         text3 = sample_file3.read()
-        articlePool = [Article("", text3, "url", "source")]
-                       #  Article("Food experts agree: WHO report on cancer and meat is spot on", text, "url", "source"),\
-                       # Article("Fraud Claims Delay Elections in Two Ukrainian Cities", text3, "url", "source")]
+        articlePool = [Article("Tiger_NNP bites_VBZ woman_NN in_IN Halloween_NNP zoo_NN trespass_NN.txt", text3, "url", "source")]
         for article in articlePool:
             print(article.keyword)
         
