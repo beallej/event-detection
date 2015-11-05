@@ -1,5 +1,12 @@
 {% extends "layout.html" %}
 {% block content %}
+
+  <div class="row">
+    <div class="col-xs-12">
+      {{ query["subject"] }} {{ query["verb"] }} {{ query["direct_obj"] }} {{ query["indirect_obj"] }} {{ query["loc"] }}
+    </div>
+  </div>
+
   {% if query["matched"] %}
     {% for article in query["matched_articles"] %}
       Title: {{ article["title"] }}

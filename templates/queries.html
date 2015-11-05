@@ -19,20 +19,22 @@
       <th>Indirect Object</th>
       <th>Location</th>
       <th>Matched</th>
+      <th>View Info</th>
     </thead>
     <tbody>
       {% for query in queries %}
         <tr>
           <td>{{ query["subject"] }}</td>
           <td>{{ query["verb"] }}</td>
-          <td>{{ query["direct object"] }}</td>
-          <td>{{ query["indirect object"] or "" }}</td>
-          <td>{{ query["location"] or "" }}</td>
+          <td>{{ query["direct_obj"] }}</td>
+          <td>{{ query["indirect_obj"] or "" }}</td>
+          <td>{{ query["loc"] or "" }}</td>
           {% if query["matched"] %}
             <td><i class="fa fa-check"></i></td>
           {% else %}
             <td><i class="fa fa-times"></i></td>
           {% endif %}
+          <td><a href="{{ url_for('query', id=query['id']) }}" class="btn btn-default btn-sm">View Info</button></a>
         </tr>
       {% endfor %}
     </tbody>
