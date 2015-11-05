@@ -14,40 +14,40 @@ class AbstractValidator:
 
 class KeywordValidator(AbstractValidator):
   def __init__(self):
-    self.queryArticleLists = []
+    self.query_article_lists = []
 
-  def addQuery(self, query):
-    queryArticleList = QueryArticleList(query)
-    self.queryArticleLists.append(queryArticleList)
+  def add_query(self, query):
+    query_article_list = QueryArticleList(query)
+    self.query_article_lists.append(query_article_list)
 
-  def addToQueryArticleList(self, article):
-      queriesAddedTo = []
-      return queriesAddedTo
+  def add_to_query_article_list(self, article):
+      queries_added_to = []
+      return queries_added_to
 
-  def getQueryArticleLists(self):
-      return self.queryArticleLists
+  def get_query_article_lists(self):
+      return self.query_article_lists
 
   def validate(self, Query, Article):
-      maxMatchValue = 0
-      matchValue = 0
-      querySynonyms = Query.getSynonyms() # {NN: {word1: [list of synonym], word2: [list of synonym],...}, VB..}
-      articleKeyword = Article.getKeyword() #{NN: [list of keywords], VB:[list of verb keywords]}
-      for pos in querySynonyms:
+      max_match_value = 0
+      match_value = 0
+      query_synonyms = Query.get_synonyms() # {NN: {word1: [list of synonym], word2: [list of synonym],...}, VB..}
+      article_keyword = Article.get_keyword() #{NN: [list of keywords], VB:[list of verb keywords]}
+      for pos in query_synonyms:
 
-        for queryWord in querySynonyms[pos]:
-          maxMatchValue += 2
-          if pos in articleKeyword:
-            articleKeywordWithSameTag = articleKeyword[pos]
-            #Compare main key. If match, matchValue += 2
-            if queryWord in articleKeywordWithSameTag:
-              matchValue += 2
+        for query_word in query_synonyms[pos]:
+          max_match_value += 2
+          if pos in article_keyword:
+            article_keyword_with_same_tag = article_keyword[pos]
+            #Compare main key. If match, match_value += 2
+            if query_word in article_keyword_with_same_tag:
+              match_value += 2
             else:
-              for synonym in querySynonyms[pos][queryWord]:
-                if synonym in articleKeywordWithSameTag:
-                  matchValue += 1
+              for synonym in query_synonyms[pos][query_word]:
+                if synonym in article_keyword_with_same_tag:
+                  match_value += 1
                   break
-      matchPercentage = matchValue/maxMatchValue
-      return matchPercentage
+      match_percentage = match_value/max_match_value
+      return match_percentage
 
           #if cannot find, compare synonym. Stop when found
 
@@ -64,15 +64,15 @@ class Source:
     # Return source's ID
     return self.id
 
-  def getName(self):
+  def get_name(self):
     # Return source's name
     return self.name
 
-  def getReliability(self):
+  def get_reliability(self):
     # Return source's reliability
     return self.reliability
 
-  def loadFromSQL(self, id):
+  def load_from_SQL(self, id):
     # Return source
     return
 
@@ -84,20 +84,20 @@ class Article:
     self.body = body
     self.url = url
     self.source = source
-    self.keyword = self.extractKeyword()
+    self.keyword = self.extract_keyword()
 
-  def extractKeyword(self):
+  def extract_keyword(self):
       extractor = KeywordExtractor()
       return extractor.extract_keywords(self)
 
 
-  def getKeyword(self):
+  def get_keyword(self):
     return self.keyword
 
-  def isLinkedTo(self, otherArticle):
+  def is_linked_to(self, other_article):
     #returns true if otherAricle and self are semantically related
     return False
-  def getTitle(self):
+  def get_title(self):
     return self.title
 
 class QueryElement:
