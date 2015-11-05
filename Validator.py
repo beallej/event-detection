@@ -8,11 +8,14 @@ from nltk.stem.wordnet import WordNetLemmatizer
 import nltk
 import re
 from RAKEtutorialmaster.rake  import split_sentences
+from data_source import DataSource
 
+ds = DataSource()
 
 class AbstractValidator:
   def __init__(self):
-      pass
+      self.data_source = DataSource()
+
   def validate(self, Query, Article):
       return 0.0
 
@@ -36,7 +39,7 @@ class KeywordValidator(AbstractValidator):
       maxMatchValue = 0
       matchValue = 0
       querySynonyms = Query.getSynonyms() # {NN: {word1: [list of synonym], word2: [list of synonym],...}, VB..}
-      articleKeyword = Article.getKeyword() #{NN: [list of keywords], VB:[list of verb keywords]}
+      articleKeyword = Article.getKeywords() #{NN: [list of keywords], VB:[list of verb keywords]}
       for pos in querySynonyms:
 
         for queryWord in querySynonyms[pos]:
@@ -231,15 +234,17 @@ class Article:
     self.body = body
     self.url = url
     self.source = source
-    self.keyword = self.extractKeyword()
+    # self.keyword = self.extractKeywords()
+    ds.insert_keywords(self.title, self.extractKeywords())
 
-  def extractKeyword(self):
+  def extractKeywords(self):
       extractor = KeywordExtractor()
       return extractor.extractKeywords(self)
 
 
-  def getKeyword(self):
-    return self.keyword
+  def getKeywords(self):
+    return ds.get_keywords(self.title)
+    # return self.keyword
 
   def isLinkedTo(self, otherArticle):
     #returns true if otherAricle and self are semantically related

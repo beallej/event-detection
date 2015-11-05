@@ -23,17 +23,17 @@ sure you still have 4 slashes.\n")
 
         sample_file3 = open("ukraine.txt", 'r')
         text3 = sample_file3.read()
-        articlePool = [Article("Fake article", "meow", "url", "source"),\
-                        Article("Food experts agree: WHO report on cancer and meat is spot on", text, "url", "source"),\
+        articlePool = [Article("Food experts agree: WHO report on cancer and meat is spot on", text, "url", "source"),\
                        Article("Fraud Claims Delay Elections in Two Ukrainian Cities", text3, "url", "source")]
         for article in articlePool:
-            print(article.keyword)
+            print("Keywords: ", article.getKeywords())
         
 
 
         print("RESULT:\nArticles that matched:")
         numMatchingArticle = 0
         for article in articlePool:
+            print(article.getKeywords())
             keywordValidator = KeywordValidator()
             matchPercentage = keywordValidator.validate(query, article)
             if matchPercentage > 0.2:
