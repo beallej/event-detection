@@ -237,7 +237,7 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 		List<String> scraperIDs = new ArrayList<>();
 		for (String s : (String[]) rs.getArray("scrapers").getArray())
 			scraperIDs.add(s);
-		Feed out = new Feed(rs.getInt("id"), rs.getString("feed_name"), Downloader.sources.get(rs.getString("source")), scraperIDs, rs.getString("lastseen"), new URL(rs.getString("url")), scrapers);
+		Feed out = new Feed(rs.getInt("id"), rs.getString("feed_name"), Downloader.sources.get(rs.getInt("source")), scraperIDs, rs.getString("lastseen"), new URL(rs.getString("url")), scrapers);
 		out.writeSQL = true;
 		return out;
 	}
