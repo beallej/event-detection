@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS feeds (
 
 CREATE TABLE IF NOT EXISTS articles (
 	id serial unique not null,
-	title varchar(255) unique not null,
+	title varchar(255) not null,
 	source integer not null references sources(id) ON DELETE CASCADE,
 	url text unique not null,
 	filename text default NULL,
