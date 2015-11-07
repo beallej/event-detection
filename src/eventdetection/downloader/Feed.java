@@ -129,8 +129,8 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 					continue;
 				RawArticle ra = new RawArticle(e.getTitle(), text, e.getLink(), getSource());
 				out.add(ra);
-				lastSeen = e.getLink();
 			}
+			lastSeen = feed.getEntries().get(0).getLink();
 		}
 		catch (IllegalArgumentException | FeedException | IOException e) {
 			e.printStackTrace();
