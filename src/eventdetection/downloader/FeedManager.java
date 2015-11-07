@@ -17,7 +17,7 @@ import java.util.Map;
  */
 public class FeedManager extends Downloader {
 	private final Map<String, Scraper> scrapers;
-	private final Map<String, Feed> feeds;
+	private final Map<Integer, Feed> feeds;
 	private boolean closed;
 	
 	/**
@@ -107,7 +107,7 @@ public class FeedManager extends Downloader {
 	 * @throws IOException
 	 *             if an error occurs while loading the JSON files
 	 */
-	public List<String> addFeed(Path path) throws IOException {
+	public List<Integer> addFeed(Path path) throws IOException {
 		return loadItemsFromFile(p -> Feed.loadFromJSON(p, scrapers), p -> p.toString().endsWith(".json"), path, feeds::put);
 	}
 	
@@ -124,7 +124,7 @@ public class FeedManager extends Downloader {
 	 * @throws IOException
 	 *             if an I/O error occurs
 	 */
-	public List<String> addFeed(Connection connection, String table) throws SQLException, IOException {
+	public List<Integer> addFeed(Connection connection, String table) throws SQLException, IOException {
 		return loadItemsFromSQL(table, connection, rs -> Feed.loadFromSQL(rs, scrapers), feeds::put);
 	}
 	
@@ -135,7 +135,7 @@ public class FeedManager extends Downloader {
 	 *            the ID of the {@link Scraper} to remove
 	 * @return the removed {@link Scraper} or {@code null}
 	 */
-	public Scraper removeScraper(String id) {
+	public Scraper removeScraper(Integer id) {
 		return scrapers.remove(id);
 	}
 	
@@ -146,7 +146,7 @@ public class FeedManager extends Downloader {
 	 *            the ID of the {@link Feed} to remove
 	 * @return the removed {@link Feed} or {@code null}
 	 */
-	public Feed removeFeed(String id) {
+	public Feed removeFeed(Integer id) {
 		return feeds.remove(id);
 	}
 	

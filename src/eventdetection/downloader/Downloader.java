@@ -34,7 +34,7 @@ public abstract class Downloader implements Supplier<List<RawArticle>>, Closeabl
 	/**
 	 * The available news {@link Source Sources}
 	 */
-	public static final Map<String, Source> sources = new LinkedHashMap<>();
+	public static final Map<Integer, Source> sources = new LinkedHashMap<>();
 	private static Connection connection = null;
 	
 	/**
@@ -47,8 +47,25 @@ public abstract class Downloader implements Supplier<List<RawArticle>>, Closeabl
 	 * @throws IOException
 	 *             if an error occurs while loading the JSON files
 	 */
-	public static List<String> loadSource(Path path) throws IOException {
+	public static List<Integer> loadSource(Path path) throws IOException {
 		return loadItemsFromFile(Source::loadFromJSON, p -> p.toString().endsWith(".json"), path, sources::put);
+	}
+	
+	/**
+	 * Loads the {@link Source Sources} in an SQL table.
+	 * 
+	 * @param connection
+	 *            a {@link Connection} to a SQL server
+	 * @param table
+	 *            the name of the table containing the {@link Source Sources}
+	 * @return a {@link List} of the IDs of the loaded {@link Source Sources}
+	 * @throws SQLException
+	 *             if an error occurs in the SQL connection
+	 * @throws IOException
+	 *             if an I/O error occurs
+	 */
+	public static List<Integer> loadSource(Connection connection, String table) throws SQLException, IOException {
+		return loadItemsFromSQL(table, Source::loadFromSQL, sources::put);
 	}
 	
 	/**
@@ -58,7 +75,7 @@ public abstract class Downloader implements Supplier<List<RawArticle>>, Closeabl
 	 *            the {@link Source} to add
 	 * @return the ID of the added {@link Source}
 	 */
-	public static String addSource(Source source) {
+	public static Integer addSource(Source source) {
 		sources.put(source.getID(), source);
 		return source.getID();
 	}
@@ -70,7 +87,7 @@ public abstract class Downloader implements Supplier<List<RawArticle>>, Closeabl
 	 *            the ID of the {@link Source} to remove
 	 * @return the removed {@link Source} or {@code null}
 	 */
-	public static Source removeSource(String id) {
+	public static Source removeSource(Integer id) {
 		return sources.remove(id);
 	}
 	
@@ -86,13 +103,15 @@ public abstract class Downloader implements Supplier<List<RawArticle>>, Closeabl
 	 * @param store
 	 *            the method used to store the constructed {@link IDAble} objects
 	 * @param <T>
-	 *            the type of the item to load. This will be implicitly set when this method is used correctly
+	 *            the type of the item to load
+	 * @param <V>
+	 *            the type of the ID of the item to load
 	 * @return a {@link List} of the IDs of the loaded objects
 	 * @throws IOException
 	 *             if an error occurs while loading from files
 	 */
-	public static <T extends IDAble> List<String> loadItemsFromFile(IOExceptedFunction<Path, T> loader, Filter<Path> filter, Path path, BiFunction<String, T, T> store) throws IOException {
-		List<String> ids = new ArrayList<>();
+	public static <T extends IDAble<V>, V> List<V> loadItemsFromFile(IOExceptedFunction<Path, T> loader, Filter<Path> filter, Path path, BiFunction<V, T, T> store) throws IOException {
+		List<V> ids = new ArrayList<>();
 		if (Files.isRegularFile(path)) {
 			if (filter.accept(path)) {
 				T t = loader.apply(path);
@@ -133,7 +152,7 @@ public abstract class Downloader implements Supplier<List<RawArticle>>, Closeabl
 	 * @throws IOException
 	 *             if an error occurs while loading
 	 */
-	public static <T extends IDAble> List<String> loadItemsFromSQL(String table, SQLExceptedFunction<ResultSet, T> loader, BiFunction<String, T, T> store)
+	public static <T extends IDAble<V>, V> List<V> loadItemsFromSQL(String table, SQLExceptedFunction<ResultSet, T> loader, BiFunction<V, T, T> store)
 			throws SQLException, IOException {
 		return loadItemsFromSQL(table, getConnection(), loader, store);
 	}
@@ -157,9 +176,9 @@ public abstract class Downloader implements Supplier<List<RawArticle>>, Closeabl
 	 * @throws IOException
 	 *             if an error occurs while loading
 	 */
-	public static <T extends IDAble> List<String> loadItemsFromSQL(String table, Connection connection, SQLExceptedFunction<ResultSet, T> loader, BiFunction<String, T, T> store)
+	public static <T extends IDAble<V>, V> List<V> loadItemsFromSQL(String table, Connection connection, SQLExceptedFunction<ResultSet, T> loader, BiFunction<V, T, T> store)
 			throws SQLException, IOException {
-		List<String> ids = new ArrayList<>();
+		List<V> ids = new ArrayList<>();
 		Connection con = getConnection();
 		String statement = "select * from " + table;
 		try (PreparedStatement stmt = con.prepareStatement(statement)) {

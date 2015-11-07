@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
-brew tap 'toberumono/tap'
-brew install 'toberumono/tap/utils' 'toberumono/tap/structures' 'toberumono/tap/lexer' 'toberumono/tap/json-library' 'wget'
-brew install 'postgresql' '--devel'
+working_dir="$(pwd)"
+if [ "$(which brew)" != "" ] && [ "$(which brew)" != "brew not found" ]; then
+	brew tap 'toberumono/tap'
+	brew install 'toberumono/tap/utils' 'toberumono/tap/structures' 'toberumono/tap/lexer' 'toberumono/tap/json-library' 'wget'
+	brew install 'postgresql' '--devel'
+else
+	cd ../
+	git clone "https://github.com/Toberumono/JSON-library.git"
+	cd 'JSON-library'
+	git checkout "$(git describe --tags)"
+	./build_brewless.sh
+	cd "$working_dir"
+fi
 echo '----------------Downloading Downloader Dependencies-------------------'
 wget '-N' '--directory-prefix=../' 'http://central.maven.org/maven2/com/rometools/rome-utils/1.5.1/rome-utils-1.5.1.jar'
 wget '-N' '--directory-prefix=../' 'http://central.maven.org/maven2/com/rometools/rome/1.5.1/rome-1.5.1.jar'
@@ -10,10 +20,12 @@ wget '-N' '--directory-prefix=../' 'http://central.maven.org/maven2/org/slf4j/sl
 wget '-N' '--directory-prefix=../' 'http://central.maven.org/maven2/org/slf4j/slf4j-simple/1.7.12/slf4j-simple-1.7.12.jar'
 wget '-N' '--directory-prefix=../' 'https://jdbc.postgresql.org/download/postgresql-9.4-1205.jdbc42.jar'
 wget '-N' '--directory-prefix=../' 'http://nlp.stanford.edu/software/stanford-corenlp-full-2015-04-20.zip'
-unzip '../stanford-corenlp-full-2015-04-20.zip'
+unzip '../stanford-corenlp-full-2015-04-20.zip' '-d' '../'
 echo '------------------Setting Up PostgreSQL Database---------------------'
-( "$(which lunchy)" == "" ) && sudo gem install lunchy
-initdb /usr/local/var/postgres
+( ( "$(which lunchy)" == "lunchy not found" ) || ( "$(which lunchy)" == "" ) ) && sudo gem install lunchy
+initdb "$(brew --prefix)/var/postgres"
+mkdir -p "~/Library/LaunchAgents"
+ln -sfv "$(brew --prefix)/opt/postgresql/*.plist" "~/Library/LaunchAgents"
 lunchy start postgresql
 createdb event_detection
 psql event_detection < setup.sql

@@ -28,7 +28,7 @@ import eventdetection.common.IDAble;
  * 
  * @author Joshua Lipstone
  */
-public class Scraper implements IDAble, JSONRepresentable {
+public class Scraper implements IDAble<String>, JSONRepresentable {
 	private final List<Pair<Pattern, String>> sectioning;
 	private final List<Pair<Pattern, String>> filtering;
 	private final String id;

@@ -12,6 +12,7 @@ import java.sql.Statement;
 import java.time.Instant;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Iterator;
 
 import eventdetection.downloader.POSTagger;
 import eventdetection.downloader.RawArticle;
@@ -25,25 +26,25 @@ public class ArticleManager {
 	private final Connection connection;
 	private final String table;
 	private final Collection<Path> storage;
-	private final boolean posTagging;
+	private final boolean posTaggingEnabled;
 	
 	/**
 	 * Initializes an {@link ArticleManager}.
 	 * 
 	 * @param connection
 	 *            a {@link Connection} to the database in use
-	 * @param table
+	 * @param articleTable
 	 *            the name of the table holding the {@link Article Articles}
-	 * @param storage
+	 * @param articleStorage
 	 *            the places where {@link Article Articles} are stored
-	 * @param posTagging
+	 * @param posTaggingEnabled
 	 *            whether the {@link Article Articles} should POS tagged
 	 */
-	public ArticleManager(Connection connection, String table, Collection<Path> storage, boolean posTagging) {
+	public ArticleManager(Connection connection, String articleTable, Collection<Path> articleStorage, boolean posTaggingEnabled) {
 		this.connection = connection;
-		this.table = table;
-		this.storage = storage;
-		this.posTagging = posTagging;
+		this.table = articleTable;
+		this.storage = articleStorage;
+		this.posTaggingEnabled = posTaggingEnabled;
 	}
 	
 	/**
@@ -56,8 +57,8 @@ public class ArticleManager {
 	 * @throws IOException
 	 *             if an I/O error occurs
 	 */
-	public void cleanUpArticles(Calendar oldest) throws SQLException, IOException {
-		cleanUpArticles(oldest.toInstant());
+	public void removeArticlesBefore(Calendar oldest) throws SQLException, IOException {
+		removeArticlesBefore(oldest.toInstant());
 	}
 	
 	/**
@@ -70,7 +71,7 @@ public class ArticleManager {
 	 * @throws IOException
 	 *             if an I/O error occurs
 	 */
-	public void cleanUpArticles(Instant oldest) throws SQLException, IOException {
+	public void removeArticlesBefore(Instant oldest) throws SQLException, IOException {
 		String statement = "select * from " + table;
 		try (PreparedStatement stmt = connection.prepareStatement(statement)) {
 			ResultSet rs = stmt.executeQuery();
@@ -101,45 +102,52 @@ public class ArticleManager {
 	
 	/**
 	 * Stores the given {@link Article} in the first path in the {@link Collection} of storage {@link Path Paths} as defined
-	 * by its iterator.
+	 * by its {@link Iterator}.
 	 * 
 	 * @param article
 	 *            the {@link Article} to store
 	 * @return the {@link Path} that points to the file in which the article was stored
 	 * @throws SQLException
 	 *             if an issue with the SQL server occurs
+	 * @throws IOException
+	 *             if the storage directory does not exist and cannot be created or the article file cannot be written to
+	 *             disk
 	 */
-	public Path store(Article article) throws SQLException {
+	public Path store(Article article) throws SQLException, IOException {
+		Path storagePath = storage.iterator().next();
+		if (!Files.exists(storagePath))
+			Files.createDirectories(storagePath);
 		String statement = "insert into " + table + " (title, url, source) values (?, ?, ?)";
 		try (PreparedStatement stmt = connection.prepareStatement(statement)) {
-			stmt.setString(1, article.getTitle());
+			String untaggedTitle = article.getUntagged().getTitle();
+			stmt.setString(1, untaggedTitle);
 			stmt.setString(2, article.getURL().toString());
-			stmt.setString(3, article.getSource().getID());
+			stmt.setInt(3, article.getSource().getID());
 			stmt.executeUpdate();
 			String sql = "select * from " + table + " as arts group by arts.id having arts.id >= all (select a.id from " + table + " as a)";
 			try (PreparedStatement ps = connection.prepareStatement(sql)) {
 				ResultSet rs = ps.executeQuery();
 				if (!rs.next())
 					return null;
-				String filename = makeFilename(rs.getInt("id"), article.getSource(), article.getTitle());
+				String filename = makeFilename(rs.getInt("id"), article.getSource(), untaggedTitle);
 				try (PreparedStatement stm = connection.prepareStatement("update " + table + " set filename = ? where id = ?")) {
 					stm.setString(1, filename);
 					stm.setLong(2, rs.getLong("id"));
 					stm.executeUpdate();
 				}
-				Path path = storage.iterator().next().resolve(filename);
+				Path filePath = storagePath.resolve(filename);
 				try {
-					if (!Files.exists(path.getParent()))
-						Files.createDirectories(path.getParent());
-					Files.write(path, article.getText().getBytes());
+					StringBuilder fileText = new StringBuilder(article.getTitle().length() + article.getText().length() + 14); //14 is the length of the section dividers
+					fileText.append("TITLE:\n").append(article.getTitle()).append("\nTEXT:\n").append(article.getText());
+					Files.write(filePath, fileText.toString().getBytes());
 				}
 				catch (IOException e) {
 					try (Statement stm = connection.createStatement()) {
 						stm.executeUpdate("delete from " + table + " where id = " + rs.getLong("id"));
 					}
-					return null;
+					throw e;
 				}
-				return path;
+				return filePath;
 			}
 		}
 	}
@@ -170,7 +178,7 @@ public class ArticleManager {
 	 *            the title of the {@link Article}
 	 * @return the file name as a {@link String}
 	 */
-	public String makeFilename(int id, String source, String title) {
+	public String makeFilename(int id, int source, String title) {
 		return id + "_" + source + "_" + title.replaceAll("[:/\\s]", "_") + ".txt";
 	}
 	
@@ -183,11 +191,11 @@ public class ArticleManager {
 	 */
 	public Article process(RawArticle ra) {
 		String title = ra.getTitle(), text = ra.getText();
-		if (posTagging) {
+		if (posTaggingEnabled) {
 			title = POSTagger.tag(title);
 			text = POSTagger.tag(text);
 		}
-		return new Article(title, text, ra.getUrl(), ra.getSource(), posTagging);
+		return new Article(title, text, ra.getURL(), ra.getSource(), isPOSTaggingEnabled());
 	}
 	
 	/**
@@ -202,5 +210,12 @@ public class ArticleManager {
 	 */
 	public String getTable() {
 		return table;
+	}
+	
+	/**
+	 * @return {@code true} if POS tagging is enabled
+	 */
+	public boolean isPOSTaggingEnabled() {
+		return posTaggingEnabled;
 	}
 }
