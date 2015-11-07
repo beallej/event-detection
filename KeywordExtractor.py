@@ -23,7 +23,7 @@ class KeywordCandidate:
 
 
 class KeywordExtractor:
-    stoplistFile = "RAKEtutorialmaster/SmartStoplist.txt"
+    stoplist_file = "RAKEtutorialmaster/SmartStoplist.txt"
     language = "english"
     max_words_in_keyword = 3
     min_letters_in_word_in_keyword = 4
@@ -47,11 +47,11 @@ class KeywordExtractor:
 
         self.min_occurrences_body = min(self.min_occurrences_body, math.ceil(len(article.body)/2000))
 
-        rake_object_title = rake.Rake(self.stoplistFile, self.min_letters_in_word_in_keyword, self.max_words_in_keyword, self.min_occurrences_title)
-        rake_object_body = rake.Rake(self.stoplistFile, self.min_letters_in_word_in_keyword, self.max_words_in_keyword, self.min_occurrences_body)
+        rake_object_title = rake.Rake(self.stoplist_file, self.min_letters_in_word_in_keyword, self.max_words_in_keyword, self.min_occurrences_title)
+        rake_object_body = rake.Rake(self.stoplist_file, self.min_letters_in_word_in_keyword, self.max_words_in_keyword, self.min_occurrences_body)
 
-        preprossed_title, title_keyword_candidates = self.preprocess_keywords(article.title)
-        preprossed_body, body_keyword_candidates = self.preprocess_keywords(article.body)
+        preprossed_title, title_keyword_candidates = self.preprocess_keywords(article.title_tagged)
+        preprossed_body, body_keyword_candidates = self.preprocess_keywords(article.body_tagged)
 
         title_keywords = rake_object_title.run(preprossed_title)
         body_keywords = rake_object_body.run(preprossed_body)

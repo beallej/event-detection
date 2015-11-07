@@ -3,6 +3,7 @@
 from nltk import pos_tag, word_tokenize
 from nltk.corpus import stopwords
 from KeywordExtractor import *
+import re
 
 
 class AbstractValidator:
@@ -76,8 +77,10 @@ class Source:
 
 class Article:
     def __init__(self, title, body, url, source):
+        tagged_items = re.match(r'TITLE:\n(.*)\nTEXT:\n(.*)', body)
+        self.title_tagged = tagged_items.group(1)
+        self.body_tagged - tagged_items.group(2)
         self.title = title
-        self.body = body
         self.url = url
         self.source = source
         self.keyword = self.extract_keyword()
@@ -121,7 +124,9 @@ class Query:
         self.indirect_obj = QueryElement("indirect_obj", query_parts["indirect_obj"])
         self.location = QueryElement("location", query_parts["location"])
         self.query = query_parts["query"]
-        self.stop_list = set(stopwords.words("english"))
+
+        stoplist_file = "RAKEtutorialmaster/SmartStoplist.txt"
+        self.stop_list = set(open(stoplist_file).readlines())
 
         self.query_tagged = self.tag_query()
         self.synonyms_with_tag = {}
