@@ -7,10 +7,23 @@
     </div>
   </div>
 
-  {% if query["matched"] %}
-    {% for article in query["matched_articles"] %}
-      Title: {{ article["title"] }}
-    {% endfor %}
+  {% if articles|length != 0 %}
+    <table class="table table-striped">
+      <thead>
+        <th>Article Name</th>
+        <th>Source</th>
+        <th>View Article</th>
+      </thead>
+      <tbody>
+        {% for article in articles %}
+          <tr>
+            <td>{{ article["title"] }}</td>
+            <td>{{ article["source"] }}</td>
+            <td><a href="{{ article['url'] }}" class="btn btn-default btn-sm">View Info</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   {% else %}
     Query not yet matched
   {% endif %}
