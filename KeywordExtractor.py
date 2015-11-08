@@ -45,7 +45,7 @@ class KeywordExtractor:
         #Keywords in body must appear at least a certain number of  times, depending on the number of
         #characters in the article if the article is short
 
-        self.min_occurrences_body = min(self.min_occurrences_body, math.ceil(len(article.body)/2000))
+        self.min_occurrences_body = min(self.min_occurrences_body, math.ceil(len(article.body_tagged)/2000))
 
         rake_object_title = rake.Rake(self.stoplist_file, self.min_letters_in_word_in_keyword, self.max_words_in_keyword, self.min_occurrences_title)
         rake_object_body = rake.Rake(self.stoplist_file, self.min_letters_in_word_in_keyword, self.max_words_in_keyword, self.min_occurrences_body)
@@ -61,7 +61,7 @@ class KeywordExtractor:
 
         for pos in title_keywords_with_tags:
             if pos in all_keywords_with_tags:
-                all_keywords_with_tags.update(title_keywords_with_tags[pos])
+                all_keywords_with_tags[pos] = all_keywords_with_tags[pos].union(title_keywords_with_tags[pos])
         for pos in all_keywords_with_tags:
             all_keywords_with_tags[pos] = list(all_keywords_with_tags[pos])
         return all_keywords_with_tags
@@ -223,7 +223,7 @@ class KeywordExtractor:
         XXX for undeterminable POS
         returns first tag, last tag, unstemmed keyword
         """
-        sub_keywords = nltk.word_tokenize(keyword)
+        sub_keywords = keyword.split(" ")
         first_word = sub_keywords[0]
         last_word = sub_keywords[-1]
 

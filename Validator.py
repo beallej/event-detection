@@ -79,7 +79,7 @@ class Article:
     def __init__(self, title, body, url, source):
         tagged_items = re.match(r'TITLE:\n(.*)\nTEXT:\n(.*)', body)
         self.title_tagged = tagged_items.group(1)
-        self.body_tagged - tagged_items.group(2)
+        self.body_tagged = tagged_items.group(2)
         self.title = title
         self.url = url
         self.source = source
