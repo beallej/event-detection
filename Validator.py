@@ -235,7 +235,7 @@ class Article:
     self.url = url
     self.source = source
     # self.keyword = self.extractKeywords()
-    ds.insert_keywords(self.title, self.extractKeywords())
+    ds.insert_article_keywords(self.title, self.extractKeywords())
 
   def extractKeywords(self):
       extractor = KeywordExtractor()
@@ -243,7 +243,7 @@ class Article:
 
 
   def getKeywords(self):
-    return ds.get_keywords(self.title)
+    return ds.get_article_keywords(self.title)
     # return self.keyword
 
   def isLinkedTo(self, otherArticle):
@@ -268,9 +268,8 @@ class QueryElement:
   
 class Query:
   
-  def __init__(self, id, queryParts, threshold):
+  def __init__(self, queryParts, threshold):
     self.threshold = threshold
-    self.id = id
     self.subject = QueryElement("subject", queryParts["subject"])
     self.verb = QueryElement("verb", queryParts["verb"])
     self.directObj = QueryElement("directObj", queryParts["directObj"])
@@ -284,6 +283,11 @@ class Query:
     self.synonymsWithTag = {}
     self.getSynonymsWithTag()
 
+
+  def store(self):
+    """Stores the query in the database"""
+    ds.insert_query(self.subject.word, self.verb.word, self.directObj.word, self.indirectObj.word, self.location.word)
+    #self.id = ds.get_query_id()
 
 
   def getId(self):

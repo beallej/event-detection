@@ -1,6 +1,9 @@
 import sys
 from Validator import *
 from nltk import pos_tag, word_tokenize
+from data_source import DataSource
+
+ds = DataSource()
 
 def main():
     userInput = input("Please enter query, in the form of :Subject/Verb/Direct Object/Indirect Object/\
@@ -17,7 +20,13 @@ sure you still have 4 slashes.\n")
         # put into database -> get id
         threshold = None
 
-        query = Query(1, queryParts, threshold)
+        #print("testing database now by getting articles")
+        #print(ds.get_article_keywords("The Article Title"))
+
+
+
+        query = Query(queryParts, threshold)
+        query.store()
         sample_file = open("cancer.txt", 'r')
         text = sample_file.read()
 
