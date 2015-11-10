@@ -1,17 +1,16 @@
 from nltk.stem.snowball import SnowballStemmer
 import RAKEtutorialmaster.rake as rake
 from nltk.stem.wordnet import WordNetLemmatizer
-import nltk
 import re
 import math
-import sys
-from RAKEtutorialmaster.rake  import split_sentences_tagged, split_sentences
+from RAKEtutorialmaster.rake  import split_sentences_tagged
 
 
-"""
-KeywordCandidate: A word in the text, it's tag, + possible keywords it could be a part of
-"""
+
 class KeywordCandidate:
+    """
+    KeywordCandidate: A word in the text, it's tag, + possible keywords it could be a part of
+    """
     def __init__(self, word, neighbors, tag):
         self.word = word
         self.contexts = {}
@@ -21,46 +20,69 @@ class KeywordCandidate:
 
 
 
-"""
-KeywordExtractor: Performs keyword extraction on a text
-"""
+
 class KeywordExtractor:
+    """
+    KeywordExtractor: Performs keyword extraction on a text
+    """
+    stoplist_file = "RAKEtutorialmaster/SmartStoplist.txt"
+    language = "english"
+    max_words_in_keyword = 3
+    min_letters_in_word_in_keyword = 4
+    min_occurrences_body = 3
+    min_occurrences_title = 1
+
     def __init__(self):
+        """
+        Inits lemmatizer for Keyword extraction
+        :return: None
+        """
         self.lemmatizer = WordNetLemmatizer()
 
-    """
-    extract_keywords: main function. performs extraction using RAKE algorithm
-    returns {part of speech: [list of keywords with that part of speech]}
-    """
     def extract_keywords(self, article):
+        """
+        extract_keywords: main function. performs extraction using RAKE algorithm
+        :param article: article object to get keywords from
+        :return:  {part of speech: [list of keywords with that part of speech]}
+        """
 
-        #All words in an keyword must contain >= 4 letters
-        #All keywords must contain <= 3 words
-        #Keywors in title must appear at least once
-        #Keywords in body must appear at least c times, where c is depending on the number of characters in the
-        #article if the article is short
+        #Keywords in body must appear at least a certain number of  times, depending on the number of
+        #characters in the article if the article is short
 
-        count_limit = math.ceil(len(article.body)/2000)
-        count_limit = min(count_limit, 3)
+        self.min_occurrences_body = min(self.min_occurrences_body, math.ceil(len(article.body_tagged)/2000))
 
-        rake_object_title = rake.Rake("RAKEtutorialmaster/SmartStoplist.txt", 4, 3, 1)
-        rake_object_body = rake.Rake("RAKEtutorialmaster/SmartStoplist.txt", 4, 3, count_limit)
-        all_keywords = self.rake_keywords(article.body, rake_object_body)
-        title_keywords = self.rake_keywords(article.title, rake_object_title)
+        rake_object_title = rake.Rake(self.stoplist_file, self.min_letters_in_word_in_keyword, self.max_words_in_keyword, self.min_occurrences_title)
+        rake_object_body = rake.Rake(self.stoplist_file, self.min_letters_in_word_in_keyword, self.max_words_in_keyword, self.min_occurrences_body)
 
-        for pos in title_keywords:
-            if pos in all_keywords:
-                all_keywords[pos].update(title_keywords[pos])
-        for pos in all_keywords:
-            all_keywords[pos] = list(all_keywords[pos])
-        return all_keywords
+        preprossed_title, title_keyword_candidates = self.preprocess_keywords(article.title_tagged)
+        preprossed_body, body_keyword_candidates = self.preprocess_keywords(article.body_tagged)
 
-    """
-    get_neighbors
-    returns list of keywords a stem could belong to in this part of the text (a keyword is a max of 3 words long)
-    """
+        title_keywords = rake_object_title.run(preprossed_title)
+        body_keywords = rake_object_body.run(preprossed_body)
+
+        title_keywords_with_tags = self.get_tags_for_keywords(title_keywords, title_keyword_candidates)
+        all_keywords_with_tags = self.get_tags_for_keywords(body_keywords, body_keyword_candidates)
+
+        for pos in title_keywords_with_tags:
+            if pos in all_keywords_with_tags:
+                all_keywords_with_tags[pos] = all_keywords_with_tags[pos].union(title_keywords_with_tags[pos])
+        for pos in all_keywords_with_tags:
+            all_keywords_with_tags[pos] = list(all_keywords_with_tags[pos])
+        return all_keywords_with_tags
+
+
+
     def get_neighbors(self, i, tokens):
-         #a keyword is a max of 3 words long -- these are the possible keywords that a stem could belong to
+        """
+        get_neighbors
+        returns list of keywords a stem could belong to in this part of the text, for example:
+        For a stem "cat" in "Fluffy cats like to play with string", the neighbors of "cat' would be:
+        ["Fluffy cats like", "fluffy cats", "cats like", "cats like to"]
+        :param i: index of stem within list of tokens
+        :param tokens: tokens of a sentence
+        :return: list of keywords the stem could belong to
+        """
+
         neighbors = []
 
         token = tokens[i].split("_")[0]
@@ -90,17 +112,16 @@ class KeywordExtractor:
 
         return neighbors
 
-    """
-    rake_keywords
-    extracts plain text from tagged text.
-    stems and lemmatizes text
-    performs rake algorithm on that.
-    retrieves parts of speech for keywords
-    {part of speech: [list of keywords with that part of speech]}
-    """
-    def rake_keywords(self, text, rake_object):
+    def preprocess_keywords(self, text):
+        """
+        preprocess_keywords
+        extracts plain text from tagged text, saving tags for possible later lookup
+        stems and lemmatizes text
+        :param text: raw tagged article text
+        :return: text to perform keyword extraction on, dictionary of possible keywords for a stem {stem : [possible keywords]}
+        """
 
-        #remove url stuff
+         #remove url stuff
         text = re.sub(r'https?://.+\s', "", text)
 
         #split into sentences
@@ -135,16 +156,19 @@ class KeywordExtractor:
             sentence_list.append(text_stemmed)
 
         to_run = "! ".join(sentence_list)
+        return to_run, candidate_keywords
 
-        keywords = rake_object.run(to_run)
-        return self.tag_keywords(keywords, candidate_keywords)
 
-    """
-    tag_keywords
-    retrieves tags and originals from stemmed keywords
-    returns {part of speech: [list of keywords with that part of speech]}
-    """
-    def tag_keywords(self, keywords, candidate_keywords):
+    def get_tags_for_keywords(self, keywords, candidate_keywords):
+        """
+        get_tags_for_keywords
+        retrieves tags and originals from stemmed keywords
+        :param keywords: keywords extracted from rake algorithm-- a list of tuples
+        of the form (keyword, weight)
+        :param candidate_keywords: dictionary of possible keywords for a stem {stem : [possible keywords]}
+        :return: dictionary of tag to keywords with that tag, ex {NN: [cat, dog]}
+        """
+
         #final dictionary
         keywords_tagged = {}
 
@@ -172,26 +196,29 @@ class KeywordExtractor:
 
                 first_tag, last_tag, unstemmed = self.get_multiword_pos(keyword, candidate_keywords)
 
-                #starts with verb
-                if first_tag[0] == 'V':
+                #starts with verb (non gerundal), probably a verb --> ex. "take shelter", NOT "taking a bath"
+                if first_tag[0] == 'V' and first_tag != "VBG":
                     if first_tag not in keywords_tagged:
                         keywords_tagged[first_tag] = set()
                     keywords_tagged[first_tag].add(unstemmed)
 
-                #ends with noun
-                if last_tag[0] == 'N':
+                #ends with noun or gerund, probably a noun --> ex. "long-distance running", "cat's pajamas"
+                if last_tag[0] == 'N' or last_tag == "VBG":
                     if last_tag not in keywords_tagged:
                         keywords_tagged[last_tag] = set()
                     keywords_tagged[last_tag].add(unstemmed)
 
         return keywords_tagged
 
-    """
-    get_tag_and_original_from_keyword
-    gets tag of a specific word within keyword and original keyword from stemmed multi-word keyword
-    returns tag, original keyword
-    """
+
     def get_tag_and_original_from_keyword(self, keyword, keyword_instances):
+        """
+        get_tag_and_original_from_keyword
+        gets tag of a specific word within keyword and original keyword from stemmed multi-word keyword
+        :param keyword: stemmed keyword
+        :param keyword_instances: instances in which that stem appears in original text
+        :return: tag, original keyword. If not found, returns "XXX", None
+        """
         for instance in keyword_instances:
             for context in instance.contexts:
 
@@ -202,14 +229,18 @@ class KeywordExtractor:
         return "XXX", None
 
 
-    """
-    get_multiword_pos
-    for a given multi-word keyword, gets original unstemmed keyword, and pos of first and last word
-    XXX for undeterminable POS
-    returns first tag, last tag, unstemmed keyword
-    """
+
     def get_multiword_pos(self, keyword, candidate_keywords):
-        sub_keywords = nltk.word_tokenize(keyword)
+        """
+        get_multiword_pos
+        for a given multi-word keyword, gets original unstemmed keyword, and pos of first and last word
+        XXX for undeterminable POS
+        :param keyword: stemmed keyword (with more than one word in it, (ex. the cat pajama for the cat's pajamas)
+        :param candidate_keywords: dictionary of possible keywords for a stem {stem : [possible keywords]}
+        :return: tag of first word (or "XXX" for unknown), tag of last word(or "XXX" for unknown), unstemmed version of keyword
+
+        """
+        sub_keywords = keyword.split(" ")
         first_word = sub_keywords[0]
         last_word = sub_keywords[-1]
 
@@ -225,11 +256,14 @@ class KeywordExtractor:
 
         return first_tag, last_tag, unstemmed
 
-    """
-    stemmatize
-    lemmatizes, then stems word
-    """
+
     def stemmatize(self,word):
+        """
+        stemmatize
+        lemmatizes, then stems word
+        :param word: word to stem/lemmatize
+        :return: stemmed/lemmatized word
+        """
         lemma = self.lemmatizer.lemmatize(word)
-        stem = (SnowballStemmer("english").stem(lemma))
+        stem = (SnowballStemmer(self.language).stem(lemma))
         return stem
