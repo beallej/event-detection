@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS notification_types (
 CREATE TABLE IF NOT EXISTS user_contact_info (
 	user_id integer not null references users(id) ON DELETE CASCADE,
 	notification_type integer not null references notification_types(id) ON DELETE CASCADE,
-	arguments text[] default '{}',
+	arguments text not null,
 	display_name text not null,
 	primary key (user_id, notification_type, arguments)
 );
@@ -57,9 +57,9 @@ CREATE TABLE IF NOT EXISTS queries (
 
 CREATE TABLE IF NOT EXISTS query_notifications (
 	query_id integer not null references queries(id) ON DELETE CASCADE,
-	user_id integer not null references users(id),
+	user_id integer not null references users(id) ON DELETE CASCADE,
 	notification_type integer not null references notification_types(id) ON DELETE CASCADE,
-	arguments text[] default '{}',
+	arguments text not null,
 	foreign key (user_id, notification_type, arguments) references user_contact_info (user_id, notification_type, arguments),
 	constraint unique_notification unique (query_id, notification_type, arguments)
 );
