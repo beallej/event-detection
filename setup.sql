@@ -27,15 +27,21 @@ CREATE TABLE IF NOT EXISTS articles (
 
 CREATE TABLE IF NOT EXISTS users (
 	id serial primary key unique not null,
-	user_name text unique not null,
-	phone varchar(32) default null,
-	email varchar(255) default null
+	user_name text unique not null
 );
 
 CREATE TABLE IF NOT EXISTS notification_types (
 	id serial primary key unique not null,
 	type_name text unique not null,
 	description text default ''
+);
+
+CREATE TABLE IF NOT EXISTS user_contact_info (
+	user_id integer not null references users(id) ON DELETE CASCADE,
+	notification_type integer not null references notification_types(id) ON DELETE CASCADE,
+	arguments text[] default '{}',
+	display_name text not null,
+	primary key (user_id, notification_type, arguments)
 );
 
 CREATE TABLE IF NOT EXISTS queries (
@@ -51,8 +57,10 @@ CREATE TABLE IF NOT EXISTS queries (
 
 CREATE TABLE IF NOT EXISTS query_notifications (
 	query_id integer not null references queries(id) ON DELETE CASCADE,
+	user_id integer not null references users(id),
 	notification_type integer not null references notification_types(id) ON DELETE CASCADE,
 	arguments text[] default '{}',
+	foreign key (user_id, notification_type, arguments) references user_contact_info (user_id, notification_type, arguments),
 	constraint unique_notification unique (query_id, notification_type, arguments)
 );
 
