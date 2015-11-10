@@ -18,7 +18,10 @@ sure you still have 4 slashes.\n")
         threshold = None
 
         query = Query(queryParts, threshold)
-        query.store()
+        test_username = 'A Cat'
+        test_phone = '555-222-1234'
+        test_email = 'meow@test.com'
+        query.store(test_username, test_phone, test_email)
         sample_file = open("cancer.txt", 'r')
         text = sample_file.read()
 
@@ -43,7 +46,7 @@ sure you still have 4 slashes.\n")
 
     else:
         print("Please enter exactly 5 elements.")
-        
+
 
 if __name__ == "__main__":
     main()
