@@ -61,6 +61,20 @@ class DataSource:
         self.cursor.execute("SELECT id FROM users WHERE user_name=%s AND phone=%s AND email=%s", (user_name, phone, email))
         return self.cursor.fetchone()[0]
 
+    def user_status(self, user_name, phone, email):
+        """Takes in a username and returns 0 if username is already taken with different phone/email, 
+        1 if username is repeat, 2 if user is new"""
+        self.cursor.execute("SELECT id FROM users WHERE user_name=%s", (user_name, ))
+        username_exists = (self.cursor.fetchone() != None)
+        self.cursor.execute("SELECT id FROM users WHERE user_name=%s AND phone=%s AND email=%s", (user_name, phone, email))
+        identical_user_exists = (self.cursor.fetchone() != None)
+        if username_exists and not identical_user_exists: # Username already has different phone/email assigned
+            return 0
+        elif username_exists: # Duplicate user
+            return 1
+        else: # New user
+            return 2
+
 #def main():
 #    pass
 

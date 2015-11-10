@@ -18,7 +18,7 @@ sure you still have 4 slashes.\n")
         threshold = None
 
         query = Query(queryParts, threshold)
-        test_username = 'A Cat'
+        test_username = 'Another Cat'
         test_phone = '555-222-1234'
         test_email = 'meow@test.com'
         query.store(test_username, test_phone, test_email)

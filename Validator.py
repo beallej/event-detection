@@ -280,10 +280,19 @@ class Query:
 
 
   def store(self, username, phone, email):
-    """Stores the user and query in the database"""
-    user_id = ds.insert_user(username, phone, email)
-    self.id = ds.insert_query(user_id, self.subject.word, self.verb.word, self.directObj.word, self.indirectObj.word, self.location.word)
-
+    """Stores the user and query in the database. Quits if the username is taken."""
+    USERNAME_UNAVAILABLE = 0
+    USERNAME_DUPLICATE = 1
+    USERNAME_NEW = 2
+    if ds.user_status(username, phone, email) == USERNAME_UNAVAILABLE:
+    	print("Error: Username", username, "is taken. Please try again with a different username.")
+    	exit()
+    elif ds.user_status(username, phone, email) == USERNAME_NEW:
+    	user_id = ds.insert_user(username, phone, email)
+    	self.id = ds.insert_query(user_id, self.subject.word, self.verb.word, self.directObj.word, self.indirectObj.word, self.location.word)
+    else: # ds.user_status = USERNAME_DUPLICATE
+    	user_id = ds.get_user_id(username, phone, email)
+    	self.id = ds.insert_query(user_id, self.subject.word, self.verb.word, self.directObj.word, self.indirectObj.word, self.location.word)
 
   def getId(self):
       return self.id
