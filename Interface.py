@@ -1,9 +1,6 @@
 import sys
 from Validator import *
 from nltk import pos_tag, word_tokenize
-from data_source import DataSource
-
-ds = DataSource()
 
 def main():
     userInput = input("Please enter query, in the form of :Subject/Verb/Direct Object/Indirect Object/\
@@ -20,11 +17,6 @@ sure you still have 4 slashes.\n")
         # put into database -> get id
         threshold = None
 
-        #print("testing database now by getting articles")
-        #print(ds.get_article_keywords("The Article Title"))
-
-
-
         query = Query(queryParts, threshold)
         query.store()
         sample_file = open("cancer.txt", 'r')
@@ -36,8 +28,6 @@ sure you still have 4 slashes.\n")
                        Article("Fraud Claims Delay Elections in Two Ukrainian Cities", text3, "url", "source")]
         for article in articlePool:
             print("Keywords: ", article.getKeywords())
-        
-
 
         print("RESULT:\nArticles that matched:")
         numMatchingArticle = 0
@@ -53,11 +43,7 @@ sure you still have 4 slashes.\n")
 
     else:
         print("Please enter exactly 5 elements.")
-
-
-
-
-
+        
 
 if __name__ == "__main__":
     main()

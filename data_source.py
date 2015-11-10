@@ -46,71 +46,26 @@ class DataSource:
         #    print("Error: cannot insert keywords")
         return
 
-    def insert_query(self, subject, verb, direct_obj, indirect_obj, loc):
-        self.cursor.execute("INSERT INTO queries (subject, verb, direct_obj, indirect_obj, loc) VALUES (%s, %s, %s, %s, %s)",
-                                                 (subject, verb, direct_obj, indirect_obj, loc, ))
+    def insert_query(self, userid, subject, verb, direct_obj, indirect_obj, loc):
+        self.cursor.execute("INSERT INTO queries (userid, subject, verb, direct_obj, indirect_obj, loc) VALUES (%s, %s, %s, %s, %s, %s)",
+                                                 (userid, subject, verb, direct_obj, indirect_obj, loc, ))
         return
 
     #HERE  def get_query_id(self, subject, verb, direct_obj, indirect_obj, loc):
      #   self.cursor.execute
 
-    # def get_sources(self):
-    #     try:
-    #         self.cursor.execute("SELECT * FROM sources")
-    #         source_data = []
-    #         for source in self.cursor:
-    #             for i in range(len(source)):
-    #                 source_data.append(source[i])
-    #     except:
-    #         print("Error: cannot get sources")
-    #     return source_data
+    # Inserts user into 'users' table and returns the assigned user id
+    def insert_user(self, user_name, phone, email):
+        self.cursor.execute("INSERT INTO users (user_name, phone, email) VALUES (%s, %s, %s)",
+                                               (user_name, phone, email, ))
+        return self.get_user_id(user_name, phone, email)
 
-    # def get_feeds(self):
-    #     try:
-    #         self.cursor.execute("SELECT * FROM feeds")
-    #         feed_data = []
-    #         for feed in self.cursor:
-    #             for i in range(len(feed)):
-    #                 feed_data.append(feed[i])
-    #     except:
-    #         print("Error: cannot get feeds")
-    #     return feed_data
-    
-    # def get_articles(self):
-    #     try:
-    #         self.cursor.execute("SELECT * FROM articles")
-    #         article_data = []
-    #         for article in self.cursor:
-    #             for i in range(len(article)):
-    #                 article_data.append(article[i])
-    #     except:
-    #         print("Error: cannot get articles")
-    #     return article_data
+    def get_user_id(self, user_name, phone, email):
+        self.cursor.execute("SELECT (id) FROM users WHERE user_name=%s AND phone=%s AND email=%s", (user_name, phone, email, ))
+        return self.cursor.fetchone()
 
-    # def add_test_article(self):
-    #     try:
-    #         self.cursor.execute("INSERT INTO articles (title, url) VALUES ('Test Article Arrives', 'www.testing-now.com')")
-    #     except:
-    #         print("Error: cannot add article")
-    #     return
-
-    # def remove_test_article(self):
-    #     try:
-    #         self.cursor.execute("DELETE FROM articles WHERE title='Test Article Arrives'")
-    #     except:
-    #         print("Error: cannot remove article")
-    #     return
-
-def main():
-    ds = ValidatorDataSource()
-    print("SOURCES:\n", ds.get_sources(), "\n")
-    print("FEEDS:\n", ds.get_feeds(), "\n")
-    print("ARTICLES:\n", ds.get_articles(), "\n")
-    ds.add_test_article()
-    print("ARTICLES after added:\n", ds.get_articles(), "\n")
-    ds.remove_test_article()
-    print("ARTICLES after removed:\n", ds.get_articles(), "\n")
-    print("done.")
+#def main():
+#    pass
 
 # if __name__ == '__main__':
 #     main()

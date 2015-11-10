@@ -286,7 +286,11 @@ class Query:
 
   def store(self):
     """Stores the query in the database"""
-    ds.insert_query(self.subject.word, self.verb.word, self.directObj.word, self.indirectObj.word, self.location.word)
+    test_username = 'Another Person'
+    test_phone = '555-222-1234'
+    test_email = 'me@test.com'
+    user_id = ds.insert_user(test_username, test_phone, test_email)
+    ds.insert_query(user_id, self.subject.word, self.verb.word, self.directObj.word, self.indirectObj.word, self.location.word)
     #self.id = ds.get_query_id()
 
 
