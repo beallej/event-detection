@@ -2,7 +2,6 @@ from flask import Flask, render_template, request
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import sys
-import pdb
 
 app = Flask(__name__)
 
@@ -27,6 +26,8 @@ def queries():
         direct_obj = request.form["direct-object"]
         indirect_obj = request.form["indirect-object"]
         loc = request.form["location"]
+        email = request.form["user-email"]
+        phone = request.form["user-phone"]
         # Put into database
         cursor.execute("INSERT INTO queries (subject, verb, direct_obj, indirect_obj, loc) \
                             VALUES (%s, %s, %s, %s, %s);", (subject, verb, direct_obj, indirect_obj, loc))
@@ -35,7 +36,6 @@ def queries():
     # Get lists of query from database
     cursor.execute("SELECT id, subject, verb, direct_obj, indirect_obj, loc FROM queries;")
     queries = cursor.fetchall()
-    # pdb.set_trace()
 
     if con:
         con.close()
@@ -54,12 +54,16 @@ def query(id):
                         WHERE q.id = %s;", id)
     articles = cursor.fetchall()
 
+    # mock data
+    articles = [{ "title" : "Meet the futurists: People who 'live in the future'", "source" : "CNN", "url" : "http://www.cnn.com/2015/11/06/tech/pioneers-futurists/index.html"},
+                { "title" : "'I no longer see a fat little boy,' says a man overcoming body dysmorphia", "source" : "CNN", "url" : "http://www.cnn.com/2015/11/06/health/brian-cuban-body-dysmorphia-turning-points/index.html"}]
+
     cursor.execute("SELECT id, subject, verb, direct_obj, indirect_obj, loc FROM queries where id = %s;", id)
     query = cursor.fetchone()
 
     if con:
         con.close()
-    return render_template("query.html", query = query)
+    return render_template("query.html", query = query, articles = articles)
 
 @app.errorhandler(404)
 def page_not_found(e):
