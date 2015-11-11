@@ -3,7 +3,7 @@ CREATE USER root with SUPERUSER CREATEDB CREATEROLE INHERIT;
 CREATE TABLE IF NOT EXISTS sources (
 	id serial primary key unique not null,
 	source_name varchar(255) unique not null,
-	reliability real,
+	reliability real default 1.0,
 	check (reliability <= 1.0)
 );
 
