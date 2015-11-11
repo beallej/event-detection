@@ -34,15 +34,7 @@ public class DownloaderController {
 	 */
 	public static void main(String[] args) throws IOException, SQLException {
 		JSONObject config = (JSONObject) JSONSystem.loadJSON(Paths.get(args.length > 0 ? args[0] : "configuration.json"));
-		for (Entry<String, JSONData<?>> e : ((JSONObject) config.get("database")).entrySet()) {
-			String key = "db." + e.getKey();
-			if (System.getProperty(key) != null)
-				continue;
-			Object val = e.getValue().value();
-			if (val == null)
-				continue;
-			System.setProperty(key, val.toString().toLowerCase());
-		}
+		Downloader.configureConnection((JSONObject) config.get("database"));
 		try (DownloaderCollection dc = new DownloaderCollection()) {
 			JSONObject paths = (JSONObject) config.get("paths");
 			JSONObject articles = (JSONObject) config.get("articles");
