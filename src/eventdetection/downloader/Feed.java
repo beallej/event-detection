@@ -123,29 +123,40 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 		Scraper s = getScraper();
 		if (s == null)
 			return out;
-		try {
-			SyndFeed feed = input.build(new XmlReader(url));
-			ExecutorService pool = Executors.newWorkStealingPool();
-			List<Future<RawArticle>> outs = new ArrayList<>();
-			for (SyndEntry e : feed.getEntries()) {
-				if (e.getLink().equals(lastSeen))
-					break;
-				outs.add(pool.submit(() -> {
-					String text = s.scrape(new URL(e.getLink()));
-					if (text == null)
-						return null;
-					return new RawArticle(e.getTitle(), text, e.getLink(), getSource());
-				}));
-			}
-			out = outs.stream().collect(ArrayList::new, (a, b) -> {
-				try {
-					a.add(b.get());
+		try (PreparedStatement stmt = Downloader.getConnection().prepareStatement("select * from articles where articles.url = ?")) {
+			try {
+				SyndFeed feed = input.build(new XmlReader(url));
+				ExecutorService pool = Executors.newWorkStealingPool();
+				List<Future<RawArticle>> outs = new ArrayList<>();
+				for (SyndEntry e : feed.getEntries()) {
+					stmt.setString(1, e.getLink());
+					try {
+						if (stmt.executeQuery().next())
+							continue;
+					}
+					catch (SQLException ex) {
+						continue;
+					}
+					outs.add(pool.submit(() -> {
+						String text = s.scrape(new URL(e.getLink()));
+						if (text == null)
+							return null;
+						return new RawArticle(e.getTitle(), text, e.getLink(), getSource());
+					}));
 				}
-				catch (ExecutionException | InterruptedException e) {}
-			} , ArrayList::addAll);
-			lastSeen = feed.getEntries().get(0).getLink();
+				out = outs.stream().collect(ArrayList::new, (a, b) -> {
+					try {
+						a.add(b.get());
+					}
+					catch (ExecutionException | InterruptedException e) {}
+				} , ArrayList::addAll);
+				lastSeen = feed.getEntries().get(0).getLink();
+			}
+			catch (IllegalArgumentException | FeedException | IOException e) {
+				e.printStackTrace();
+			}
 		}
-		catch (IllegalArgumentException | FeedException | IOException e) {
+		catch (SQLException e) {
 			e.printStackTrace();
 		}
 		return out;
