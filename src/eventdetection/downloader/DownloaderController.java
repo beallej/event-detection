@@ -1,11 +1,13 @@
 package eventdetection.downloader;
 
 import java.io.IOException;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.LinkedHashSet;
-import java.util.Map.Entry;
 
 import toberumono.json.JSONArray;
 import toberumono.json.JSONBoolean;
@@ -41,11 +43,6 @@ public class DownloaderController {
 			Downloader.loadSource(Downloader.getConnection(), "sources");
 			for (JSONData<?> str : ((JSONArray) paths.get("sources")).value())
 				Downloader.loadSource(Paths.get(str.toString()));
-			ArticleManager am = new ArticleManager(dc.getConnection(), "articles",
-					((JSONArray) paths.get("articles")).stream().collect(LinkedHashSet::new, (s, p) -> s.add(Paths.get(p.toString())), LinkedHashSet::addAll),
-					((JSONBoolean) articles.get("enable-pos-tagging")).value());
-			Calendar oldest = computeOldest((JSONObject) articles.get("deletion-delay"));
-			am.removeArticlesBefore(oldest);
 			FeedManager fm = new FeedManager();
 			for (JSONData<?> str : ((JSONArray) paths.get("scrapers")).value())
 				fm.addScraper(Paths.get(str.toString()));
@@ -53,9 +50,16 @@ public class DownloaderController {
 				fm.addFeed(Paths.get(str.toString()));
 			fm.addFeed(Downloader.getConnection(), "feeds");
 			dc.addDownloader(fm);
-			for (RawArticle ra : dc.get()) {
-				am.store(am.process(ra));
-				System.out.println("Processed: " + ra.getTitle());
+			ArticleManager am = new ArticleManager(dc.getConnection(), "articles",
+					((JSONArray) paths.get("articles")).stream().collect(LinkedHashSet::new, (s, p) -> s.add(Paths.get(p.toString())), LinkedHashSet::addAll),
+					((JSONBoolean) articles.get("enable-pos-tagging")).value());
+			Calendar oldest = computeOldest((JSONObject) articles.get("deletion-delay"));
+			try (FileChannel chan = FileChannel.open(Paths.get("~/.event-detection-active"), StandardOpenOption.CREATE, StandardOpenOption.WRITE); FileLock lock = chan.lock();) {
+				am.removeArticlesBefore(oldest);
+				for (RawArticle ra : dc.get()) {
+					am.store(am.process(ra));
+					System.out.println("Processed: " + ra.getTitle());
+				}
 			}
 		}
 	}
