@@ -7,13 +7,13 @@
     </ul>
   </div>
   <form class="form-inline" action="{{ url_for('queries') }}" method="post" name="query-form" onsubmit="submitQuery()">
-    <h5>Your Query</h5>
+    <h5>Your Query <small>subject and verb required</small></h5>
     <input class="form-control" placeholder="subject" name="subject"></input>
     <input class="form-control" placeholder="verb" name="verb"></input>
     <input class="form-control" placeholder="direct object" name="direct-object"></input>
     <input class="form-control" placeholder="indirect object" name="indirect-object"></input>
     <input class="form-control" placeholder="location" name="location"></input>
-    <h5>Your Contact Information</h5>
+    <h5>Your Contact Information <small>phone number or email required</small></h5>
     <input class="form-control" placeholder="email" name="user-email"></input>
     <input class="form-control" placeholder="phone number" name="user-phone"></input>
     <br><br>
@@ -39,7 +39,7 @@
           <td>{{ query["direct_obj"] }}</td>
           <td>{{ query["indirect_obj"] or "" }}</td>
           <td>{{ query["loc"] or "" }}</td>
-          {% if query["matched"] %}
+          {% if query["article_count"] != 0 %}
             <td><i class="fa fa-check"></i></td>
           {% else %}
             <td><i class="fa fa-times"></i></td>

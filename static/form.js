@@ -30,7 +30,7 @@ function submitQuery() {
 
   // if the form is invalid, show the errors and don't submit
   if (invalid) {
-    document.getElementById("form-error").className = "";
+    document.getElementById("form-error").className = "alert alert-danger";
     event.preventDefault();
     return false;
   }
