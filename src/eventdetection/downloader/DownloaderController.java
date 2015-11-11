@@ -45,17 +45,19 @@ public class DownloaderController {
 			Downloader.loadSource(Downloader.getConnection(), "sources");
 			for (JSONData<?> str : ((JSONArray) paths.get("sources")).value())
 				Downloader.loadSource(Paths.get(str.toString()));
+				
 			FeedManager fm = new FeedManager();
 			for (JSONData<?> str : ((JSONArray) paths.get("scrapers")).value())
 				fm.addScraper(Paths.get(str.toString()));
 			for (JSONData<?> str : ((JSONArray) paths.get("feeds")).value())
 				fm.addFeed(Paths.get(str.toString()));
 			fm.addFeed(Downloader.getConnection(), "feeds");
+			
 			dc.addDownloader(fm);
 			ArticleManager am = new ArticleManager(dc.getConnection(), "articles",
 					((JSONArray) paths.get("articles")).stream().collect(LinkedHashSet::new, (s, p) -> s.add(Paths.get(p.toString())), LinkedHashSet::addAll),
 					((JSONBoolean) articles.get("enable-pos-tagging")).value());
-			
+					
 			Path active = Paths.get(System.getProperty("user.home"), ".event-detection-active");
 			if (!Files.exists(active)) {
 				Files.createDirectories(active.getParent());

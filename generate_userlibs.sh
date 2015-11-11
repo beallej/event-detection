@@ -2,6 +2,9 @@
 #This just prints the user libraries file that eclipse generated into a file called eclipse.userlibraries
 #The only difference is that it substitutes the path to homebrew's libs directory for the prefix to each .jar's path
 prefix="$(brew --prefix)/lib"
+path="$(dirname $(pwd))"
+rome_ver='1.5.1'
+slf_ver='1.7.12'
 rm "./eclipse.userlibraries"
 echo "Using $prefix as the directory containing the .jar's"
 echo '<?xml version="1.0" encoding="UTF-8" standalone="no"?>' >> "./eclipse.userlibraries"
@@ -17,6 +20,17 @@ echo '        <archive javadoc="jar:file:'"$prefix"'/Lexer.jar!/doc" path="'"$pr
 echo '    </library>' >> "./eclipse.userlibraries"
 echo '    <library name="JSONLib" systemlibrary="false">' >> "./eclipse.userlibraries"
 echo '        <archive javadoc="jar:file:'"$prefix"'/JSONLib.jar!/doc" path="'"$prefix"'/JSONLib.jar" source="'"$prefix"'/JSONLib.jar"/>' >> "./eclipse.userlibraries"
+echo '    </library>' >> "./eclipse.userlibraries"
+echo '    <library name="ROME" systemlibrary="false">' >> "./eclipse.userlibraries"
+echo '        <archive path="'"$path"'/rome-'"$rome_ver"'.jar"/>' >> "./eclipse.userlibraries"
+echo '        <archive path="'"$path"'/rome-utils-'"$rome_ver"'.jar"/>' >> "./eclipse.userlibraries"
+echo '    </library>' >> "./eclipse.userlibraries"
+echo '    <library name="SLF4J" systemlibrary="false">' >> "./eclipse.userlibraries"
+echo '        <archive path="'"$path"'/slf4j-api-'"$slf_ver"'.jar"/>' >> "./eclipse.userlibraries"
+echo '        <archive path="'"$path"'/slf4j-simple-'"$slf_ver"'.jar"/>' >> "./eclipse.userlibraries"
+echo '    </library>' >> "./eclipse.userlibraries"
+echo '    <library name="JDOM" systemlibrary="false">' >> "./eclipse.userlibraries"
+echo '        <archive path="'"$path"'/jdom2-2.0.6.jar"/>' >> "./eclipse.userlibraries"
 echo '    </library>' >> "./eclipse.userlibraries"
 echo '</eclipse-userlibraries>' >> "./eclipse.userlibraries"
 echo "Import the eclipse.userlibraries file into Eclipse.  Preferences -> Java -> Build Path -> User Libraries;"

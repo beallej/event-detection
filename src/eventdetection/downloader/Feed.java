@@ -10,6 +10,10 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndFeed;
@@ -121,15 +125,24 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 			return out;
 		try {
 			SyndFeed feed = input.build(new XmlReader(url));
+			ExecutorService pool = Executors.newWorkStealingPool();
+			List<Future<RawArticle>> outs = new ArrayList<>();
 			for (SyndEntry e : feed.getEntries()) {
 				if (e.getLink().equals(lastSeen))
 					break;
-				String text = s.scrape(new URL(e.getLink()));
-				if (text == null)
-					continue;
-				RawArticle ra = new RawArticle(e.getTitle(), text, e.getLink(), getSource());
-				out.add(ra);
+				outs.add(pool.submit(() -> {
+					String text = s.scrape(new URL(e.getLink()));
+					if (text == null)
+						return null;
+					return new RawArticle(e.getTitle(), text, e.getLink(), getSource());
+				}));
 			}
+			out = outs.stream().collect(ArrayList::new, (a, b) -> {
+				try {
+					a.add(b.get());
+				}
+				catch (ExecutionException | InterruptedException e) {}
+			} , ArrayList::addAll);
 			lastSeen = feed.getEntries().get(0).getLink();
 		}
 		catch (IllegalArgumentException | FeedException | IOException e) {

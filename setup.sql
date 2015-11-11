@@ -3,7 +3,7 @@ CREATE USER root with SUPERUSER CREATEDB CREATEROLE INHERIT;
 CREATE TABLE IF NOT EXISTS sources (
 	id serial primary key unique not null,
 	source_name varchar(255) unique not null,
-	reliability real,
+	reliability real default 1.0,
 	check (reliability <= 1.0)
 );
 
@@ -27,9 +27,9 @@ CREATE TABLE IF NOT EXISTS articles (
 
 CREATE TABLE IF NOT EXISTS users (
 	id serial primary key unique not null,
-	user_name text unique not null,
 	phone varchar(32) default null,
-	email text default null
+	email text default null,
+	constraint unique_users unique (phone, email)
 );
 
 CREATE TABLE IF NOT EXISTS queries (
