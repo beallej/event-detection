@@ -1,5 +1,6 @@
 import sys
 from Validator import *
+from Notifier import *
 from nltk import pos_tag, word_tokenize
 
 def main():
@@ -21,13 +22,13 @@ sure you still have 4 slashes.\n")
         sample_file = open("test.txt", 'r')
         text = sample_file.read()
 
-        sample_file3 = open("articles/13_CNN_Tiger_NNP_bites_VBZ_woman_NN_in_IN_Halloween_NNP_zoo_NN_trespass_NN.txt", 'r')
+        sample_file3 = open("articles/9_1_Police___9-year-old_boy_lured_into_alley_,_shot.txt", 'r')
         text3 = sample_file3.read()
-        articlePool = [Article("Tiger_NNP bites_VBZ woman_NN in_IN Halloween_NNP zoo_NN trespass_NN.txt", text3, "url", "source")]
+        articlePool = [Article("Tiger_NNP bites_VBZ woman_NN in_IN Halloween_NNP zoo_NN trespass_NN.txt", text3, "www.carleton.edu", "source")]
         for article in articlePool:
             print(article.keyword)
         
-
+        notifier = Notifier(Notifier.email_test, Notifier.phone_test)
 
         print("RESULT:\nArticles that matched:")
         numMatchingArticle = 0
@@ -36,7 +37,8 @@ sure you still have 4 slashes.\n")
             matchPercentage = keywordValidator.validate(query, article)
             if matchPercentage > 0.2:
                 numMatchingArticle += 1
-                print(article.getTitle())
+                notifier.on_validation(query, article)
+                print(article.get_title())
         if numMatchingArticle == 0:
             print("No matching articles")
 
