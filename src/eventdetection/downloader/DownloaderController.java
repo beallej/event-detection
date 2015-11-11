@@ -3,6 +3,8 @@ package eventdetection.downloader;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.sql.SQLException;
@@ -54,7 +56,10 @@ public class DownloaderController {
 					((JSONArray) paths.get("articles")).stream().collect(LinkedHashSet::new, (s, p) -> s.add(Paths.get(p.toString())), LinkedHashSet::addAll),
 					((JSONBoolean) articles.get("enable-pos-tagging")).value());
 			Calendar oldest = computeOldest((JSONObject) articles.get("deletion-delay"));
-			try (FileChannel chan = FileChannel.open(Paths.get("~/.event-detection-active"), StandardOpenOption.CREATE, StandardOpenOption.WRITE); FileLock lock = chan.lock();) {
+			Path active = Paths.get("~/.event-detection-active");
+			if (!Files.exists(active))
+				Files.createFile(active);
+			try (FileChannel chan = FileChannel.open(active, StandardOpenOption.CREATE, StandardOpenOption.WRITE); FileLock lock = chan.lock();) {
 				am.removeArticlesBefore(oldest);
 				for (RawArticle ra : dc.get()) {
 					am.store(am.process(ra));
