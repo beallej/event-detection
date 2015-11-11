@@ -4,7 +4,6 @@
   <div id="form-error" class="hidden">
     Errors
     <ul id="error-list">
-
     </ul>
   </div>
   <form class="form-inline" action="{{ url_for('queries') }}" method="post" name="query-form" onsubmit="submitQuery()">
@@ -15,8 +14,8 @@
     <input class="form-control" placeholder="indirect object" name="indirect-object"></input>
     <input class="form-control" placeholder="location" name="location"></input>
     <h5>Your Contact Information</h5>
-    <input class="form-control" placeholder="Email" name="user-email"></input>
-    <input class="form-control" placeholder="Phone Number" name="user-phone"></input>
+    <input class="form-control" placeholder="email" name="user-email"></input>
+    <input class="form-control" placeholder="phone number" name="user-phone"></input>
     <br><br>
     <button class="btn btn-primary" type="submit">Add Query</button>
   </form>

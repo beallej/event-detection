@@ -2,7 +2,6 @@ from flask import Flask, render_template, request
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import sys
-import pdb
 
 app = Flask(__name__)
 
@@ -30,7 +29,6 @@ def queries():
         email = request.form["user-email"]
         phone = request.form["user-phone"]
         # Put into database
-        # pdb.set_trace()
         cursor.execute("INSERT INTO users (email, phone) VALUES (%s, %s) RETURNING id;", (email, phone))
         user_id = cursor.fetchone()["id"]
         cursor.execute("INSERT INTO queries (subject, verb, direct_obj, indirect_obj, loc, userid) \
