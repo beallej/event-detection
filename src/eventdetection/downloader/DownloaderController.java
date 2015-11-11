@@ -56,9 +56,11 @@ public class DownloaderController {
 					((JSONArray) paths.get("articles")).stream().collect(LinkedHashSet::new, (s, p) -> s.add(Paths.get(p.toString())), LinkedHashSet::addAll),
 					((JSONBoolean) articles.get("enable-pos-tagging")).value());
 			Calendar oldest = computeOldest((JSONObject) articles.get("deletion-delay"));
-			Path active = Paths.get("~/.event-detection-active");
-			if (!Files.exists(active))
+			Path active = Paths.get(System.getProperty("user.home"), ".event-detection-active");
+			if (!Files.exists(active)) {
+				Files.createDirectories(active.getParent());
 				Files.createFile(active);
+			}
 			try (FileChannel chan = FileChannel.open(active, StandardOpenOption.CREATE, StandardOpenOption.WRITE); FileLock lock = chan.lock();) {
 				am.removeArticlesBefore(oldest);
 				for (RawArticle ra : dc.get()) {
