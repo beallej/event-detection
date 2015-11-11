@@ -22,11 +22,12 @@ wget '-N' '--directory-prefix=../' 'https://jdbc.postgresql.org/download/postgre
 wget '-N' '--directory-prefix=../' 'http://nlp.stanford.edu/software/stanford-corenlp-full-2015-04-20.zip'
 unzip '../stanford-corenlp-full-2015-04-20.zip' '-d' '../'
 echo '------------------Setting Up PostgreSQL Database---------------------'
-( ( "$(which lunchy)" == "lunchy not found" ) || ( "$(which lunchy)" == "" ) ) && sudo gem install lunchy
 initdb "$(brew --prefix)/var/postgres"
 mkdir -p "~/Library/LaunchAgents"
 ln -sfv "$(brew --prefix)/opt/postgresql/*.plist" "~/Library/LaunchAgents"
-lunchy start postgresql
+export PGDATA="$(brew --prefix)/var/postgres"
+export PGHOST=localhost
+[ "$(pg_ctl status | grep 'PID:' )" == "" ] && ( pg_ctl start > /dev/null )
 createdb event_detection
 psql event_detection < setup.sql
 psql event_detection < seeds.sql
