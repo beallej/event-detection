@@ -28,7 +28,8 @@ CREATE TABLE IF NOT EXISTS articles (
 CREATE TABLE IF NOT EXISTS users (
 	id serial primary key unique not null,
 	phone varchar(32) default null,
-	email text default null
+	email text default null,
+	constraint unique_users unique (phone, email)
 );
 
 CREATE TABLE IF NOT EXISTS queries (
