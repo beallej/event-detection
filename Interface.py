@@ -19,15 +19,14 @@ sure you still have 4 slashes.\n")
         threshold = None
 
         query = Query(1, queryParts, threshold)
-        sample_file = open("test.txt", 'r')
-        text = sample_file.read()
 
-        sample_file3 = open("articles/9_1_Police___9-year-old_boy_lured_into_alley_,_shot.txt", 'r')
-        text3 = sample_file3.read()
-        articlePool = [Article("Tiger_NNP bites_VBZ woman_NN in_IN Halloween_NNP zoo_NN trespass_NN.txt", text3, "www.carleton.edu", "source")]
+        sample_file = open("articles/9_1_Police___9-year-old_boy_lured_into_alley_,_shot.txt", 'r')
+        text = sample_file.read()
+        articlePool = [Article("Title", text, "www.carleton.edu", "source")]
         for article in articlePool:
+            article.extract_keyword()
             print(article.keyword)
-        
+
         notifier = Notifier(Notifier.email_test, Notifier.phone_test)
 
         print("RESULT:\nArticles that matched:")
