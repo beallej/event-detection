@@ -5,3 +5,5 @@ bin
 articles
 venv/
 *.pyc
+.DS_STORE
+eclipse.userlibraries
