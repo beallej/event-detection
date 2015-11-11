@@ -35,17 +35,17 @@ class KeywordValidator(AbstractValidator):
   def getQueryArticleLists(self):
       return self.queryArticleLists
 
-  def validate(self, Query, Article):
+  def validate(self, query, article):
       maxMatchValue = 0
       matchValue = 0
-      querySynonyms = Query.getSynonyms() # {NN: {word1: [list of synonym], word2: [list of synonym],...}, VB..}
-      articleKeyword = Article.getKeywords() #{NN: [list of keywords], VB:[list of verb keywords]}
+      querySynonyms = query.getSynonyms() # {NN: {word1: [list of synonym], word2: [list of synonym],...}, VB..}
+      articleKeywords = article.getKeywords() #{NN: [list of keywords], VB:[list of verb keywords]}
       for pos in querySynonyms:
 
         for queryWord in querySynonyms[pos]:
           maxMatchValue += 2
-          if pos in articleKeyword:
-            articleKeywordWithSameTag = articleKeyword[pos]
+          if pos in articleKeywords:
+            articleKeywordWithSameTag = articleKeywords[pos]
             #Compare main key. If match, matchValue += 2
             if queryWord in articleKeywordWithSameTag:
               matchValue += 2
@@ -54,8 +54,10 @@ class KeywordValidator(AbstractValidator):
                 if synonym in articleKeywordWithSameTag:
                   matchValue += 1
                   break
-      matchPercentage = matchValue/maxMatchValue
-      return matchPercentage
+        matchPercentage = 0
+        if maxMatchValue != 0:
+            matchPercentage = matchValue/maxMatchValue
+        return matchPercentage
 
 class Source:
   def __init__(self, id, name, reliability):    
@@ -229,17 +231,26 @@ class Article:
     self.body = body
     self.url = url
     self.source = source
-    # self.keyword = self.extractKeywords()
-    ds.insert_article_keywords(self.title, self.extractKeywords())
+    self.keywords = self.extractKeywords()
+    ds.insert_article_keywords(self.title, self.source, self.url, "needfilename", self.extractKeywords())
 
   def extractKeywords(self):
       extractor = KeywordExtractor()
       return extractor.extractKeywords(self)
 
-
   def getKeywords(self):
-    return ds.get_article_keywords(self.title)
-    # return self.keyword
+    """Reconstruct dictionary structure from database's string format"""
+    keywords = {} #{NN: [list of keywords], VB:[list of verb keywords]}
+    db_keywords = ds.get_article_keywords(self.title)[0]
+    for keyword_pos in db_keywords:
+        separated_keyword_pos = keyword_pos.split("_")
+        keyword = separated_keyword_pos[0]
+        pos = separated_keyword_pos[1]
+        if pos in keywords:
+            keywords[pos].append(keyword)
+        else:
+            keywords[pos] = [keyword]
+    return keywords
 
   def isLinkedTo(self, otherArticle):
     #returns true if otherAricle and self are semantically related
@@ -272,8 +283,6 @@ class Query:
     self.location = QueryElement("location", queryParts["location"])
     self.query = queryParts["query"]
     self.stopList = set(stopwords.words('english'))
-
-
     self.queryTagged = self.tagQuery()
     self.synonymsWithTag = {}
     self.getSynonymsWithTag()
@@ -285,14 +294,14 @@ class Query:
     USERNAME_DUPLICATE = 1
     USERNAME_NEW = 2
     if ds.user_status(username, phone, email) == USERNAME_UNAVAILABLE:
-    	print("Error: Username", username, "is taken. Please try again with a different username.")
-    	exit()
+        print("Error: Username", username, "is taken. Please try again with a different username.")
+        exit()
     elif ds.user_status(username, phone, email) == USERNAME_NEW:
-    	user_id = ds.insert_user(username, phone, email)
-    	self.id = ds.insert_query(user_id, self.subject.word, self.verb.word, self.directObj.word, self.indirectObj.word, self.location.word)
+        user_id = ds.insert_user(username, phone, email)
+        self.id = ds.insert_query(user_id, self.subject.word, self.verb.word, self.directObj.word, self.indirectObj.word, self.location.word)
     else: # ds.user_status = USERNAME_DUPLICATE
-    	user_id = ds.get_user_id(username, phone, email)
-    	self.id = ds.insert_query(user_id, self.subject.word, self.verb.word, self.directObj.word, self.indirectObj.word, self.location.word)
+        user_id = ds.get_user_id(username, phone, email)
+        self.id = ds.insert_query(user_id, self.subject.word, self.verb.word, self.directObj.word, self.indirectObj.word, self.location.word)
 
   def getId(self):
       return self.id
@@ -301,7 +310,7 @@ class Query:
       return pos_tag(word_tokenize(self.query))
 
 
-  def getSynonymsWithTag(self): #Assume have already
+  def getSynonymsWithTag(self):
       for taggedWord in self.queryTagged:
         if taggedWord[0].lower() not in self.stopList:
           if taggedWord[1] not in self.synonymsWithTag:

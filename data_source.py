@@ -22,21 +22,22 @@ class DataSource:
             sys.exit()
             
     def get_article_keywords(self, article_title):
-        self.cursor.execute("SELECT keywords FROM articles WHERE title=%s", (article_title))
-        return self.cursor.fetchall()
+        self.cursor.execute("SELECT keywords FROM articles WHERE title=%s", (article_title, ))
+        keywords = []
+        for wrd in self.cursor.fetchall()[0]:
+            keywords.append(wrd)
+        return keywords
 
     def get_articles(self):
         self.cursor.execute("SELECT * FROM articles")
         return self.cursor.fetchall()
 
-    def insert_article_keywords(self, article_title, keyword_list):
-        keyword_string = "{"
-        for wrd in keyword_list:
-            formatted_wrd = '"' + wrd + '" ,'
-            keyword_string += formatted_wrd
-        keyword_string = keyword_string[:-1]
-        keyword_string += "}"
-        self.cursor.execute("INSERT INTO articles (title, keywords) VALUES (%s, %s)", (article_title, keyword_string))
+    def insert_article_keywords(self, article_title, source, url, filename, keyword_list):
+        keywords = []
+        for pos in keyword_list:
+            for keyword in keyword_list[pos]:
+                keywords.append(keyword + "_" + pos)
+        self.cursor.execute("INSERT INTO articles (title, source, url, filename, keywords) VALUES (%s, %s, %s, %s, %s)", (article_title, source, url, filename, keywords))
         return
 
     def insert_query(self, userid, subject, verb, direct_obj, indirect_obj, loc):
