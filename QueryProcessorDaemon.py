@@ -3,7 +3,7 @@
 # Potentially, this will clear out query and synonym that are old too
 
 from Validator import Query
-import DataSource
+from DataSource import *
 
 class QueryProcessorDaemon():
 

@@ -4,7 +4,7 @@ from nltk import pos_tag, word_tokenize
 from nltk.corpus import stopwords
 from KeywordExtractor import *
 import re
-import DataSource
+from DataSource import *
 
 
 class AbstractValidator:

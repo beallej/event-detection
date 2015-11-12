@@ -3,7 +3,7 @@
 # Transfering everything in Interface and call validator from here
 
 from Validator import *
-import DataSource
+from DataSource import *
 
 class ValidatorDaemon():
 
