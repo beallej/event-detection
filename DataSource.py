@@ -94,14 +94,14 @@ class DataSource:
 
     def get_email_and_phone(self, query_id):
         self.cursor.execute("SELECT userid FROM queries WHERE id = "+str(query_id))
-        user_id = self.cursor.fetchone()
+        user_id = self.cursor.fetchone()[0]
         self.cursor.execute("SELECT phone FROM users WHERE id = "+str(user_id))
-        phone = str(self.cursor.fetchone())
+        phone = str(self.cursor.fetchone()[0])
         if phone != None:
             phone = re.sub(r'-', '', phone)
             phone = "+1" + phone
         self.cursor.execute("SELECT email FROM users WHERE id = "+str(user_id))
-        email = str(self.cursor.fetchone())
+        email = str(self.cursor.fetchone()[0])
         return phone, email
 
 

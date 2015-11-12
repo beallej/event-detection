@@ -27,7 +27,7 @@ def queries():
     cursor.execute("SELECT q.id, q.subject, q.verb, q.direct_obj, q.indirect_obj, \
                            q.loc, count(qa.article) as article_count \
                     FROM queries q \
-                    LEFT JOIN query_articles qa on q.id = qa.query and qa.accuracy > .25 \
+                    LEFT JOIN query_articles qa on q.id = qa.query and qa.accuracy > .2 \
                     GROUP BY(q.id);")
     queries = cursor.fetchall()
 
@@ -84,7 +84,7 @@ def query(id):
                     INNER JOIN query_articles qa on q.id = qa.query \
                     INNER JOIN articles a on qa.article = a.id \
                     INNER JOIN sources s on s.id = a.source \
-                    WHERE q.id = %s and qa.accuracy > .25;", (id,))
+                    WHERE q.id = %s and qa.accuracy > .2;", (id,))
     articles = cursor.fetchall()
 
     cursor.execute("SELECT id, subject, verb, direct_obj, indirect_obj, loc FROM queries where id = %s;", (id,))
