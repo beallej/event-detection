@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS articles (
 	source integer not null references sources(id) ON DELETE CASCADE,
 	url text unique not null,
 	filename text default null,
-	keywords text[] default null
+	keywords text default null
 );
 
 CREATE TABLE IF NOT EXISTS users (
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS query_words (
 	query integer references queries(id) ON DELETE CASCADE,
 	word varchar(255) not null,
 	pos varchar(255) not null,
-	sense varchar(255) default null,
+	sense varchar(255) default '',
 	synonyms varchar(255)[] default '{}',
 	primary key (query, word, pos, sense),
 	constraint word_pos unique(word, pos)
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS query_words (
 CREATE TABLE IF NOT EXISTS query_articles (
 	query integer references queries(id) ON DELETE CASCADE,
 	article integer references articles(id) ON DELETE CASCADE,
-	accuracy real default 1.0,
+	accuracy real default 0.0,
 	processed boolean default false,
 	primary key (query, article)
 );
