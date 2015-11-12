@@ -28,7 +28,6 @@ class QueryProcessorDaemon():
 					
 			ds.post_query_processor_update(query[0])
 
-QueryProcessorDaemon().run()
 
 					
 
