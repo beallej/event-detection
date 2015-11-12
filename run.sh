@@ -6,4 +6,4 @@ if [ "$python_path" == "" ]; then
 	>&2 echo "Error:  Unable to find the executable for python 3."
 	exit 1
 fi
-$java_path -jar "$(dirname $(pwd))/event-detection.jar" "$(pwd)/configuration.json" && $python_path "$(pwd)/interface.py"
+$java_path -jar "$(dirname $(pwd))/event-detection.jar" "$(pwd)/configuration.json" && $python_path "$(pwd)/ValidatorDaemon.py"
