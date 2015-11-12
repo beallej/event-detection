@@ -60,8 +60,6 @@ public class POSTagger {
 				List<CoreLabel> tokens = sentence.get(TokensAnnotation.class);
 				for (CoreLabel token : tokens)
 					sb.append(token.word()).append(delimiter).append(token.get(PartOfSpeechAnnotation.class)).append(" ");
-				if (tokens.size() > 0)
-					sb.deleteCharAt(sb.length() - 1);
 			}
 			sb.append("\n");
 		}

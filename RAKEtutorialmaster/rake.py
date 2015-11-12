@@ -59,7 +59,8 @@ def split_sentences(text):
     Utility function to return a list of sentences.
     @param text The text that must be split in to sentences.
     """
-    sentence_delimiters = re.compile(u'[.!?,;:\t\\\\"\\(\\)\\\'\u2019\u2013]|\\s\\-\\s')
+
+    sentence_delimiters = re.compile(u' ([\\.,](?![0-9])|[!?;:\t\\\\"\\(\\)\\\'\u2019\u2013]|\\s\\-\\s) ')
     sentences = sentence_delimiters.split(text)
     return sentences
 
@@ -76,8 +77,7 @@ def split_sentences_tagged(text):
     text = re.sub(u"\\s\\-_-\\s", u":_:", text)
 
 
-
-    sentence_delimiters = re.compile(u'([-.!?,;:\t\\\\"\\(\\)\\\'\u2019\u2013])_\\1')
+    sentence_delimiters = re.compile(u'([-.!?,;:\t\\\\"\\(\\)\\\u2019\u2013])_\\1')
     punct_only = re.compile(u'[\'-.!?,;:\t\\\\"\\(\\)\\\'\u2019\u2013]')
     sentences = sentence_delimiters.split(text)
     sentences_no_punct = []
@@ -194,7 +194,7 @@ class Rake(object):
 
 
     def run(self, text):
-        sentence_list = split_sentences(text)
+        sentence_list = text
         phrase_list = generate_candidate_keywords(sentence_list, self.__stop_words_pattern, self.__min_char_length, self.__max_words_length)
         word_scores = calculate_word_scores(phrase_list)
         keyword_candidates = generate_candidate_keyword_scores(phrase_list, word_scores, self.__min_keyword_frequency)

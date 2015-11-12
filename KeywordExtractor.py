@@ -4,6 +4,7 @@ from nltk.stem.wordnet import WordNetLemmatizer
 import re
 import math
 from RAKEtutorialmaster.rake  import split_sentences_tagged
+import sys
 
 
 
@@ -141,22 +142,26 @@ class KeywordExtractor:
             stemmed = []
             for i in range(len(tokens_tagged)):
                 token = tokens_tagged[i]
-                word, tag = token.split("_")
-                word = word.lower()
-                stem = self.stemmatize(word)
-                stemmed.append(stem)
-                neighbors = self.get_neighbors(i, tokens_tagged)
-                stem_instance = KeywordCandidate(word, neighbors, tag)
+                try:
+                    word, tag = token.split("_")
+                    word = word.lower()
+                    stem = self.stemmatize(word)
+                    stem = re.sub(r'(?<=(?<![a-zA-Z])[a-zA-Z])\.', r'', stem)
+                    stemmed.append(stem)
+                    neighbors = self.get_neighbors(i, tokens_tagged)
+                    stem_instance = KeywordCandidate(word, neighbors, tag)
 
-                if stem in candidate_keywords:
-                    candidate_keywords[stem].append(stem_instance)
-                else:
-                    candidate_keywords[stem] = [stem_instance]
+                    if stem in candidate_keywords:
+                        candidate_keywords[stem].append(stem_instance)
+                    else:
+                        candidate_keywords[stem] = [stem_instance]
+                except:
+                    pass
             text_stemmed = " ".join(stemmed)
             sentence_list.append(text_stemmed)
 
-        to_run = "! ".join(sentence_list)
-        return to_run, candidate_keywords
+
+        return sentence_list, candidate_keywords
 
 
     def get_tags_for_keywords(self, keywords, candidate_keywords):
@@ -249,6 +254,8 @@ class KeywordExtractor:
 
         #instances when last word showed up
         last_instances = candidate_keywords[last_word]
+
+
 
         first_tag, first_unstemmed = self.get_tag_and_original_from_keyword(keyword, first_instances)
         last_tag, last_unstemmed = self.get_tag_and_original_from_keyword(keyword, last_instances)
