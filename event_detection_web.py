@@ -17,7 +17,7 @@ def connect_database():
     return conn, cursor
 
 
-@app.route("/", methods=["POST", "GET"])
+@app.route("/", methods=["GET"])
 def queries():
     con, cursor = connect_database()
 
@@ -46,11 +46,20 @@ def new_query():
     email = request.form["user-email"]
     phone = request.form["user-phone"]
     # Put into database
-    cursor.execute("INSERT INTO users (email, phone) VALUES (%s, %s) RETURNING id;", (email, phone))
-    user_id = cursor.fetchone()["id"]
-    cursor.execute("INSERT INTO queries (subject, verb, direct_obj, indirect_obj, loc, userid) \
-                    VALUES (%s, %s, %s, %s, %s, %s);", (subject, verb, direct_obj, indirect_obj, loc, user_id))
-    con.commit()
+    cursor.execute("SELECT id from users where email = %s and phone = %s", (email, phone))
+    user_id = cursor.fetchone()
+    if user_id:
+        user_id = user_id["id"]
+    else:
+        cursor.execute("INSERT INTO users (email, phone) VALUES (%s, %s) RETURNING id;", (email, phone))
+        user_id = cursor.fetchone()["id"]
+
+    try:
+        cursor.execute("INSERT INTO queries (subject, verb, direct_obj, indirect_obj, loc, userid) \
+                        VALUES (%s, %s, %s, %s, %s, %s);", (subject, verb, direct_obj, indirect_obj, loc, user_id))
+        con.commit()
+    except psycopg2.IntegrityError:
+        pass
 
     if con:
         con.close()
