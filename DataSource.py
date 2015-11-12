@@ -42,7 +42,7 @@ class DataSource:
         self.cursor.execute("SELECT keywords FROM articles WHERE id=%s", (article_id, ))
         keywords = []
         for wrd in self.cursor.fetchall():
-            keywords.append(wrd)
+            keywords.append(wrd[0])
         return keywords
 
     def get_articles(self):
@@ -74,7 +74,7 @@ class DataSource:
                                     (query_id, query_word, pos_group, synonyms))
 
     def post_validator_update(self, matching_prob, query_id, article_id):
-        self.cursor.execute("UPDATE article_queries SET processed=true, accuracy=%s WHERE query=%s AND article=%s",\
+        self.cursor.execute("UPDATE query_articles SET processed=true, accuracy=%s WHERE query=%s AND article=%s",\
                            (matching_prob, query_id, article_id))
 
     def post_query_processor_update(self, query_id):

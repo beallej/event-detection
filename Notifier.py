@@ -53,17 +53,19 @@ class Notifier:
                 print("Error " + str(status_code) + " : " + str(status_message))
 
 
-    def on_validation(self, query, article):
+    def on_validation(self, query_id, article_id):
         """
         Notifies user on validation
         :param query: query that was validated
         :param article: article that validated query
         :return: None
         """
-        html = self.format_html(query, article)
-        text = self.format_plaintext(query, article)
+        html = str(article_id)
+        text = str(query_id)
+        #html = self.format_html(query, article)
+        #text = self.format_plaintext(query, article)
 
-        self.phone, self.email = self.datasource.get_email_and_phone(query.get_id())
+        self.phone, self.email = self.datasource.get_email_and_phone(query_id)
         self.alert_email(html)
         self.alert_phone(text)
 
