@@ -77,11 +77,15 @@ class KeywordValidator(AbstractValidator):
         match_value = 0
         # Need to process query and article formats
         ds = DataSource()
-        query_synonyms = ds.get_query_synonyms(query_id) # {NN: {word1: [list of synonym], word2: [list of synonym],...}, VB..}
-		
+        query_synonyms_raw = ds.get_query_synonyms(query_id) # [('and', 'CC', 'Random', []), ('julia', 'NN', 'Random', []), ('phuong', 'JJ', 'Random', []), ('test', 'NN', 'Random', ['trial', 'run', 'mental_test', 'test', 'tryout', 'trial_run', 'exam', 'examination', 'mental_testing', 'psychometric_test']), ('validator', 'NN', 'Random', [])]
+		# Convert into {NN: {word1: [list of synonym], word2: [list of synonym],...}, VB..}
+        query_synonyms = {}
+        for w in query_synonyms_raw:
+            if w[1] not in query_synonyms:
+                query_synonyms[w[1]] = {}
+            query_synonyms[w[1]][w[0]]=w[3]
 		
         article_keyword = ds.get_article_keywords(article_id) #{NN: [list of keywords], VB:[list of verb keywords]}
-		#### TO DO!!!
         print(query_synonyms)
         print(article_keyword)
         for pos in query_synonyms:
