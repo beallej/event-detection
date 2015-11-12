@@ -3,3 +3,7 @@ doc
 bin
 .classpath
 articles
+venv/
+*.pyc
+.DS_STORE
+eclipse.userlibraries
