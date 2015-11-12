@@ -68,9 +68,9 @@ class DataSource:
                                                         (userid, subject, verb, direct_obj, indirect_obj, loc))
         return self.cursor.fetchone()[0]
 
-    def insert_query_word_synonym(self, query[0], query_word, pos_group, synonyms):
+    def insert_query_word_synonym(self, query_id, query_word, pos_group, synonyms):
         self.cursor.execute("INSERT (query, word, pos, synonyms) VALUES (%s, %s, %s, %s) INTO query_words", \
-                                    (query[0], query_word, pos_group, synonyms))
+                                    (query_id, query_word, pos_group, synonyms))
 
     def post_validator_update(self, matching_prob, query_id, article_id):
         self.cursor.execute("UPDATE article_queries SET processed=true, accuracy=%s WHERE query=%s AND article=%s",\
