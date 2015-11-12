@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, redirect
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import sys
+import QueryProcessorDaemon
+import threading
 
 app = Flask(__name__)
 
@@ -58,6 +60,12 @@ def new_query():
         cursor.execute("INSERT INTO queries (subject, verb, direct_obj, indirect_obj, loc, userid) \
                         VALUES (%s, %s, %s, %s, %s, %s);", (subject, verb, direct_obj, indirect_obj, loc, user_id))
         con.commit()
+
+        qpd = QueryProcessorDaemon()
+        thread = threading.Thread(target=qpd.run)
+        thread.daemon = True
+        thread.start()
+
     except psycopg2.IntegrityError:
         pass
 
