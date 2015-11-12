@@ -9,7 +9,7 @@ Location\nDirect Object, Indirect Object, Location are Optional.If you don't sup
 sure you still have 4 slashes.\n")
     userInput = userInput.split("/")
     if len(userInput) == 5:
-        if userInput[0] == "" or userInput[1] == "" :
+        if userInput[0] == "" or userInput[1] == "":
             print("Subject and Verb are required!")
             return
         queryParts = {"query": ' '.join(userInput), "subject": userInput[0], "verb": userInput[1], "direct_obj": userInput[2], \

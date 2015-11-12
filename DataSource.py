@@ -8,7 +8,7 @@ import sys
 import re
 
 class DataSource:
-    
+
     def __init__(self):
         try:
             conn = psycopg2.connect(user='root', database='event_detection')
@@ -37,7 +37,7 @@ class DataSource:
     def get_query_synonyms(self, query_id):
         self.cursor.execute("SELECT word, pos, sense, synonyms FROM query_words WHERE query=%s", (query_id,))
         return self.cursor.fetchall()
-	
+
     def get_article_keywords(self, article_id):
         self.cursor.execute("SELECT keywords FROM articles WHERE id=%s", (article_id, ))
         keywords = []
@@ -64,7 +64,7 @@ class DataSource:
         return self.get_query_id(userid, subject, verb, direct_obj, indirect_obj, loc)
 
     def get_query_id(self, userid, subject, verb, direct_obj, indirect_obj, loc):
-        self.cursor.execute("""SELECT id FROM queries WHERE userid=%s AND subject=%s AND verb=%s 
+        self.cursor.execute("""SELECT id FROM queries WHERE userid=%s AND subject=%s AND verb=%s
                                                         AND direct_obj=%s AND indirect_obj=%s AND loc=%s""",
                                                         (userid, subject, verb, direct_obj, indirect_obj, loc))
         return self.cursor.fetchone()
@@ -106,7 +106,7 @@ class DataSource:
 
 
     def user_status(self, user_name, phone, email):
-        """Takes in a username and returns 0 if username is already taken with different phone/email, 
+        """Takes in a username and returns 0 if username is already taken with different phone/email,
         1 if username is repeat, 2 if user is new"""
         self.cursor.execute("SELECT id FROM users WHERE user_name=%s", (user_name, ))
         username_exists = (self.cursor.fetchone() != None)
@@ -118,6 +118,13 @@ class DataSource:
             return 1
         else: # New user
             return 2
+
+    def get_unprocessed_articles(self):
+        self.cursor.execute("SELECT id, title,  filename FROM articles WHERE processed = false;")
+        return self.cursor.fetchall()
+
+    def add_keywords_to_article(self, id, keyword_string):
+
 
 #def main():
 #    pass

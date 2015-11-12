@@ -25,9 +25,5 @@ class QueryProcessorDaemon():
 				print(synonyms[pos_group])
 				for query_word in synonyms[pos_group]:
 					ds.insert_query_word_synonym(query[0], query_word, pos_group, synonyms[pos_group][query_word])
-					
+
 			ds.post_query_processor_update(query[0])
-
-
-					
-

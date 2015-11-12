@@ -84,7 +84,7 @@ class KeywordValidator(AbstractValidator):
             if w[1] not in query_synonyms:
                 query_synonyms[w[1]] = {}
             query_synonyms[w[1]][w[0]]=w[3]
-		
+
         article_keyword = ds.get_article_keywords(article_id) #{NN: [list of keywords], VB:[list of verb keywords]}
         print(query_synonyms)
         print(article_keyword)
@@ -277,7 +277,7 @@ class Query:
         generates synonyms for each word in the query, using only synonyms with same part of speech
         :return:
         """
-        for tagged_word in self.query_tagged: 
+        for tagged_word in self.query_tagged:
             if tagged_word[0].lower() not in self.stop_list:      # tagged_word[0] = word
                 if tagged_word[1] not in self.synonyms_with_tag:  # tagged_word[1] = tag
                     self.synonyms_with_tag[tagged_word[1]] = {}
