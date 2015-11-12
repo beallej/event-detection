@@ -25,28 +25,28 @@ class DataSource:
         self.cursor.execute("SELECT q.id, q.subject, q.verb, q.direct_obj, q.indirect_obj, q.loc \
                              FROM queries q \
                              WHERE q.processed = false")
-        return self.cursor.fetchall()[0]
+        return self.cursor.fetchall()
 
 
     def get_unprocessed_query_article_pairs(self):
         self.cursor.execute("SELECT qa.query, qa.article FROM query_articles qa\
                             WHERE qa.processed = false")
-        return self.cursor.fetchall()[0]
+        return self.cursor.fetchall()
 
     def get_query_synonyms(self, query_id):
-        self.cursor.execute("SELECT (word, pos, sense, synonyms) FROM query_words WHERE query=%s", (query_id, ))
-        return self.cursor.fetchall()[0]
-            
+        self.cursor.execute("SELECT word, pos, sense, synonyms FROM query_words WHERE query=%s", (query_id,))
+        return self.cursor.fetchall()
+	
     def get_article_keywords(self, article_id):
         self.cursor.execute("SELECT keywords FROM articles WHERE id=%s", (article_id, ))
         keywords = []
-        for wrd in self.cursor.fetchall()[0]:
+        for wrd in self.cursor.fetchall():
             keywords.append(wrd)
         return keywords
 
     def get_articles(self):
         self.cursor.execute("SELECT id FROM articles")
-        return self.cursor.fetchall()[0]
+        return self.cursor.fetchall()
 
     def insert_article_keywords(self, article_title, source, url, filename, keyword_list):
         keywords = []
@@ -66,10 +66,10 @@ class DataSource:
         self.cursor.execute("""SELECT id FROM queries WHERE userid=%s AND subject=%s AND verb=%s 
                                                         AND direct_obj=%s AND indirect_obj=%s AND loc=%s""",
                                                         (userid, subject, verb, direct_obj, indirect_obj, loc))
-        return self.cursor.fetchone()[0]
+        return self.cursor.fetchone()
 
     def insert_query_word_synonym(self, query_id, query_word, pos_group, synonyms):
-        self.cursor.execute("INSERT (query, word, pos, synonyms) VALUES (%s, %s, %s, %s) INTO query_words", \
+        self.cursor.execute("INSERT  INTO query_words (query, word, pos, sense, synonyms) VALUES (%s, %s ,%s, 'Random',%s)", \
                                     (query_id, query_word, pos_group, synonyms))
 
     def post_validator_update(self, matching_prob, query_id, article_id):
@@ -77,9 +77,9 @@ class DataSource:
                            (matching_prob, query_id, article_id))
 
     def post_query_processor_update(self, query_id):
-        self.cursor.execute("UPDATE queries SET processed=true WHERE id=%s", (query[0], ))
+        self.cursor.execute("UPDATE queries SET processed=true WHERE id=%s", (query_id, ))
         for article_id in self.get_articles():
-            self.cursor.execute("INSERT (query, article) VALUES (%s, %s) INTO query_articles", (query[0], article_id))
+            self.cursor.execute("INSERT  INTO query_articles (query, article) VALUES (%s, %s)", (query_id, article_id))
 
     def insert_user(self, user_name, phone, email):
         """Inserts user into 'users' table and returns the assigned user id"""
@@ -89,7 +89,7 @@ class DataSource:
 
     def get_user_id(self, user_name, phone, email):
         self.cursor.execute("SELECT id FROM users WHERE user_name=%s AND phone=%s AND email=%s", (user_name, phone, email))
-        return self.cursor.fetchone()[0]
+        return self.cursor.fetchone()
 
     def user_status(self, user_name, phone, email):
         """Takes in a username and returns 0 if username is already taken with different phone/email, 

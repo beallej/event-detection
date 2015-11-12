@@ -4,6 +4,7 @@ from collections import defaultdict
 def get_synonyms(word, pos):
 	"""Gets a list of synonyms of a given word"""
 	synonyms = set()
+	pos = get_pos_tag_for_wordnet(pos)
 	# loop over all synsets with correct part-of-speech
 	for synset in wordnet.synsets(word, pos):
 		for lemma in synset.lemmas():
@@ -14,6 +15,7 @@ def get_synonyms(word, pos):
 def get_hypernyms(word, pos):
 	"""Gets a list of hypernyms of a given word (one level up)"""
 	hypernyms = set()
+	pos = get_pos_tag_for_wordnet(pos)
 	# loop over all synsets with correct part-of-speech
 	for synset in wordnet.synsets(word, pos):
 		for hypernym in synset.hypernyms():
@@ -27,7 +29,7 @@ def get_synonym_list(tagged_sequence):
 	results = defaultdict(dict)
 	for word_tag in tagged_sequence:
 		word = word_tag[0]
-		tag = get_pos_tag_for_wordnet(word_tag[1])
+		tag = word_tag[1]
 		results[word_tag[1]][word] = get_synonyms(word, tag)
 	return results
 
@@ -37,7 +39,7 @@ def get_hypernym_list(tagged_sequence):
 	results = defaultdict(dict)
 	for word_tag in tagged_sequence:
 		word = word_tag[0]
-		tag = get_pos_tag_for_wordnet(word_tag[1])
+		tag = word_tag[1]
 		results[word_tag[1]][word] = get_hypernyms(word, tag)
 	return results
 

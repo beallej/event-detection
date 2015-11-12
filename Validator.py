@@ -5,6 +5,7 @@ from nltk.corpus import stopwords
 from KeywordExtractor import *
 import re
 from DataSource import *
+import wordnet
 
 
 class AbstractValidator:
@@ -77,7 +78,12 @@ class KeywordValidator(AbstractValidator):
         # Need to process query and article formats
         ds = DataSource()
         query_synonyms = ds.get_query_synonyms(query_id) # {NN: {word1: [list of synonym], word2: [list of synonym],...}, VB..}
+		
+		
         article_keyword = ds.get_article_keywords(article_id) #{NN: [list of keywords], VB:[list of verb keywords]}
+		#### TO DO!!!
+        print(query_synonyms)
+        print(article_keyword)
         for pos in query_synonyms:
             for query_word in query_synonyms[pos]:
                 max_match_value += 2
@@ -271,9 +277,9 @@ class Query:
             if tagged_word[0].lower() not in self.stop_list:      # tagged_word[0] = word
                 if tagged_word[1] not in self.synonyms_with_tag:  # tagged_word[1] = tag
                     self.synonyms_with_tag[tagged_word[1]] = {}
-                self.synonyms_with_tag[tagged_word[1]][tagged_word[0]] = []
+                self.synonyms_with_tag[tagged_word[1]][tagged_word[0]] = wordnet.get_synonyms(tagged_word[0],tagged_word[1])
                 # TODO actually get synonyms
-
+        print(self.synonyms_with_tag)
     def get_synonyms(self):
         """
         :return: synonyms with their tags of the words in the query
