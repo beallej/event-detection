@@ -192,8 +192,8 @@ public class ArticleManager {
 	public Article process(RawArticle ra) {
 		String title = ra.getTitle(), text = ra.getText();
 		if (posTaggingEnabled) {
-			title = POSTagger.tag(title);
-			text = POSTagger.tag(text);
+			title = POSTagger.tag(title).replaceAll("(.)_\\.(\\w)", "$1_. $2").replaceAll("(\\w+?)_(\\w+)\\s+(\\w*?'\\w*?)_(\\w+)", "$1$3_$2");
+			text = POSTagger.tag(text).replaceAll("(.)_\\.(\\w)", "$1_. $2").replaceAll("(\\w+?)_(\\w+)\\s+(\\w*?'\\w*?)_(\\w+)", "$1$3_$2");
 		}
 		return new Article(title, text, ra.getURL(), ra.getSource(), isPOSTaggingEnabled());
 	}
