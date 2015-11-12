@@ -66,7 +66,10 @@ def query(id):
 
     if con:
         con.close()
-    return render_template("query.html", query = query, articles = articles)
+
+    if query is not None:
+        return render_template("query.html", query = query, articles = articles)
+    return render_template("404.html"), 404
 
 @app.errorhandler(404)
 def page_not_found(e):
