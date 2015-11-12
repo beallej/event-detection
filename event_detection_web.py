@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import sys
@@ -20,21 +20,6 @@ def connect_database():
 @app.route("/", methods=["POST", "GET"])
 def queries():
     con, cursor = connect_database()
-    if request.method == "POST":
-        # TODO: server side validation
-        subject = request.form["subject"]
-        verb = request.form["verb"]
-        direct_obj = request.form["direct-object"]
-        indirect_obj = request.form["indirect-object"]
-        loc = request.form["location"]
-        email = request.form["user-email"]
-        phone = request.form["user-phone"]
-        # Put into database
-        cursor.execute("INSERT INTO users (email, phone) VALUES (%s, %s) RETURNING id;", (email, phone))
-        user_id = cursor.fetchone()["id"]
-        cursor.execute("INSERT INTO queries (subject, verb, direct_obj, indirect_obj, loc, userid) \
-                        VALUES (%s, %s, %s, %s, %s, %s);", (subject, verb, direct_obj, indirect_obj, loc, user_id))
-        con.commit()
 
     # Get lists of query from database with counts of associated articles
     cursor.execute("SELECT q.id, q.subject, q.verb, q.direct_obj, q.indirect_obj, \
@@ -47,6 +32,30 @@ def queries():
     if con:
         con.close()
     return render_template("queries.html", queries = queries)
+
+@app.route("/query", methods=["POST"])
+def new_query():
+    con, cursor = connect_database()
+
+    # TODO: server side validation
+    subject = request.form["subject"]
+    verb = request.form["verb"]
+    direct_obj = request.form["direct-object"]
+    indirect_obj = request.form["indirect-object"]
+    loc = request.form["location"]
+    email = request.form["user-email"]
+    phone = request.form["user-phone"]
+    # Put into database
+    cursor.execute("INSERT INTO users (email, phone) VALUES (%s, %s) RETURNING id;", (email, phone))
+    user_id = cursor.fetchone()["id"]
+    cursor.execute("INSERT INTO queries (subject, verb, direct_obj, indirect_obj, loc, userid) \
+                    VALUES (%s, %s, %s, %s, %s, %s);", (subject, verb, direct_obj, indirect_obj, loc, user_id))
+    con.commit()
+
+    if con:
+        con.close()
+
+    return redirect("/")
 
 @app.route("/query/<id>", methods=["GET"])
 def query(id):
