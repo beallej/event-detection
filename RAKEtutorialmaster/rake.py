@@ -102,9 +102,7 @@ def build_stop_word_regex(stop_word_file_path):
 def generate_candidate_keywords(sentence_list, stopword_pattern, min_char_length=1, max_words_length=5):
     phrase_list = []
     for s in sentence_list:
-        print(s)
         tmp = re.sub(r'([A-Za-z0-9])-([A-Za-z0-9])', r'\1NOTABOUNDARY\2', s)
-        print(stopword_pattern)
         tmp = re.sub(stopword_pattern, '|', tmp.strip())
         tmp = re.sub(r'([A-Za-z0-9])NOTABOUNDARY([A-Za-z0-9])', r'\1-\2', tmp)
         phrases = tmp.split("|")
@@ -198,7 +196,6 @@ class Rake(object):
     def run(self, text):
         sentence_list = text
         phrase_list = generate_candidate_keywords(sentence_list, self.__stop_words_pattern, self.__min_char_length, self.__max_words_length)
-        print("##", phrase_list)
         word_scores = calculate_word_scores(phrase_list)
         keyword_candidates = generate_candidate_keyword_scores(phrase_list, word_scores, self.__min_keyword_frequency)
 

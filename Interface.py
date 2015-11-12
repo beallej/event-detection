@@ -40,10 +40,10 @@ sure you still have 4 slashes.\n")
 2_1_Rumors_and_racial_threats_stoke_fear_at_Mizzou.txt \
 3_1_Decades_of_goo_stripped_off_gum_wall_at_Pike_Place_Market.txt \
 4_1_Shock_,_horror_after_plane_hits_apartment_building.txt \
-5_1_Einstein_'s_colossal_mistake.txt \
+5_1_Einstein's_colossal_mistake.txt \
 6_1_Americans_observe_Veterans_Day.txt \
 7_1_When_people_die_in_strange_ways.txt \
-8_1_How_to_end_Chicago_'s_cycle_of_violence.txt \
+8_1_How_to_end_Chicago's_cycle_of_violence.txt \
 9_1_Removing_hijab_,_finding_myself.txt"
         for article in all_articles.split(" "):
 

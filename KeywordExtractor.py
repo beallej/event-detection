@@ -41,7 +41,6 @@ class KeywordExtractor:
         self.lemmatizer = WordNetLemmatizer()
 
     def extract_keywords(self, article):
-        print(article.title_tagged)
         """
         extract_keywords: main function. performs extraction using RAKE algorithm
         :param article: article object to get keywords from
@@ -147,6 +146,7 @@ class KeywordExtractor:
                     word, tag = token.split("_")
                     word = word.lower()
                     stem = self.stemmatize(word)
+                    stem = re.sub(r'(?<=(?<![a-zA-Z])[a-zA-Z])\.', r'', stem)
                     stemmed.append(stem)
                     neighbors = self.get_neighbors(i, tokens_tagged)
                     stem_instance = KeywordCandidate(word, neighbors, tag)
@@ -158,12 +158,7 @@ class KeywordExtractor:
                 except:
                     pass
             text_stemmed = " ".join(stemmed)
-            text_stemmed_with_acronym_punct = text_stemmed
-                text_stemmed = re.sub(r'[a-zA-z])')
-            text_stemmed = re.sub(r' (([a-zA-Z])\.)+', '\2', text_stemmed)
-            
             sentence_list.append(text_stemmed)
-            print(sentence_list)
 
 
         return sentence_list, candidate_keywords
@@ -258,10 +253,8 @@ class KeywordExtractor:
         first_instances = candidate_keywords[first_word]
 
         #instances when last word showed up
-        try:
-            last_instances = candidate_keywords[last_word]
-        except:
-            print(keyword, "~~", last_word)
+        last_instances = candidate_keywords[last_word]
+
 
 
         first_tag, first_unstemmed = self.get_tag_and_original_from_keyword(keyword, first_instances)
