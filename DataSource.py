@@ -70,7 +70,7 @@ class DataSource:
         return self.cursor.fetchone()
 
     def insert_query_word_synonym(self, query_id, query_word, pos_group, synonyms):
-        self.cursor.execute("INSERT  INTO query_words (query, word, pos, sense, synonyms) VALUES (%s, %s ,%s, '',%s)", \
+        self.cursor.execute("INSERT INTO query_words (query, word, pos, sense, synonyms) VALUES (%s, %s ,%s, '',%s)", \
                                     (query_id, query_word, pos_group, synonyms))
 
     def post_validator_update(self, matching_prob, query_id, article_id):
