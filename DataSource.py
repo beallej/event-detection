@@ -5,6 +5,7 @@
 
 import psycopg2
 import sys
+import re
 
 class DataSource:
     
@@ -90,6 +91,19 @@ class DataSource:
     def get_user_id(self, user_name, phone, email):
         self.cursor.execute("SELECT id FROM users WHERE user_name=%s AND phone=%s AND email=%s", (user_name, phone, email))
         return self.cursor.fetchone()
+
+    def get_email_and_phone(self, query_id):
+        self.cursor.execute("SELECT userid FROM queries WHERE id = "+str(query_id))
+        user_id = self.cursor.fetchone()
+        self.cursor.execute("SELECT phone FROM users WHERE id = "+str(user_id))
+        phone = str(self.cursor.fetchone())
+        if phone != None:
+            phone = re.sub(r'-', '', phone)
+            phone = "+1" + phone
+        self.cursor.execute("SELECT email FROM users WHERE id = "+str(user_id))
+        email = str(self.cursor.fetchone())
+        return phone, email
+
 
     def user_status(self, user_name, phone, email):
         """Takes in a username and returns 0 if username is already taken with different phone/email, 

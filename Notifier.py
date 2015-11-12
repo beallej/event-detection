@@ -1,5 +1,6 @@
 from twilio.rest import TwilioRestClient
 import sendgrid
+from DataSource import *
 
 class Notifier:
     """
@@ -14,16 +15,12 @@ class Notifier:
     twilio_auth_token  = "3b8e4111c3d10fdeffc666fddd65e6a3"
     sendgrid_api_key = "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"
 
-    def __init__(self, email, phone):
+    def __init__(self):
         """
         Initializes notification clients.
-        :param email: Email address to send to, can be None
-        :param phone: Phone # to text to, can be None
         :return: None
         """
-
-        self.email = email
-        self.phone = phone
+        self.datasource = DataSource()
         self.phone_client = TwilioRestClient(self.twilio_account_sid, self.twilio_auth_token)
         self.email_client = sendgrid.SendGridClient(self.sendgrid_api_key)
 
@@ -65,6 +62,8 @@ class Notifier:
         """
         html = self.format_html(query, article)
         text = self.format_plaintext(query, article)
+
+        self.phone, self.email = self.datasource.get_email_and_phone(query.get_id())
         self.alert_email(html)
         self.alert_phone(text)
 

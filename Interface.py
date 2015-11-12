@@ -55,7 +55,7 @@ sure you still have 4 slashes.\n")
                 print(article.keyword)
             print("-----------")
 
-        notifier = Notifier(Notifier.email_test, Notifier.phone_test)
+        notifier = Notifier()
 
         print("RESULT:\nArticles that matched:")
         numMatchingArticle = 0
