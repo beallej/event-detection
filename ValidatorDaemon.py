@@ -13,5 +13,5 @@ class ValidatorDaemon():
 		for pair in unprocessed_pairs:
 			query_id = pair[0]
 			article_id = pair[1]
-			matching_prob = Validator.validate(query_id, article_id)
+			matching_prob = KeywordValidator().validate(query_id, article_id)
 			post_validator_update(matching_prob, query_id, article_id)

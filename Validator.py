@@ -4,6 +4,7 @@ from nltk import pos_tag, word_tokenize
 from nltk.corpus import stopwords
 from KeywordExtractor import *
 import re
+import DataSource
 
 
 class AbstractValidator:
@@ -74,6 +75,7 @@ class KeywordValidator(AbstractValidator):
         max_match_value = 0
         match_value = 0
         # Need to process query and article formats
+        ds = DataSource()
         query_synonyms = ds.get_query_synonyms(query_id) # {NN: {word1: [list of synonym], word2: [list of synonym],...}, VB..}
         article_keyword = ds.get_article_keywords(article_id) #{NN: [list of keywords], VB:[list of verb keywords]}
         for pos in query_synonyms:
