@@ -6,7 +6,7 @@ if [ "$python_path" == "" ]; then
 	>&2 echo "Error:  Unable to find the executable for python 3."
 	exit 1
 fi
-line="$java_path -jar $(dirname $(pwd))/event-detection.jar $(pwd)/configuration.json && $python_path $(pwd)/ValidatorDaemon.py"
+line="$java_path -jar $(dirname $(pwd))/event-detection.jar $(pwd)/configuration.json && $python_path $(pwd)/ArticleProcessorDaemon.py && $python_path $(pwd)/ValidatorDaemon.py"
 line="0 * * * * $line"
 read -p "Preparing to write: $line. Is this okay? [y/N] " yn
 yn=$(echo "${yn:0:1}" | tr '[:upper:]' '[:lower:]')
