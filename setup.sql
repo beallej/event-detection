@@ -40,15 +40,17 @@ CREATE TABLE IF NOT EXISTS queries (
 	direct_obj varchar(255),
 	indirect_obj varchar(255),
 	loc varchar(255),
+	processed boolean default false,
 	constraint unique_queries unique (userid, subject, verb, direct_obj, indirect_obj, loc)
 );
 
 CREATE TABLE IF NOT EXISTS query_words (
+	query integer references queries(id) ON DELETE CASCADE,
 	word varchar(255) not null,
 	pos varchar(255) not null,
 	sense varchar(255) default null,
 	synonyms varchar(255)[] default '{}',
-	primary key (word, pos, sense),
+	primary key (query, word, pos, sense),
 	constraint word_pos unique(word, pos)
 );
 
