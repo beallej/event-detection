@@ -6,7 +6,7 @@
     <ul id="error-list">
     </ul>
   </div>
-  <form class="form-inline" action="{{ url_for('queries') }}" method="post" name="query-form" onsubmit="submitQuery()">
+  <form class="form-inline" action="{{ url_for('new_query') }}" method="post" name="query-form" onsubmit="submitQuery()">
     <h5>Your Query <small>subject and verb required</small></h5>
     <input class="form-control" placeholder="subject" name="subject"></input>
     <input class="form-control" placeholder="verb" name="verb"></input>
