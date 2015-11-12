@@ -64,7 +64,7 @@ class KeywordValidator(AbstractValidator):
         """
         return self.query_article_lists
 
-    def validate(self, query, article):
+    def validate(self, query_id, article_id):
         """
         validate -- evaluates how much article validates query
         :param query: query to validate
@@ -73,8 +73,9 @@ class KeywordValidator(AbstractValidator):
         """
         max_match_value = 0
         match_value = 0
-        query_synonyms = query.get_synonyms() # {NN: {word1: [list of synonym], word2: [list of synonym],...}, VB..}
-        article_keyword = article.get_keyword() #{NN: [list of keywords], VB:[list of verb keywords]}
+        # Need to process query and article formats
+        query_synonyms = ds.get_query_synonyms(query_id) # {NN: {word1: [list of synonym], word2: [list of synonym],...}, VB..}
+        article_keyword = ds.get_article_keywords(article_id) #{NN: [list of keywords], VB:[list of verb keywords]}
         for pos in query_synonyms:
             for query_word in query_synonyms[pos]:
                 max_match_value += 2
@@ -242,8 +243,8 @@ class Query:
 
         self.stop_list = set(open(KeywordExtractor.stoplist_file).readlines())
 
-        self.query_tagged = self.tag_query()
-        self.synonyms_with_tag = {}
+        self.query_tagged = self.tag_query() # [('Beyonce', 'NN'), ('releases', 'NNS'), ('song', 'NN')]
+        self.synonyms_with_tag = {} # {'NNS': {'releases': []}, 'NN': {'Beyonce': [], 'song': []}}
         self.generate_synonyms_with_tag()
 
     def get_id(self):
@@ -264,11 +265,12 @@ class Query:
         generates synonyms for each word in the query, using only synonyms with same part of speech
         :return:
         """
-        for tagged_word in self.query_tagged:
-            if tagged_word[0].lower() not in self.stop_list:
-                if tagged_word[1] not in self.synonyms_with_tag:
+        for tagged_word in self.query_tagged: 
+            if tagged_word[0].lower() not in self.stop_list:      # tagged_word[0] = word
+                if tagged_word[1] not in self.synonyms_with_tag:  # tagged_word[1] = tag
                     self.synonyms_with_tag[tagged_word[1]] = {}
                 self.synonyms_with_tag[tagged_word[1]][tagged_word[0]] = []
+                # TODO actually get synonyms
 
     def get_synonyms(self):
         """
