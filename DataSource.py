@@ -34,7 +34,7 @@ class DataSource:
         return self.cursor.fetchall()[0]
 
     def get_query_synonyms(self, query_id):
-        self.cursor.execute("SELECT (word, pos, sense, synonyms) FROM query_words WHERE query_id=%s", (query_id, ))
+        self.cursor.execute("SELECT (word, pos, sense, synonyms) FROM query_words WHERE query=%s", (query_id, ))
         return self.cursor.fetchall()[0]
             
     def get_article_keywords(self, article_id):
