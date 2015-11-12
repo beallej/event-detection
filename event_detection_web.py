@@ -61,7 +61,7 @@ def new_query():
                         VALUES (%s, %s, %s, %s, %s, %s);", (subject, verb, direct_obj, indirect_obj, loc, user_id))
         con.commit()
 
-        qpd = QueryProcessorDaemon()
+        qpd = QueryProcessorDaemon.QueryProcessorDaemon()
         thread = threading.Thread(target=qpd.run)
         thread.daemon = True
         thread.start()

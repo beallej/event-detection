@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS query_words (
 	sense varchar(255) default '',
 	synonyms varchar(255)[] default '{}',
 	primary key (query, word, pos, sense),
-	constraint word_pos unique(word, pos)
+	constraint word_pos unique(query, word, pos)
 );
 
 CREATE TABLE IF NOT EXISTS query_articles (
