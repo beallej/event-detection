@@ -7,13 +7,13 @@ from KeywordExtractor import *
 import json
 from Validator import Article
 import pdb
-import fcntl
+import fcntl, os
 
 class ArticleProcessorDaemon:
     def run(self):
         fd, fo = 0, 0
         try:
-            fo = open("~/.event-detection-active", "wb")
+            fo = open(os.getenv("HOME") + "/.event-detection-active", "wb")
             fd = fo.fileno()
             fcntl.lockf(fd, fcntl.LOCK_EX)
             ds = DataSource()

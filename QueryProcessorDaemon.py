@@ -4,14 +4,14 @@
 
 from Validator import Query
 from DataSource import *
-import fcntl
+import fcntl, os
 
 class QueryProcessorDaemon():
 
 	def run(self):
 		fd, fo = 0, 0
 		try:
-			fo = open("~/.event-detection-active", "wb")
+			fo = open(os.getenv("HOME") + "/.event-detection-active", "wb")
 			fd = fo.fileno()
 			fcntl.lockf(fd, fcntl.LOCK_EX)
 			ds = DataSource()
