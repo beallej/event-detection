@@ -36,3 +36,6 @@ class QueryProcessorDaemon():
 		finally:
 			fcntl.lockf(fd, fcntl.LOCK_UN)
 			fo.close()
+
+if __name__ == '__main__':
+    QueryProcessorDaemon().run()

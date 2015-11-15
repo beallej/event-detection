@@ -29,4 +29,5 @@ class ArticleProcessorDaemon:
             fcntl.lockf(fd, fcntl.LOCK_UN)
             fo.close()
 
-ArticleProcessorDaemon().run()
+if __name__ == '__main__':
+    ArticleProcessorDaemon().run()
