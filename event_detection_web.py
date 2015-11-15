@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import sys
-import QueryProcessorDaemon
+import QueryProcessorDaemon, ArticleProcessorDaemon
 import threading
 
 app = Flask(__name__)
@@ -18,6 +18,9 @@ def connect_database():
         sys.exit()
     return conn, cursor
 
+def daemonThread():
+    QueryProcessorDaemon.QueryProcessorDaemon().run()
+    ArticleProcessorDaemon.ArticleProcessorDaemon().run()
 
 @app.route("/", methods=["GET"])
 def queries():
@@ -61,8 +64,7 @@ def new_query():
                         VALUES (%s, %s, %s, %s, %s, %s);", (subject, verb, direct_obj, indirect_obj, loc, user_id))
         con.commit()
 
-        qpd = QueryProcessorDaemon.QueryProcessorDaemon()
-        thread = threading.Thread(target=qpd.run)
+        thread = threading.Thread(target=daemonThread)
         thread.daemon = True
         thread.start()
 
