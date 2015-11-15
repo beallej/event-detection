@@ -146,7 +146,9 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 				}
 				out = outs.stream().collect(ArrayList::new, (a, b) -> {
 					try {
-						a.add(b.get());
+						RawArticle ra = b.get();
+						if (ra != null)
+							a.add(ra);
 					}
 					catch (ExecutionException | InterruptedException e) {}
 				} , ArrayList::addAll);
