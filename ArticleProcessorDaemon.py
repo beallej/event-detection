@@ -4,13 +4,21 @@
 
 from DataSource import *
 from KeywordExtractor import *
-import json
 from Validator import Article
-import pdb
-import fcntl, os
+import json
+import fcntl
+import os
+
 
 class ArticleProcessorDaemon:
+    """
+    class QueryArticleList -- processes articles to add keywords
+    """
     def run(self):
+        """
+        adds keywords as a JSON string to articles in database
+        :return: Nothing
+        """
         fd, fo = 0, 0
         try:
             fo = open(os.getenv("HOME") + "/.event-detection-active", "wb")
@@ -29,5 +37,5 @@ class ArticleProcessorDaemon:
             fcntl.lockf(fd, fcntl.LOCK_UN)
             fo.close()
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     ArticleProcessorDaemon().run()
