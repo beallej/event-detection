@@ -5,15 +5,17 @@
 
 #### Installations
 1. [Install Homebrew](http://brew.sh/)
-1. psycopg2: `pip3 psycopg2`
-1. Flask: `pip3 install Flask`
+1. Downloader (Run all commands from the root directory of the repository):
+  1. `./setup_project.sh` - Handles psycopg2, Flask, and PostgreSQL
+  2. `ant -Dprefix='./'`
+6. Auto-run: `./install_crontab.sh`
 
 #### Running the Downloader and Validator
 1. Just do it. `./run.sh`
 
 #### Running the Web App
 1. Run the application: `python3 event_detection_web.py`
-1. To view the application, navigate to [localhost:5000](http://localhost:5000/)
+2. To view the application, navigate to [localhost:5000](http://localhost:5000/)
 
 #### After Pulling New Code
-1. Run Ant: `ant`
+1. Run Ant: `ant -Dprefix='./'`
