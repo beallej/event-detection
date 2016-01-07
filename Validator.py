@@ -1,4 +1,4 @@
-#We use term extraction and clustering methods found in this paper http://nlg18.csie.ntu.edu.tw:8080/lwku/c12.pdf
+# We use term extraction and clustering methods found in this paper http://nlg18.csie.ntu.edu.tw:8080/lwku/c12.pdf
 
 from nltk import pos_tag, word_tokenize
 from nltk.corpus import stopwords
