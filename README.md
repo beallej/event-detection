@@ -1,5 +1,6 @@
-# event-detection
-### Comps
+# Event Detection
+### Comps 2016
+#### Carleton College
 ##### Josie Bealle, Laura Biester, Phuong Dinh, Julia Kroll, Josh Lipstone, and Anmol Raina
 
 #### Installations
