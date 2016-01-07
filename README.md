@@ -1,11 +1,21 @@
-# event-detection
-Comps
+# Event Detection
+### Comps 2016
+#### Carleton College
+##### Josie Bealle, Laura Biester, Phuong Dinh, Julia Kroll, Josh Lipstone, and Anmol Raina
 
-### Running the Web App
-1. Install virtualenv: `pip3 install virtualenv`
-2. Create a virtual environment: `virtualenv venv`
-3. Enter the virtual environment: `source venv/bin/activate`
-4. Install Flask: `pip3 install Flask`
-5. Install psycopg2 inside virtualenv: `pip3`
-5. Run the applicaiton: `python3 event_detection_web.py`
-6. When you're done, you can exit the virtual environment by running the command `deactivate`
+#### Installations
+1. [Install Homebrew](http://brew.sh/)
+1. Downloader (Run all commands from the root directory of the repository):
+  1. `./setup_project.sh` - Handles psycopg2, Flask, and PostgreSQL
+  2. `ant -Dprefix='./'`
+6. Auto-run: `./install_crontab.sh`
+
+#### Running the Downloader and Validator
+1. Just do it. `./run.sh`
+
+#### Running the Web App
+1. Run the application: `python3 event_detection_web.py`
+2. To view the application, navigate to [localhost:5000](http://localhost:5000/)
+
+#### After Pulling New Code
+1. Run Ant: `ant -Dprefix='./'`

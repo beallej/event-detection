@@ -1,6 +1,0 @@
-If you have homebrew:
-    ant -Dprefix='./'
-Otherwise:
-    ./build_brewless.sh -Dprefix='./'
-
-java -jar event-detection.jar
