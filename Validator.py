@@ -85,10 +85,10 @@ class KeywordValidator(AbstractValidator):
             if w[1] not in query_synonyms:
                 query_synonyms[w[1]] = {}
             query_synonyms[w[1]][w[0]]=w[3]
-        print(ds.get_article_keywords(article_id))
+        #print(ds.get_article_keywords(article_id))
         article_keyword = json.loads(ds.get_article_keywords(article_id)[0]) #{NN: [list of keywords], VB:[list of verb keywords]}
-        print(query_synonyms)
-        print(article_keyword)
+        #print(query_synonyms)
+        #print(article_keyword)
         for pos in query_synonyms:
             for query_word in query_synonyms[pos]:
                 max_match_value += 2

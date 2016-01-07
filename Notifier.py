@@ -8,8 +8,8 @@ class Notifier:
     """
 
     #TODO: MOVE THIS STUFF TO A MORE SECURE LOCATION
-    phone_test = "+15073385228"
-    email_test = "event.detection.carleton@gmail.com"
+    default_phone = "+15073385228"
+    default_email = "event.detection.carleton@gmail.com"
     twilio_number = "+15137269006"
     twilio_account_sid = "AC7b50b072cd7cc54e912eb28dffd3c403"
     twilio_auth_token  = "3b8e4111c3d10fdeffc666fddd65e6a3"
@@ -31,8 +31,8 @@ class Notifier:
         :param message: the text body
         :return: None
         """
-        if self.phone != None:
-            self.phone_client.messages.create(body=text, to=self.phone_test, from_=self.twilio_number)
+        if self.phone != None and self.phone != "+1":
+            self.phone_client.messages.create(body=text, to=self.phone, from_=self.twilio_number)
     def alert_email(self, text):
         """
         Sends email message
@@ -41,10 +41,10 @@ class Notifier:
         """
         if self.email != None:
             message = sendgrid.Mail()
-            message.add_to(self.email_test)
+            message.add_to(self.email)
 
             #not sure what address goes here-- maybe test email?
-            message.set_from(self.email_test)
+            message.set_from(self.default_email)
             message.set_subject("Event Detection")
             message.set_html(text)
 
@@ -60,16 +60,18 @@ class Notifier:
         :param article: article that validated query
         :return: None
         """
-        html = str(article_id)
-        text = str(query_id)
-        #html = self.format_html(query, article)
-        #text = self.format_plaintext(query, article)
+        query_string = " ".join(self.datasource.get_query_elements(query_id))
+        article_url = self.datasource.get_article_url(article_id)
+        article_title = self.datasource.get_article_title(article_id)
+        
+        html = self.format_html(query_string, article_url, article_title)
+        text = self.format_plaintext(query_string, article_url, article_title)
 
         self.phone, self.email = self.datasource.get_email_and_phone(query_id)
         self.alert_email(html)
         self.alert_phone(text)
 
-    def format_query(self, query):
+    def format_query(self, query_id):
         """
         formats query for email or text
         :param query: query to format
@@ -81,19 +83,18 @@ class Notifier:
                 query_elements.append(element)
         return " ".join(query_elements)
 
-    def format_html(self, query, article):
+    def format_html(self, query_string, article_url, article_title):
         """
         formats body of email
         :param query: query that was validated
         :param article: article that validated query
         :return: html of email body
         """
-        query_string = self.format_query(query)
         html = "<h1>{query}</h1><p>Article: <a href=\"{url}\">{title}</a></p>"\
-            .format(query = query_string, url=article.url, title=article.title)
+            .format(query = query_string, url=article_url, title=article_title)
         return html
 
-    def format_plaintext(self, query, article):
+    def format_plaintext(self, query_string, article_url, article_title):
         """
         formats text message
         formats body of email
@@ -101,7 +102,6 @@ class Notifier:
         :param article: article that validated query
         :return: text body
         """
-        query_string = self.format_query(query)
         text = "Event Detected!\nQuery: {query}\nArticle: {title}\nLink {url}"\
-            .format(query = query_string, url=article.url, title=article.title)
+            .format(query = query_string, url=article_url, title=article_title)
         return text

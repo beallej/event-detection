@@ -91,16 +91,30 @@ class DataSource:
     def get_user_id(self, user_name, phone, email):
         self.cursor.execute("SELECT id FROM users WHERE user_name=%s AND phone=%s AND email=%s", (user_name, phone, email))
         return self.cursor.fetchone()
+    
+    def get_query_elements(self, query_id):
+        self.cursor.execute("SELECT subject, verb, direct_obj, indirect_obj, loc FROM queries WHERE id=%s", (query_id, ))
+        elements = self.cursor.fetchone()
+        elements = [element for element in elements if element is not None or element is not ""]
+        return elements
+    
+    def get_article_url(self, article_id):
+        self.cursor.execute("SELECT url FROM articles WHERE id=%s", (article_id, ))
+        return str(self.cursor.fetchone()[0])
+    
+    def get_article_title(self, article_id):
+        self.cursor.execute("SELECT title FROM articles WHERE id=%s", (article_id, ))
+        return str(self.cursor.fetchone()[0])
 
     def get_email_and_phone(self, query_id):
-        self.cursor.execute("SELECT userid FROM queries WHERE id = "+str(query_id))
+        self.cursor.execute("SELECT userid FROM queries WHERE id="+str(query_id))
         user_id = self.cursor.fetchone()[0]
-        self.cursor.execute("SELECT phone FROM users WHERE id = "+str(user_id))
+        self.cursor.execute("SELECT phone FROM users WHERE id="+str(user_id))
         phone = str(self.cursor.fetchone()[0])
         if phone != None:
             phone = re.sub(r'-', '', phone)
             phone = "+1" + phone
-        self.cursor.execute("SELECT email FROM users WHERE id = "+str(user_id))
+        self.cursor.execute("SELECT email FROM users WHERE id="+str(user_id))
         email = str(self.cursor.fetchone()[0])
         return phone, email
 

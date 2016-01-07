@@ -147,14 +147,15 @@ class KeywordExtractor:
                     word = word.lower()
                     stem = self.stemmatize(word)
                     stem = re.sub(r'(?<=(?<![a-zA-Z])[a-zA-Z])\.', r'', stem)
-                    stemmed.append(stem)
-                    neighbors = self.get_neighbors(i, tokens_tagged)
-                    stem_instance = KeywordCandidate(word, neighbors, tag)
+                    if re.search(r'[a-zA-Z]', stem) != None:
+                        stemmed.append(stem)
+                        neighbors = self.get_neighbors(i, tokens_tagged)
+                        stem_instance = KeywordCandidate(word, neighbors, tag)
 
-                    if stem in candidate_keywords:
-                        candidate_keywords[stem].append(stem_instance)
-                    else:
-                        candidate_keywords[stem] = [stem_instance]
+                        if stem in candidate_keywords:
+                            candidate_keywords[stem].append(stem_instance)
+                        else:
+                            candidate_keywords[stem] = [stem_instance]
                 except:
                     pass
             text_stemmed = " ".join(stemmed)
@@ -180,38 +181,40 @@ class KeywordExtractor:
         #(kw, weight)
         for keyword_tuple in keywords:
             keyword = keyword_tuple[0]
+            
+            if re.search(r'[a-zA-Z]', keyword) != None :
+                
+                #i.e. a single word
+                if keyword in candidate_keywords:
 
-            #i.e. a single word
-            if keyword in candidate_keywords:
+                    #when word showed up
+                    instances = candidate_keywords[keyword]
+                    for instance in instances:
+                        word = instance.word
+                        pos = instance.tag
 
-                #when word showed up
-                instances = candidate_keywords[keyword]
-                for instance in instances:
-                    word = instance.word
-                    pos = instance.tag
+                        #add instance's pos and actual word
+                        if pos not in keywords_tagged:
+                            keywords_tagged[pos] = set()
+                        keywords_tagged[pos].add(word)
+                elif re.search(r'^[a-zA-Z] (.*)[a-zA-Z]$', keyword) != None:
 
-                    #add instance's pos and actual word
-                    if pos not in keywords_tagged:
-                        keywords_tagged[pos] = set()
-                    keywords_tagged[pos].add(word)
-            else:
+                    #heuristic: if it ends in a noun, likely to be a noun keyword, starts with verb, likely
+                    #to be verb keyword. If both are true, added to both parts of speech lists
 
-                #heuristic: if it ends in a noun, likely to be a noun keyword, starts with verb, likely
-                #to be verb keyword. If both are true, added to both parts of speech lists
+                    first_tag, last_tag, unstemmed = self.get_multiword_pos(keyword, candidate_keywords)
 
-                first_tag, last_tag, unstemmed = self.get_multiword_pos(keyword, candidate_keywords)
+                    #starts with verb (non gerundal), probably a verb --> ex. "take shelter", NOT "taking a bath"
+                    if first_tag[0] == 'V' and first_tag != "VBG":
+                        if first_tag not in keywords_tagged:
+                            keywords_tagged[first_tag] = set()
+                        keywords_tagged[first_tag].add(unstemmed)
 
-                #starts with verb (non gerundal), probably a verb --> ex. "take shelter", NOT "taking a bath"
-                if first_tag[0] == 'V' and first_tag != "VBG":
-                    if first_tag not in keywords_tagged:
-                        keywords_tagged[first_tag] = set()
-                    keywords_tagged[first_tag].add(unstemmed)
-
-                #ends with noun or gerund, probably a noun --> ex. "long-distance running", "cat's pajamas"
-                if last_tag[0] == 'N' or last_tag == "VBG":
-                    if last_tag not in keywords_tagged:
-                        keywords_tagged[last_tag] = set()
-                    keywords_tagged[last_tag].add(unstemmed)
+                    #ends with noun or gerund, probably a noun --> ex. "long-distance running", "cat's pajamas"
+                    if last_tag[0] == 'N' or last_tag == "VBG":
+                        if last_tag not in keywords_tagged:
+                            keywords_tagged[last_tag] = set()
+                        keywords_tagged[last_tag].add(unstemmed)
 
         return keywords_tagged
 
@@ -246,10 +249,12 @@ class KeywordExtractor:
 
         """
         sub_keywords = keyword.split(" ")
+        
         first_word = sub_keywords[0]
         last_word = sub_keywords[-1]
 
         #instances when first word showed up
+       
         first_instances = candidate_keywords[first_word]
 
         #instances when last word showed up
