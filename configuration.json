@@ -9,7 +9,9 @@
 			"minutes"	: 0,
 			"seconds"	: 0
 		},
-		"enable-pos-tagging" : true
+		"pos-tagging" : {
+			"enable-pos-tagging" : true,
+		}
 	},
 	"database" : {
 		"server"	: "localhost",
