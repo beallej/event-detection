@@ -9,7 +9,6 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.sql.SQLException;
 import java.util.Calendar;
-import java.util.LinkedHashSet;
 
 import toberumono.json.JSONArray;
 import toberumono.json.JSONBoolean;
@@ -40,7 +39,8 @@ public class DownloaderController {
 		Path configPath = Paths.get(args.length > 0 ? args[0] : "configuration.json");
 		JSONObject config = (JSONObject) JSONSystem.loadJSON(configPath);
 		updateJSONConfiguration(config);
-		JSONSystem.writeJSON(config, configPath);
+		if (config.isModified())
+			JSONSystem.writeJSON(config, configPath);
 		Downloader.configureConnection((JSONObject) config.get("database"));
 		try (DownloaderCollection dc = new DownloaderCollection()) {
 			JSONObject paths = (JSONObject) config.get("paths");
