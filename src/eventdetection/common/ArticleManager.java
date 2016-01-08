@@ -32,7 +32,7 @@ public class ArticleManager {
 	private final Connection connection;
 	private final String table;
 	private final Collection<Path> storage;
-	private final boolean posTaggingEnabled;
+	private final boolean posTaggingEnabled, posTagSimplification;
 	
 	/**
 	 * Initializes an {@link ArticleManager} from JSON configuration data.
@@ -52,6 +52,7 @@ public class ArticleManager {
 		this.storage = ((JSONArray) paths.get("articles")).stream().collect(LinkedHashSet::new, (s, p) -> s.add(Paths.get(p.toString())), LinkedHashSet::addAll);
 		JSONObject posTagging = (JSONObject) articles.get("pos-tagging");
 		this.posTaggingEnabled = ((JSONBoolean) posTagging.get("enable-pos-tagging")).value();
+		this.posTagSimplification = ((JSONBoolean) posTagging.get("enable-tag-simplification")).value();
 	}
 	
 	/**
@@ -71,6 +72,7 @@ public class ArticleManager {
 		this.table = articleTable;
 		this.storage = articleStorage;
 		this.posTaggingEnabled = posTaggingEnabled;
+		this.posTagSimplification = false;
 	}
 	
 	/**

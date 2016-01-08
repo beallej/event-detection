@@ -11,6 +11,8 @@
 		},
 		"pos-tagging" : {
 			"enable-pos-tagging" : true,
+			"enable-tag-simplification" : true,
+			"tag-simplification-map" : ["./tag_simplifications.txt"]
 		}
 	},
 	"database" : {

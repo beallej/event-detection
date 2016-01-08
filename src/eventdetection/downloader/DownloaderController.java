@@ -91,6 +91,6 @@ public class DownloaderController {
 	private static void updateJSONConfiguration(JSONObject config) {
 		JSONObject articles = (JSONObject) config.get("articles");
 		JSONSystem.transferField("enable-pos-tagging", new JSONBoolean(true), articles, (JSONObject) articles.get("pos-tagging"));
-		JSONSystem.transferField("enable-tag-simplification", new JSONBoolean(false), (JSONObject) articles.get("pos-tagging"));
+		JSONSystem.transferField("enable-tag-simplification", new JSONBoolean(true), (JSONObject) articles.get("pos-tagging"));
 	}
 }

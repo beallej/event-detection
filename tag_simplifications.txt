@@ -1,0 +1,5 @@
+#This file enumerates mappings that can be used to simplify POS tags.
+#Any text after a '#' sign is a comment.
+#Mappings are a comma separated list of tags followed by an arrow ('->') and a single tag.
+#When a mapping is applied, all of the tags in the comma-separated list will be replaced with the tag after the arrow.
+RBR, RBS -> RB
