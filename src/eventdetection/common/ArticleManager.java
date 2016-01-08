@@ -11,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Iterator;
@@ -19,6 +20,7 @@ import java.util.LinkedHashSet;
 import toberumono.json.JSONArray;
 import toberumono.json.JSONBoolean;
 import toberumono.json.JSONObject;
+import toberumono.json.JSONString;
 
 import eventdetection.downloader.POSTagger;
 import eventdetection.downloader.RawArticle;
@@ -32,7 +34,8 @@ public class ArticleManager {
 	private final Connection connection;
 	private final String table;
 	private final Collection<Path> storage;
-	private final boolean posTaggingEnabled, posTagSimplification;
+	private final boolean posTaggingEnabled, posTagSimplificationEnabled;
+	private final TagSimplifier tagSimplifier;
 	
 	/**
 	 * Initializes an {@link ArticleManager} from JSON configuration data.
@@ -52,7 +55,15 @@ public class ArticleManager {
 		this.storage = ((JSONArray) paths.get("articles")).stream().collect(LinkedHashSet::new, (s, p) -> s.add(Paths.get(p.toString())), LinkedHashSet::addAll);
 		JSONObject posTagging = (JSONObject) articles.get("pos-tagging");
 		this.posTaggingEnabled = ((JSONBoolean) posTagging.get("enable-pos-tagging")).value();
-		this.posTagSimplification = ((JSONBoolean) posTagging.get("enable-tag-simplification")).value();
+		this.posTagSimplificationEnabled = ((JSONBoolean) posTagging.get("enable-tag-simplification")).value();
+		this.tagSimplifier = new TagSimplifier(((JSONArray) posTagging.get("tag-simplification-maps")).stream().collect(ArrayList::new, (a, b) -> { //What?
+			try {
+				a.addAll(Files.readAllLines(Paths.get(((JSONString) b).value())));
+			}
+			catch (IOException e) {
+				e.printStackTrace();
+			}
+		}, ArrayList::addAll));
 	}
 	
 	/**
@@ -72,7 +83,8 @@ public class ArticleManager {
 		this.table = articleTable;
 		this.storage = articleStorage;
 		this.posTaggingEnabled = posTaggingEnabled;
-		this.posTagSimplification = false;
+		this.posTagSimplificationEnabled = false;
+		this.tagSimplifier = null;
 	}
 	
 	/**
@@ -222,6 +234,10 @@ public class ArticleManager {
 		if (posTaggingEnabled) {
 			title = POSTagger.tag(title).replaceAll("(\\w+?)_(\\w+)\\s+(\\w*?'\\w*?)_(\\w+)", "$1$3_$2");
 			text = POSTagger.tag(text).replaceAll("(\\w+?)_(\\w+)\\s+(\\w*?'\\w*?)_(\\w+)", "$1$3_$2");
+			if (posTagSimplificationEnabled) {
+				title = tagSimplifier.simplifyTags(title);
+				text = tagSimplifier.simplifyTags(text);
+			}
 		}
 		return new Article(title, text, ra.getURL(), ra.getSource(), isPOSTaggingEnabled());
 	}
