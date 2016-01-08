@@ -116,8 +116,7 @@ public class Scraper implements IDAble<String>, JSONRepresentable {
 	 */
 	public String scrape(InputStream is) {
 		//This disables the delimiter and then uses the scanner to convert the stream from the URL into text
-		try (@SuppressWarnings("resource")
-		Scanner sc = new Scanner(is).useDelimiter("\\A")) {
+		try (Scanner s = new Scanner(is); Scanner sc = s.useDelimiter("\\A")) {
 			return scrape(sc);
 		}
 	}

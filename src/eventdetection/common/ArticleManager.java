@@ -3,6 +3,7 @@ package eventdetection.common;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -13,6 +14,11 @@ import java.time.Instant;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
+
+import toberumono.json.JSONArray;
+import toberumono.json.JSONBoolean;
+import toberumono.json.JSONObject;
 
 import eventdetection.downloader.POSTagger;
 import eventdetection.downloader.RawArticle;
@@ -27,6 +33,26 @@ public class ArticleManager {
 	private final String table;
 	private final Collection<Path> storage;
 	private final boolean posTaggingEnabled;
+	
+	/**
+	 * Initializes an {@link ArticleManager} from JSON configuration data.
+	 * 
+	 * @param connection
+	 *            a {@link Connection} to the database in use
+	 * @param articleTable
+	 *            the name of the table holding the {@link Article Articles}
+	 * @param paths
+	 *            the "paths" section of the configuration file
+	 * @param articles
+	 *            the "articles" section of the configuration file
+	 */
+	public ArticleManager(Connection connection, String articleTable, JSONObject paths, JSONObject articles) {
+		this.connection = connection;
+		this.table = articleTable;
+		this.storage = ((JSONArray) paths.get("articles")).stream().collect(LinkedHashSet::new, (s, p) -> s.add(Paths.get(p.toString())), LinkedHashSet::addAll);
+		JSONObject posTagging = (JSONObject) articles.get("pos-tagging");
+		this.posTaggingEnabled = ((JSONBoolean) posTagging.get("enable-pos-tagging")).value();
+	}
 	
 	/**
 	 * Initializes an {@link ArticleManager}.
