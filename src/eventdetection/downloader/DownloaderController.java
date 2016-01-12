@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.concurrent.ExecutorService;
@@ -50,21 +51,22 @@ public class DownloaderController {
 			JSONSystem.writeJSON(config, configPath);
 		Downloader.configureConnection((JSONObject) config.get("database"));
 		try (DownloaderCollection dc = new DownloaderCollection()) {
+			Connection connection = Downloader.getConnection();
 			JSONObject paths = (JSONObject) config.get("paths");
 			JSONObject articles = (JSONObject) config.get("articles");
-			Downloader.loadSource(Downloader.getConnection(), "sources");
+			Downloader.loadSource(connection, "sources");
 			for (JSONData<?> str : ((JSONArray) paths.get("sources")).value())
 				Downloader.loadSource(Paths.get(str.toString()));
 				
-			FeedManager fm = new FeedManager();
+			FeedManager fm = new FeedManager(connection);
 			for (JSONData<?> str : ((JSONArray) paths.get("scrapers")).value())
 				fm.addScraper(Paths.get(str.toString()));
 			for (JSONData<?> str : ((JSONArray) paths.get("feeds")).value())
 				fm.addFeed(Paths.get(str.toString()));
-			fm.addFeed(Downloader.getConnection(), "feeds");
+			fm.addFeed(connection, "feeds");
 			
 			dc.addDownloader(fm);
-			ArticleManager am = new ArticleManager(dc.getConnection(), "articles", paths, articles);
+			ArticleManager am = new ArticleManager(connection, "articles", paths, articles);
 			
 			Path active = Paths.get(System.getProperty("user.home"), ".event-detection-active");
 			if (!Files.exists(active)) {

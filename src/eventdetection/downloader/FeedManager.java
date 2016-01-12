@@ -20,14 +20,28 @@ import eventdetection.common.Article;
 public class FeedManager extends Downloader {
 	private final Map<String, Scraper> scrapers;
 	private final Map<Integer, Feed> feeds;
+	private final Connection connection;
 	private boolean closed;
 	
 	/**
 	 * Initializes a {@link FeedManager} without any {@link Feed Feeds} or {@link Scraper Scrapers}.
+	 * 
+	 * @throws SQLException
+	 *             if an error occurs while getting the {@link Connection}
 	 */
-	public FeedManager() {
+	public FeedManager() throws SQLException {
+		this(Downloader.getConnection());
+	}
+	
+	/**
+	 * Initializes a {@link FeedManager} without any {@link Feed Feeds} or {@link Scraper Scrapers}.
+	 * @param connection
+	 *            a {@link Connection} to the database to use
+	 */
+	public FeedManager(Connection connection) {
 		scrapers = new LinkedHashMap<>(); //We might want to keep the order consistent...
 		feeds = new LinkedHashMap<>(); //We might want to keep the order consistent...
+		this.connection = connection;
 		closed = false;
 	}
 	
@@ -40,8 +54,10 @@ public class FeedManager extends Downloader {
 	 *            a {@link Path} to the folder containing JSON files describing the sources in use
 	 * @throws IOException
 	 *             if an error occurs while loading the JSON files
+	 * @throws SQLException
+	 *             if an error occurs while getting the {@link Connection}
 	 */
-	public FeedManager(Path feedFolder, Path scraperFolder) throws IOException {
+	public FeedManager(Path feedFolder, Path scraperFolder) throws IOException, SQLException {
 		this();
 		if (Files.exists(scraperFolder))
 			addScraper(scraperFolder);
@@ -50,8 +66,8 @@ public class FeedManager extends Downloader {
 	}
 	
 	/**
-	 * @param sqlConnection
-	 *            a {@link Connection} to a SQL server
+	 * @param connection
+	 *            a {@link Connection} the database to use
 	 * @param feedTable
 	 *            the name of the table containing the {@link Feed Feeds}
 	 * @param scraperTable
@@ -61,12 +77,12 @@ public class FeedManager extends Downloader {
 	 * @throws IOException
 	 *             if an I/O error occurs
 	 */
-	public FeedManager(Connection sqlConnection, String feedTable, String scraperTable) throws SQLException, IOException {
-		this();
+	public FeedManager(Connection connection, String feedTable, String scraperTable) throws SQLException, IOException {
+		this(connection);
 		if (scraperTable != null)
-			addScraper(sqlConnection, scraperTable);
+			addScraper(connection, scraperTable);
 		if (feedTable != null)
-			addFeed(sqlConnection, feedTable);
+			addFeed(connection, feedTable);
 	}
 	
 	/**
@@ -110,7 +126,7 @@ public class FeedManager extends Downloader {
 	 *             if an error occurs while loading the JSON files
 	 */
 	public List<Integer> addFeed(Path path) throws IOException {
-		return loadItemsFromFile(p -> Feed.loadFromJSON(p, scrapers), p -> p.toString().endsWith(".json"), path, feeds::put);
+		return loadItemsFromFile(p -> Feed.loadFromJSON(p, scrapers, connection), p -> p.toString().endsWith(".json"), path, feeds::put);
 	}
 	
 	/**
@@ -127,7 +143,7 @@ public class FeedManager extends Downloader {
 	 *             if an I/O error occurs
 	 */
 	public List<Integer> addFeed(Connection connection, String table) throws SQLException, IOException {
-		return loadItemsFromSQL(table, connection, rs -> Feed.loadFromSQL(rs, scrapers), feeds::put);
+		return loadItemsFromSQL(table, connection, rs -> Feed.loadFromSQL(connection, rs, scrapers), feeds::put);
 	}
 	
 	/**
