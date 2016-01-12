@@ -28,6 +28,7 @@ import toberumono.json.JSONRepresentable;
 import toberumono.json.JSONString;
 import toberumono.json.JSONSystem;
 
+import eventdetection.common.Article;
 import eventdetection.common.IDAble;
 import eventdetection.common.Source;
 
@@ -118,8 +119,8 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 	}
 	
 	@Override
-	public List<RawArticle> get() {
-		List<RawArticle> out = new ArrayList<>();
+	public List<Article> get() {
+		List<Article> out = new ArrayList<>();
 		Scraper s = getScraper();
 		if (s == null)
 			return out;
@@ -127,7 +128,7 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 			try {
 				SyndFeed feed = input.build(new XmlReader(url));
 				ExecutorService pool = Executors.newWorkStealingPool();
-				List<Future<RawArticle>> outs = new ArrayList<>();
+				List<Future<Article>> outs = new ArrayList<>();
 				for (SyndEntry e : feed.getEntries()) {
 					stmt.setString(1, e.getLink());
 					try {
@@ -141,14 +142,14 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 						String text = s.scrape(new URL(e.getLink()));
 						if (text == null)
 							return null;
-						return new RawArticle(e.getTitle(), text, e.getLink(), getSource());
+						return new Article(e.getTitle(), text, e.getLink(), getSource());
 					}));
 				}
 				out = outs.stream().collect(ArrayList::new, (a, b) -> {
 					try {
-						RawArticle ra = b.get();
-						if (ra != null)
-							a.add(ra);
+						Article article = b.get();
+						if (article != null)
+							a.add(article);
 					}
 					catch (ExecutionException | InterruptedException e) {}
 				} , ArrayList::addAll);

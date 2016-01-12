@@ -3,96 +3,119 @@ package eventdetection.common;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+import edu.stanford.nlp.pipeline.Annotation;
 import eventdetection.downloader.POSTagger;
 
 /**
- * Represents an {@link Article} that has been processed.
+ * Represents an {@link Article} that has been processed. All {@link Annotation} processing and PoS tagging is done lazily. A
+ * call to {@link #process()} will immediately perform all processing tasks.
  * 
  * @author Joshua Lipstone
  */
-public class Article {
-	private final String title, text;
+public class Article implements Serializable {
+	private final String[] titles, texts;
+	private Annotation title;
+	private Annotation[] text;
 	private final URL url;
 	private final Source source;
-	private final boolean isTagged;
-	private Article alternate;
 	
 	/**
-	 * Initializes a {@link Article}
+	 * Initializes an {@link Article}
 	 * 
 	 * @param title
-	 *            the title of the article, which can be PoS tagged
+	 *            the title of the article as untagged text
 	 * @param text
-	 *            the text of the article, which can be PoS tagged
+	 *            the text of the article as untagged text
 	 * @param url
 	 *            the URL of the full article as a {@link String}
 	 * @param source
 	 *            the {@link Source} that the article is from
-	 * @param isTagged
-	 *            whether the {@link Article} have tagged text
 	 * @throws MalformedURLException
 	 *             if the given <tt>url</tt> is incorrectly formatted
 	 */
-	public Article(String title, String text, String url, Source source, boolean isTagged) throws MalformedURLException {
-		this(title, text, new URL(url), source, isTagged);
+	public Article(String title, String text, String url, Source source) throws MalformedURLException {
+		this(title, text, new URL(url), source);
 	}
 	
 	/**
-	 * Initializes a {@link Article}
+	 * Initializes an {@link Article}
 	 * 
 	 * @param title
-	 *            the title of the article, which can be PoS tagged
+	 *            the title of the article as untagged text
 	 * @param text
-	 *            the text of the article, which can be PoS tagged
+	 *            the text of the article as untagged text
 	 * @param url
 	 *            the {@link URL} of the full article
 	 * @param source
 	 *            the {@link Source} that the article is from
-	 * @param isTagged
-	 *            whether the {@link Article} have tagged text
 	 */
-	public Article(String title, String text, URL url, Source source, boolean isTagged) {
-		this.title = title;
-		this.text = text;
+	public Article(String title, String text, URL url, Source source) {
+		this.titles = new String[]{title, null};
+		this.texts = new String[]{text, null};
 		this.url = url;
 		this.source = source;
-		this.isTagged = isTagged;
+		this.title = null;
+		this.text = null;
 	}
 	
 	/**
-	 * Initializes a {@link Article}
-	 * 
-	 * @param title
-	 *            the title of the article, which can be PoS tagged
-	 * @param text
-	 *            the text of the article, which can be PoS tagged
-	 * @param url
-	 *            the {@link URL} of the full article
-	 * @param source
-	 *            the {@link Source} that the article is from
-	 * @param isTagged
-	 *            whether the {@link Article} have tagged text
-	 * @param alternate
-	 *            an {@link Article} that has the same data as this one but whose text is either tagged if this one is not
-	 *            tagged or not tagged if this one is tagged
+	 * Immediately performs all of the lazily evaluations that remain for the {@link Article Article's} fields. Call this
+	 * prior to serialization.
 	 */
-	public Article(String title, String text, URL url, Source source, boolean isTagged, Article alternate) {
-		this(title, text, url, source, isTagged);
-		if (alternate.isTagged != this.isTagged)
-			this.alternate = alternate;
+	public final void process() {
+		getAnnotatedTitle();
+		getAnnotatedText();
+		getTaggedTitle();
+		getTaggedText();
 	}
 	
 	/**
-	 * @return the title of the {@link Article}
+	 * @return the untagged title of the {@link Article}
 	 */
-	public final String getTitle() {
+	public final String getUntaggedTitle() {
+		return titles[0];
+	}
+	
+	/**
+	 * @return the untagged text of the {@link Article}
+	 */
+	public final String getUntaggedText() {
+		return texts[0];
+	}
+	
+	/**
+	 * @return the PoS tagged title of the {@link Article}
+	 */
+	public final String getTaggedTitle() {
+		if (titles[1] == null)
+			titles[1] = POSTagger.tag(getAnnotatedTitle());
+		return titles[1];
+	}
+	
+	/**
+	 * @return the PoS tagged text of the {@link Article}
+	 */
+	public final String getTaggedText() {
+		if (texts[1] == null)
+			texts[1] = POSTagger.tagParagraphs(getAnnotatedText());
+		return texts[1];
+	}
+	
+	/**
+	 * @return the {@link Annotation Annotated} title of the {@link Article}
+	 */
+	public final Annotation getAnnotatedTitle() {
+		if (title == null)
+			title = POSTagger.annotate(getUntaggedTitle());
 		return title;
 	}
 	
 	/**
-	 * @return the text of the {@link Article}, which can be PoS tagged
+	 * @return the {@link Annotation Annotated} text of the {@link Article}
 	 */
-	public final String getText() {
+	public final Annotation[] getAnnotatedText() {
+		if (text == null)
+			text = POSTagger.annotateParagraphs(getUntaggedText());
 		return text;
 	}
 	
@@ -110,42 +133,11 @@ public class Article {
 		return source;
 	}
 	
-	/**
-	 * @return {@code true} iff the {@link Article Article's} text is POS-tagged
-	 */
-	public boolean isTagged() {
-		return isTagged;
-	}
-	
-	/**
-	 * @return an {@link Article} with the untagged version of the text. If the {@link Article} already has untagged text, it
-	 *         returns itself.
-	 */
-	public Article getUntagged() {
-		if (!isTagged)
-			return this;
-		if (alternate != null)
-			return alternate;
-		return alternate = new Article(POSTagger.untag(getTitle()), POSTagger.untag(getText()), getURL(), getSource(), false);
-	}
-	
-	/**
-	 * @return an {@link Article} with the tagged version of the text. If the {@link Article} already has tagged text, it
-	 *         returns itself.
-	 */
-	public Article getTagged() {
-		if (isTagged)
-			return this;
-		if (alternate != null)
-			return alternate;
-		return alternate = new Article(POSTagger.tag(getTitle()), POSTagger.tag(getText()), getURL(), getSource(), true);
-	}
-	
 	@Override
 	public String toString() {
-		String out = "Title: " + getTitle();
+		String out = "Title: " + getUntaggedTitle();
 		out += "\nURL: " + getURL();
-		out += "\n" + getText();
+		out += "\n" + getUntaggedText();
 		return out;
 	}
 }

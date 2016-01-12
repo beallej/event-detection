@@ -10,6 +10,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import eventdetection.common.Article;
+
 /**
  * A system for loading and managing {@link Feed Feeds} and {@link Scraper Scrapers}.
  * 
@@ -151,8 +153,8 @@ public class FeedManager extends Downloader {
 	}
 	
 	@Override
-	public List<RawArticle> get() {
-		List<RawArticle> out = new ArrayList<>();
+	public List<Article> get() {
+		List<Article> out = new ArrayList<>();
 		for (Downloader downloader : feeds.values())
 			out.addAll(downloader.get());
 		return out;

@@ -16,6 +16,7 @@ import toberumono.json.JSONData;
 import toberumono.json.JSONObject;
 import toberumono.json.JSONSystem;
 
+import eventdetection.common.Article;
 import eventdetection.common.ArticleManager;
 
 /**
@@ -58,7 +59,7 @@ public class DownloaderController {
 			
 			dc.addDownloader(fm);
 			ArticleManager am = new ArticleManager(dc.getConnection(), "articles", paths, articles);
-					
+			
 			Path active = Paths.get(System.getProperty("user.home"), ".event-detection-active");
 			if (!Files.exists(active)) {
 				Files.createDirectories(active.getParent());
@@ -68,9 +69,9 @@ public class DownloaderController {
 			try (FileChannel chan = FileChannel.open(active, StandardOpenOption.CREATE, StandardOpenOption.WRITE); FileLock lock = chan.lock();) {
 				Calendar oldest = computeOldest((JSONObject) articles.get("deletion-delay"));
 				am.removeArticlesBefore(oldest);
-				for (RawArticle ra : dc.get()) {
-					am.store(am.process(ra));
-					System.out.println("Processed: " + ra.getTitle());
+				for (Article article : dc.get()) {
+					am.store(article);
+					System.out.println("Processed: " + article.getUntaggedTitle());
 				}
 			}
 		}

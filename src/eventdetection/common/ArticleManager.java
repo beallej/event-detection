@@ -20,8 +20,7 @@ import toberumono.json.JSONArray;
 import toberumono.json.JSONBoolean;
 import toberumono.json.JSONObject;
 
-import eventdetection.downloader.POSTagger;
-import eventdetection.downloader.RawArticle;
+import eventdetection.downloader.DownloaderController;
 
 /**
  * A mechanism for managing articles.
@@ -108,7 +107,8 @@ public class ArticleManager {
 				for (Path store : storage) {
 					if (!Files.exists(store))
 						continue;
-					Path path = store.resolve(rs.getString("filename"));
+					String filename = rs.getString("filename");
+					Path path = store.resolve(filename);
 					if (!Files.exists(path))
 						continue;
 					BasicFileAttributes attrs = Files.readAttributes(path, BasicFileAttributes.class);
@@ -145,7 +145,7 @@ public class ArticleManager {
 			Files.createDirectories(storagePath);
 		String statement = "insert into " + table + " (title, url, source) values (?, ?, ?)";
 		try (PreparedStatement stmt = connection.prepareStatement(statement)) {
-			String untaggedTitle = article.getUntagged().getTitle();
+			String untaggedTitle = article.getUntaggedTitle();
 			stmt.setString(1, untaggedTitle);
 			stmt.setString(2, article.getURL().toString());
 			stmt.setInt(3, article.getSource().getID());
@@ -163,8 +163,8 @@ public class ArticleManager {
 				}
 				Path filePath = storagePath.resolve(filename);
 				try {
-					StringBuilder fileText = new StringBuilder(article.getTitle().length() + article.getText().length() + 14); //14 is the length of the section dividers
-					fileText.append("TITLE:\n").append(article.getTitle()).append("\nTEXT:\n").append(article.getText());
+					StringBuilder fileText = new StringBuilder(article.getUntaggedTitle().length() + article.getUntaggedText().length() + 14); //14 is the length of the section dividers
+					fileText.append("TITLE:\n").append(article.getUntaggedTitle()).append("\nTEXT:\n").append(article.getUntaggedText());
 					Files.write(filePath, fileText.toString().getBytes());
 				}
 				catch (IOException e) {
@@ -209,19 +209,8 @@ public class ArticleManager {
 	}
 	
 	/**
-	 * Converts a {@link RawArticle} into an {@link Article}. This applies pos tagging to both the title and text.
 	 * 
-	 * @param ra
-	 *            the {@link RawArticle} to process
-	 * @return the processed {@link RawArticle} as an {@link Article}
 	 */
-	public Article process(RawArticle ra) {
-		String title = ra.getTitle(), text = ra.getText();
-		if (posTaggingEnabled) {
-			title = POSTagger.tag(title).replaceAll("(\\w+?)_(\\w+)\\s+(\\w*?'\\w*?)_(\\w+)", "$1$3_$2");
-			text = POSTagger.tag(text).replaceAll("(\\w+?)_(\\w+)\\s+(\\w*?'\\w*?)_(\\w+)", "$1$3_$2");
-		}
-		return new Article(title, text, ra.getURL(), ra.getSource(), isPOSTaggingEnabled());
 	}
 	
 	/**

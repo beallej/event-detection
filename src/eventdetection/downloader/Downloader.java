@@ -24,6 +24,7 @@ import toberumono.json.JSONData;
 import toberumono.json.JSONObject;
 import toberumono.utils.functions.IOExceptedFunction;
 
+import eventdetection.common.Article;
 import eventdetection.common.IDAble;
 import eventdetection.common.SQLExceptedFunction;
 import eventdetection.common.Source;
@@ -33,7 +34,7 @@ import eventdetection.common.Source;
  * 
  * @author Joshua Lipstone
  */
-public abstract class Downloader implements Supplier<List<RawArticle>>, Closeable {
+public abstract class Downloader implements Supplier<List<Article>>, Closeable {
 	/**
 	 * The available news {@link Source Sources}
 	 */
