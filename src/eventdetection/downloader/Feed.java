@@ -11,8 +11,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import com.rometools.rome.feed.synd.SyndEntry;
@@ -127,7 +125,6 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 		try (PreparedStatement stmt = Downloader.getConnection().prepareStatement("select * from articles where articles.url = ?")) {
 			try {
 				SyndFeed feed = input.build(new XmlReader(url));
-				ExecutorService pool = Executors.newWorkStealingPool();
 				List<Future<Article>> outs = new ArrayList<>();
 				for (SyndEntry e : feed.getEntries()) {
 					stmt.setString(1, e.getLink());
@@ -138,7 +135,7 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 					catch (SQLException ex) {
 						continue;
 					}
-					outs.add(pool.submit(() -> {
+					outs.add(DownloaderController.pool.submit(() -> {
 						String text = s.scrape(new URL(e.getLink()));
 						if (text == null)
 							return null;

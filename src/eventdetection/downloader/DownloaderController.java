@@ -9,6 +9,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.sql.SQLException;
 import java.util.Calendar;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import toberumono.json.JSONArray;
 import toberumono.json.JSONBoolean;
@@ -25,6 +27,10 @@ import eventdetection.common.ArticleManager;
  * @author Joshua Lipstone
  */
 public class DownloaderController {
+	/**
+	 * A work stealing pool for use by all classes in this program.
+	 */
+	public static final ExecutorService pool = Executors.newWorkStealingPool();
 	
 	/**
 	 * The main method.
