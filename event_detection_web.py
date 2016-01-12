@@ -2,8 +2,7 @@ from flask import Flask, render_template, request, redirect
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import sys
-import QueryProcessorDaemon, ArticleProcessorDaemon
-import threading
+import subprocess, subprocess_helpers
 
 app = Flask(__name__)
 
@@ -18,9 +17,8 @@ def connect_database():
         sys.exit()
     return conn, cursor
 
-def daemonThread():
-    QueryProcessorDaemon.QueryProcessorDaemon().run()
-    ArticleProcessorDaemon.ArticleProcessorDaemon().run()
+def launchPreprocessors():
+    process = subprocess.Popen(subprocess_helpers.python_path + " QueryProcessorDaemon.py && " + subprocess_helpers.python_path + " ArticleProcessorDaemon.py", executable=subprocess_helpers.executable, shell=True, universal_newlines=True)
 
 @app.route("/", methods=["GET"])
 def queries():
@@ -64,9 +62,7 @@ def new_query():
                         VALUES (%s, %s, %s, %s, %s, %s);", (subject, verb, direct_obj, indirect_obj, loc, user_id))
         con.commit()
 
-        thread = threading.Thread(target=daemonThread)
-        thread.daemon = True
-        thread.start()
+        launchPreprocessors()
 
     except psycopg2.IntegrityError:
         pass
