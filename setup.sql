@@ -61,3 +61,16 @@ CREATE TABLE IF NOT EXISTS query_articles (
 	processed boolean default false,
 	primary key (query, article)
 );
+
+CREATE TABLE IF NOT EXISTS validation_algorithms (
+	id serial primary key unique not null,
+	name varchar(255) not null
+);
+
+CREATE TABLE IF NOT EXISTS validation_results (
+	query integer references queries(id) ON DELETE CASCADE,
+	algorithm integer references validation_algorithms(id) ON DELETE CASCADE,
+	accuracy real default 0.0,
+	result boolean default false,
+	primary key (query, algorithm)
+);
