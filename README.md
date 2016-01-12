@@ -18,4 +18,5 @@
 2. To view the application, navigate to [localhost:5000](http://localhost:5000/)
 
 #### After Pulling New Code
-1. Run Ant: `ant -Dprefix='./'`
+1. Update Brew: `brew update && brew upgrade`
+2. Run Ant: `ant -Dprefix='./'`

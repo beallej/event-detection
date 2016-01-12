@@ -9,7 +9,6 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.sql.SQLException;
 import java.util.Calendar;
-import java.util.LinkedHashSet;
 
 import toberumono.json.JSONArray;
 import toberumono.json.JSONBoolean;
@@ -37,7 +36,11 @@ public class DownloaderController {
 	 *             if an I/O error occurs
 	 */
 	public static void main(String[] args) throws IOException, SQLException {
-		JSONObject config = (JSONObject) JSONSystem.loadJSON(Paths.get(args.length > 0 ? args[0] : "configuration.json"));
+		Path configPath = Paths.get(args.length > 0 ? args[0] : "configuration.json");
+		JSONObject config = (JSONObject) JSONSystem.loadJSON(configPath);
+		updateJSONConfiguration(config);
+		if (config.isModified())
+			JSONSystem.writeJSON(config, configPath);
 		Downloader.configureConnection((JSONObject) config.get("database"));
 		try (DownloaderCollection dc = new DownloaderCollection()) {
 			JSONObject paths = (JSONObject) config.get("paths");
@@ -54,9 +57,7 @@ public class DownloaderController {
 			fm.addFeed(Downloader.getConnection(), "feeds");
 			
 			dc.addDownloader(fm);
-			ArticleManager am = new ArticleManager(dc.getConnection(), "articles",
-					((JSONArray) paths.get("articles")).stream().collect(LinkedHashSet::new, (s, p) -> s.add(Paths.get(p.toString())), LinkedHashSet::addAll),
-					((JSONBoolean) articles.get("enable-pos-tagging")).value());
+			ArticleManager am = new ArticleManager(dc.getConnection(), "articles", paths, articles);
 					
 			Path active = Paths.get(System.getProperty("user.home"), ".event-detection-active");
 			if (!Files.exists(active)) {
@@ -85,5 +86,11 @@ public class DownloaderController {
 		oldest.add(Calendar.MINUTE, -((Number) deletionDelay.get("minutes").value()).intValue());
 		oldest.add(Calendar.SECOND, -((Number) deletionDelay.get("seconds").value()).intValue());
 		return oldest;
+	}
+	
+	private static void updateJSONConfiguration(JSONObject config) {
+		JSONObject articles = (JSONObject) config.get("articles");
+		JSONSystem.transferField("enable-pos-tagging", new JSONBoolean(true), articles, (JSONObject) articles.get("pos-tagging"));
+		JSONSystem.transferField("enable-tag-simplification", new JSONBoolean(false), (JSONObject) articles.get("pos-tagging"));
 	}
 }
