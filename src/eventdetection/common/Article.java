@@ -1,5 +1,6 @@
 package eventdetection.common;
 
+import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.net.URL;
 
@@ -13,6 +14,8 @@ import eventdetection.downloader.POSTagger;
  * @author Joshua Lipstone
  */
 public class Article implements Serializable {
+	private static final long serialVersionUID = 1L;
+	
 	private final String[] titles, texts;
 	private Annotation title;
 	private Annotation[] text;

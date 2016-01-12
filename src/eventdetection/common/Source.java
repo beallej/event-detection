@@ -1,6 +1,7 @@
 package eventdetection.common;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.file.Path;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -15,7 +16,9 @@ import eventdetection.downloader.Scraper;
  * 
  * @author Joshua Lipstone
  */
-public class Source implements IDAble<Integer> {
+public class Source implements IDAble<Integer>, Serializable {
+	private static final long serialVersionUID = 1L;
+	
 	private final int id;
 	private final String name;
 	private final double reliability;

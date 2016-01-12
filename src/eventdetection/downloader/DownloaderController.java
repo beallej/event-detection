@@ -9,9 +9,13 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import toberumono.json.JSONArray;
 import toberumono.json.JSONBoolean;
@@ -77,9 +81,16 @@ public class DownloaderController {
 			try (FileChannel chan = FileChannel.open(active, StandardOpenOption.CREATE, StandardOpenOption.WRITE); FileLock lock = chan.lock();) {
 				Calendar oldest = computeOldest((JSONObject) articles.get("deletion-delay"));
 				am.removeArticlesBefore(oldest);
-				for (Article article : dc.get()) {
-					am.store(article);
-					System.out.println("Processed: " + article.getUntaggedTitle());
+				List<Future<Article>> processed = new ArrayList<>();
+				for (Article article : dc.get())
+					processed.add(am.store(article));
+				for (Future<Article> done : processed) {
+					try {
+						System.out.println("Finished Processing: " + done.get().getUntaggedTitle());
+					}
+					catch (InterruptedException | ExecutionException e) {
+						e.printStackTrace();
+					}
 				}
 			}
 		}

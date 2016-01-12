@@ -1,6 +1,10 @@
 package eventdetection.common;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -15,6 +19,8 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import toberumono.json.JSONArray;
 import toberumono.json.JSONBoolean;
@@ -115,6 +121,9 @@ public class ArticleManager {
 					if (attrs.creationTime().toInstant().compareTo(oldest) >= 0)
 						continue;
 					Files.delete(path);
+					Path serialized = store.resolve("serialized").resolve(toSerializedName(filename));
+					if (Files.exists(serialized))
+						Files.delete(serialized);
 					deleted = true;
 				}
 				if (deleted) {
@@ -139,10 +148,10 @@ public class ArticleManager {
 	 *             if the storage directory does not exist and cannot be created or the article file cannot be written to
 	 *             disk
 	 */
-	public Path store(Article article) throws SQLException, IOException {
-		Path storagePath = storage.iterator().next();
-		if (!Files.exists(storagePath))
-			Files.createDirectories(storagePath);
+	public Future<Article> store(Article article) throws SQLException, IOException {
+		Path storagePath = storage.iterator().next(), serializedPath = storagePath.resolve("serialized");
+		if (!Files.exists(serializedPath))
+			Files.createDirectories(serializedPath);
 		String statement = "insert into " + table + " (title, url, source) values (?, ?, ?)";
 		try (PreparedStatement stmt = connection.prepareStatement(statement)) {
 			String untaggedTitle = article.getUntaggedTitle();
@@ -161,19 +170,48 @@ public class ArticleManager {
 					stm.setLong(2, rs.getLong("id"));
 					stm.executeUpdate();
 				}
-				Path filePath = storagePath.resolve(filename);
-				try {
-					StringBuilder fileText = new StringBuilder(article.getUntaggedTitle().length() + article.getUntaggedText().length() + 14); //14 is the length of the section dividers
-					fileText.append("TITLE:\n").append(article.getUntaggedTitle()).append("\nTEXT:\n").append(article.getUntaggedText());
-					Files.write(filePath, fileText.toString().getBytes());
-				}
-				catch (IOException e) {
-					try (Statement stm = connection.createStatement()) {
-						stm.executeUpdate("delete from " + table + " where id = " + rs.getLong("id"));
+				Path filePath = storagePath.resolve(filename), serialPath = serializedPath.resolve(toSerializedName(filename));
+				return DownloaderController.pool.submit(() -> {
+					System.out.println("Started Processing: " + article.getUntaggedTitle());
+					try {
+						StringBuilder fileText = new StringBuilder(article.getUntaggedTitle().length() + article.getUntaggedText().length() + 14); //14 is the length of the section dividers
+						fileText.append("TITLE:\n").append(article.getUntaggedTitle()).append("\nTEXT:\n").append(article.getUntaggedText());
+						Files.write(filePath, fileText.toString().getBytes());
+						Future<Boolean> test = DownloaderController.pool.submit(() -> {
+							try (ObjectOutputStream serialOut = new ObjectOutputStream(new FileOutputStream(serialPath.toFile()))) {
+								article.process();
+								serialOut.writeObject(article);
+								return true;
+							}
+						});
+						try {
+							if (!test.get())
+								throw new IOException("Serialization failed");
+						}
+						catch (InterruptedException e) {
+							try (ObjectInputStream serialIn = new ObjectInputStream(new FileInputStream(serialPath.toFile()))) {
+								serialIn.readObject(); //Test to be sure that the serialization worked
+							}
+							catch (Throwable t) {
+								throw new IOException(t); //If anything goes wrong with reading the Article
+							}
+						}
+						catch (ExecutionException e) {
+							throw new IOException(e.getCause());
+						}
 					}
-					throw e;
-				}
-				return filePath;
+					catch (IOException e) {
+						try (Statement stm = connection.createStatement()) {
+							stm.executeUpdate("delete from " + table + " where id = " + rs.getLong("id"));
+						}
+						if (Files.exists(filePath))
+							Files.delete(filePath);
+						if (Files.exists(serialPath))
+							Files.delete(serialPath);
+						throw e;
+					}
+					return article;
+				});
 			}
 		}
 	}
@@ -209,8 +247,14 @@ public class ArticleManager {
 	}
 	
 	/**
+	 * Converts an {@link Article Article's} filename from the .txt ending to a name ending in .data
 	 * 
+	 * @param filename
+	 *            the filename to convert
+	 * @return the converted filename
 	 */
+	public String toSerializedName(String filename) {
+		return filename.substring(filename.length() - 3) + ".data";
 	}
 	
 	/**
