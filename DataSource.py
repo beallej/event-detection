@@ -91,17 +91,17 @@ class DataSource:
     def get_user_id(self, user_name, phone, email):
         self.cursor.execute("SELECT id FROM users WHERE user_name=%s AND phone=%s AND email=%s", (user_name, phone, email))
         return self.cursor.fetchone()
-    
+
     def get_query_elements(self, query_id):
         self.cursor.execute("SELECT subject, verb, direct_obj, indirect_obj, loc FROM queries WHERE id=%s", (query_id, ))
         elements = self.cursor.fetchone()
         elements = [element for element in elements if element is not None or element is not ""]
         return elements
-    
+
     def get_article_url(self, article_id):
         self.cursor.execute("SELECT url FROM articles WHERE id=%s", (article_id, ))
         return str(self.cursor.fetchone()[0])
-    
+
     def get_article_title(self, article_id):
         self.cursor.execute("SELECT title FROM articles WHERE id=%s", (article_id, ))
         return str(self.cursor.fetchone()[0])
@@ -140,6 +140,15 @@ class DataSource:
     def add_keywords_to_article(self, id, keyword_string):
         self.cursor.execute("UPDATE articles SET keywords = %s WHERE id = %s", (keyword_string, id))
 
+    def get_article_titles(self):
+        """Gets the article titles for all articles in the database"""
+        self.cursor.execute("SELECT title FROM articles")
+        return [article[0] for article in self.cursor.fetchall()]
+
+    def get_article_filenames(self):
+        """Gets the filenames for all articles in the database"""
+        self.cursor.execute("SELECT filename FROM articles")
+        return [article[0] for article in self.cursor.fetchall()]
 
 #def main():
 #    pass
