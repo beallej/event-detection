@@ -255,7 +255,7 @@ public class ArticleManager {
 	 * @return the converted filename
 	 */
 	public String toSerializedName(String filename) {
-		return filename.substring(filename.length() - 3) + ".data";
+		return filename.substring(0, filename.length() - 3) + ".data";
 	}
 	
 	/**
