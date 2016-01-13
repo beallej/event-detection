@@ -26,6 +26,7 @@ import toberumono.json.JSONArray;
 import toberumono.json.JSONBoolean;
 import toberumono.json.JSONObject;
 
+import eventdetection.downloader.Downloader;
 import eventdetection.downloader.DownloaderController;
 
 /**
@@ -201,7 +202,7 @@ public class ArticleManager {
 						}
 					}
 					catch (IOException e) {
-						try (Statement stm = connection.createStatement()) {
+						try (Statement stm = Downloader.getConnection().createStatement()) {
 							stm.executeUpdate("delete from " + table + " where id = " + rs.getLong("id"));
 						}
 						if (Files.exists(filePath))
