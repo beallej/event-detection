@@ -13,7 +13,7 @@ import eventdetection.downloader.POSTagger;
  * 
  * @author Joshua Lipstone
  */
-public class Article implements Serializable {
+public class Article implements IDAble<Integer>, Serializable {
 	private static final long serialVersionUID = 1L;
 	
 	private final String[] titles, texts;
@@ -21,6 +21,7 @@ public class Article implements Serializable {
 	private Annotation[] text;
 	private final URL url;
 	private final Source source;
+	private final Integer id;
 	
 	/**
 	 * Initializes an {@link Article}
@@ -53,12 +54,21 @@ public class Article implements Serializable {
 	 *            the {@link Source} that the article is from
 	 */
 	public Article(String title, String text, URL url, Source source) {
-		this.titles = new String[]{title, null};
-		this.texts = new String[]{text, null};
+		this(new String[]{title, null}, new String[]{text, null}, null, null, url, source, null);
+	}
+	
+	private Article(String[] titles, String[] texts, Annotation title, Annotation[] text, URL url, Source source, Integer id) {
+		this.titles = titles;
+		this.texts = texts;
+		this.title = title;
+		this.text = text;
 		this.url = url;
 		this.source = source;
-		this.title = null;
-		this.text = null;
+		this.id = id;
+	}
+	
+	public Article copyWithID(int id) {
+		return new Article(titles, texts, title, text, url, source, id);
 	}
 	
 	/**
@@ -136,6 +146,14 @@ public class Article implements Serializable {
 		return source;
 	}
 	
+	/**
+	 * @return the ID of the {@link Article}
+	 */
+	@Override
+	public Integer getID() {
+		return id;
+	}
+
 	@Override
 	public String toString() {
 		String out = "Title: " + getUntaggedTitle();
