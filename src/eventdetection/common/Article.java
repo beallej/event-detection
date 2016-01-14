@@ -67,6 +67,13 @@ public class Article implements IDAble<Integer>, Serializable {
 		this.id = id;
 	}
 	
+	/**
+	 * Generates a shallow clone of the {@link Article} with the given {@code id}.
+	 * 
+	 * @param id
+	 *            the new ID of the {@link Article}
+	 * @return a shallow clone of the {@link Article} with the given {@code id}
+	 */
 	public Article copyWithID(int id) {
 		return new Article(titles, texts, title, text, url, source, id);
 	}
@@ -153,7 +160,7 @@ public class Article implements IDAble<Integer>, Serializable {
 	public Integer getID() {
 		return id;
 	}
-
+	
 	@Override
 	public String toString() {
 		String out = "Title: " + getUntaggedTitle();
