@@ -70,7 +70,18 @@ CREATE TABLE IF NOT EXISTS validation_algorithms (
 CREATE TABLE IF NOT EXISTS validation_results (
 	query integer references queries(id) ON DELETE CASCADE,
 	algorithm integer references validation_algorithms(id) ON DELETE CASCADE,
-	accuracy real default 0.0,
-	result boolean default false,
+	validates real default 0.0 not null CHECK (validates >= 0.0 and validates <= 1.0),
+	invalidates real default null CHECK (invalidates is null or (invalidates >= 0.0 and invalidates <= 1.0)),
 	primary key (query, algorithm)
 );
+
+CREATE OR REPLACE FUNCTION generate_invalidates() RETURNS trigger as $generate_invalidates$
+	BEGIN
+		IF NEW.invalidates is null THEN
+			NEW.invalidates := 1 - NEW.validates;
+		END IF;
+		RETURN NEW;
+	END;
+$generate_invalidates$ LANGUAGE plpgsql;
+CREATE TRIGGER generate_invalidates BEFORE INSERT OR UPDATE on validation_results
+	FOR EACH ROW EXECUTE PROCEDURE generate_invalidates();
