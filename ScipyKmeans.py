@@ -11,6 +11,11 @@ article_titles = m.get_article_titles('article_titles.txt')
 matrix = m.get_matrix('article_titles.txt')
 whitened_matrix = whiten(matrix)
 
+keywords = m.get_keywords()
+kwrdmatrix = m.get_keyword_matrix()
+whitened_kwrd_matrix = whiten(kwrdmatrix)
+whitened_matrix = whitened_kwrd_matrix
+
 # Compute k
 # Two methods taken from https://en.wikipedia.org/wiki/Determining_the_number_of_clusters_in_a_data_set
 
@@ -34,8 +39,3 @@ cluster_ids, distortion = vq(whitened_matrix, codebook)
 # Print article titles grouped by cluster
 for cluster_id, title in sorted(zip(cluster_ids, article_titles)):
 	print(cluster_id, title)
-
-print(m.get_keywords())
-
-#print("Num entries in matrix: ", m.get_num_entries())
-#print("matrix size:", whitened_matrix.shape)

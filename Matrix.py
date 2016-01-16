@@ -12,7 +12,7 @@ class Matrix:
 	def __init__(self):
 		num_entries = 0
 		num_datapoints = 0
-		keyword_string = ""
+		article_keywords = []
 
 	def get_num_entries(self):
 		'''Gets the number of non-zero entries in the matrix.'''
@@ -23,8 +23,8 @@ class Matrix:
 		   (in our case, the number of articles).'''
 		return self.num_datapoints
 
-	def get_keyword_string(self):
-		return keyword_string
+	def get_article_keywords(self):
+		return self.article_keywords
 
 	def get_article_titles(self, filename):
 		titles = []
@@ -38,19 +38,18 @@ class Matrix:
 		return titles
 
 	def get_keywords(self):
-		#keyword_set = set()
 		ds = DataSource()
 		keywords = ds.get_all_article_keywords()
-		keyword_string = ""
+		article_keywords = []
 		for row in keywords:
+			keyword_string = ""
 			for keyword_with_pos_tag in row[0]:
 				keyword = keyword_with_pos_tag.split("_")[0]
-				#print(keyword, " ", end="")
 				keyword_string += keyword
 				keyword_string += " "
-			#print()
-			keyword_string += "\n"
-		return keyword_string
+			article_keywords.append(keyword_string)
+		self.article_keywords = article_keywords
+		return article_keywords
 
 	def get_vocabulary_set(self, titles):
 		vocabulary = set()
@@ -91,9 +90,17 @@ class Matrix:
 		matrix = self.construct_matrix(vocabulary_list, titles, title_vocabs)
 		return matrix
 
-def main():
-	m = Matrix()
-	print(m.get_matrix('article_titles.txt'))
+	def get_keyword_matrix(self):
+		article_keywords = self.get_article_keywords()
+		vocabulary_set = self.get_vocabulary_set(article_keywords)
+		vocabulary_list = list(vocabulary_set)
+		article_vocabs = self.get_title_vocabs(article_keywords)
+		matrix = self.construct_matrix(vocabulary_list, article_keywords, article_vocabs)
+		return matrix
+
+# def main():
+# 	m = Matrix()
+# 	print(m.get_matrix('article_titles.txt'))
 
 if __name__ == '__main__':
 	main()
