@@ -2,10 +2,12 @@
 # http://glowingpython.blogspot.com/2012/04/k-means-clustering-with-scipy.html
 
 from scipy.cluster.vq import kmeans, vq, whiten
-from Matrix import get_matrix, get_article_titles
+from Matrix import * #get_matrix, get_article_titles
 
-article_titles = get_article_titles('article_titles.txt')
-matrix = get_matrix('article_titles.txt')
+m = Matrix()
+
+article_titles = m.get_article_titles('article_titles.txt')
+matrix = m.get_matrix('article_titles.txt')
 whitened_matrix = whiten(matrix)
 
 # Compute k-means with k clusters
