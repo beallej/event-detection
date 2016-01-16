@@ -1,5 +1,7 @@
 from collections import Counter
 from numpy import zeros
+from DataSource import get_all_article_keywords
+import json
 
 # Uncomment following 2 lines to print out full arrays
 # import numpy
@@ -27,6 +29,11 @@ class Matrix:
 			num_datapoints += 1
 		self.num_datapoints = num_datapoints
 		return titles
+
+	def get_keywords(self):
+		ds = DataSource()
+		keywords = ds.get_all_article_keywords()
+		return keywords
 
 	def get_vocabulary_set(self, titles):
 		vocabulary = set()
