@@ -1,6 +1,6 @@
 from collections import Counter
 from numpy import zeros
-from DataSource import get_all_article_keywords
+from DataSource import *
 import json
 
 # Uncomment following 2 lines to print out full arrays
@@ -12,12 +12,19 @@ class Matrix:
 	def __init__(self):
 		num_entries = 0
 		num_datapoints = 0
+		keyword_string = ""
 
 	def get_num_entries(self):
+		'''Gets the number of non-zero entries in the matrix.'''
 		return self.num_entries
 
 	def get_num_datapoints(self):
+		'''Gets the number of datapoints/rows in the matrix 
+		   (in our case, the number of articles).'''
 		return self.num_datapoints
+
+	def get_keyword_string(self):
+		return keyword_string
 
 	def get_article_titles(self, filename):
 		titles = []
@@ -31,9 +38,19 @@ class Matrix:
 		return titles
 
 	def get_keywords(self):
+		#keyword_set = set()
 		ds = DataSource()
 		keywords = ds.get_all_article_keywords()
-		return keywords
+		keyword_string = ""
+		for row in keywords:
+			for keyword_with_pos_tag in row[0]:
+				keyword = keyword_with_pos_tag.split("_")[0]
+				#print(keyword, " ", end="")
+				keyword_string += keyword
+				keyword_string += " "
+			#print()
+			keyword_string += "\n"
+		return keyword_string
 
 	def get_vocabulary_set(self, titles):
 		vocabulary = set()
