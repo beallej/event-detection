@@ -7,18 +7,18 @@ from math import sqrt
 
 m = Matrix()
 
-article_titles = m.get_article_titles('article_titles.txt')
-matrix = m.get_matrix('article_titles.txt')
-whitened_matrix = whiten(matrix)
+### Old version - cluster by article titles
+# article_titles = m.get_article_titles('article_titles.txt')
+# matrix = m.get_matrix('article_titles.txt')
+# whitened_matrix = whiten(matrix)
 
+# New version - cluster by article keywords
 keywords = m.get_keywords()
-kwrdmatrix = m.get_keyword_matrix()
-whitened_kwrd_matrix = whiten(kwrdmatrix)
-whitened_matrix = whitened_kwrd_matrix
+matrix = m.get_keyword_matrix()
+whitened_matrix = whiten(matrix)
 
 # Compute k
 # Two methods taken from https://en.wikipedia.org/wiki/Determining_the_number_of_clusters_in_a_data_set
-
 
 # Method 1: Using (m*n)/t, matrix dimensions over number of entries
 shape = whitened_matrix.shape
