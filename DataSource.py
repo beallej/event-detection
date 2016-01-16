@@ -46,8 +46,8 @@ class DataSource:
         return keywords
 
     def get_all_article_keywords(self):
-        self.cursor.execute("SELECT keywords FROM articles;")
-        return self.cursor.fetchall()
+        self.cursor.execute("SELECT keywords FROM articles WHERE keywords IS NOT null;")
+        return self.cursor.fetchall()[0]
 
     def get_articles(self):
         self.cursor.execute("SELECT id FROM articles")
