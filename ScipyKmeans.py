@@ -35,5 +35,7 @@ cluster_ids, distortion = vq(whitened_matrix, codebook)
 for cluster_id, title in sorted(zip(cluster_ids, article_titles)):
 	print(cluster_id, title)
 
+print(m.get_keywords())
+
 #print("Num entries in matrix: ", m.get_num_entries())
 #print("matrix size:", whitened_matrix.shape)
