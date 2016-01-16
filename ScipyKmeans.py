@@ -2,7 +2,7 @@
 # http://glowingpython.blogspot.com/2012/04/k-means-clustering-with-scipy.html
 
 from scipy.cluster.vq import kmeans, vq, whiten
-from Matrix import * #get_matrix, get_article_titles
+from Matrix import *
 
 m = Matrix()
 
@@ -20,3 +20,6 @@ cluster_ids, distortion = vq(whitened_matrix, codebook)
 # Print article titles grouped by cluster
 for cluster_id, title in sorted(zip(cluster_ids, article_titles)):
 	print(cluster_id, title)
+
+#print("Num entries in matrix: ", m.get_num_entries())
+#print("matrix size:", whitened_matrix.shape)

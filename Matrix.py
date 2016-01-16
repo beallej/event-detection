@@ -7,6 +7,12 @@ from numpy import zeros
 
 class Matrix:
 
+	def __init__(self):
+		num_entries = 0
+
+	def get_num_entries(self):
+		return self.num_entries
+
 	def get_article_titles(self, filename):
 		titles = []
 		f = open(filename)
@@ -37,10 +43,13 @@ class Matrix:
 		num_words = len(vocabulary_list)
 		num_titles = len(titles)
 		matrix = zeros((num_titles, num_words))
+		num_entries_count = 0
 		for w_idx, word in enumerate(vocabulary_list):
 			for t_idx, title in enumerate(titles):
 				if title_vocabs[title][word] > 0:
 					matrix[t_idx,w_idx] = title_vocabs[title][word]
+					num_entries_count += 1
+		self.num_entries = num_entries_count
 		return matrix
 
 	def get_matrix(self, filename):
