@@ -20,10 +20,11 @@ class ValidatorDaemon:
         for pair in unprocessed_pairs:
             query_id = pair[0]
             article_id = pair[1]
-            matching_prob = KeywordValidator().validate(query_id, article_id)
-            ds.post_validator_update(matching_prob, query_id, article_id)
-            if matching_prob > 0.2:
-                notifier.on_validation(query_id, article_id)
+            if ds.article_processed(article_id):
+                matching_prob = KeywordValidator().validate(query_id, article_id)
+                ds.post_validator_update(matching_prob, query_id, article_id)
+                if matching_prob > 0.2:
+                    notifier.on_validation(query_id, article_id)
 
 if __name__ == "__main__":
     ValidatorDaemon().run()
