@@ -81,7 +81,7 @@
 			<patternset refid="Build Excludes" />
 			<classpath if:true="${use.libs}" refid="build.classpath" />
 		</javac>
-		<javac srcdir="${src}/../scrapers" destdir="${src}/../scrapers" includeAntRuntime="false" debug="true" debuglevel="lines,vars,source">
+		<javac srcdir="${src}/../Scrapers" destdir="${src}/../Scrapers" includeAntRuntime="false" debug="true" debuglevel="lines,vars,source">
 			<include name="**/*.java" />
 			<classpath>
 				<path if:true="${use.libs}" refid="build.classpath" />
