@@ -5,7 +5,7 @@ if [ "$(which brew)" != "" ] && [ "$(which brew)" != "brew not found" ]; then
 	pip3 install 'Flask'
 	brew tap 'toberumono/tap'
 	brew install 'toberumono/tap/utils' 'toberumono/tap/structures' 'toberumono/tap/lexer' 'toberumono/tap/json-library' 'wget'
-	brew install 'postgresql' '--devel'
+	brew install 'postgresql'
 else
 	cd ../
 	git clone "https://github.com/Toberumono/JSON-library.git"
@@ -25,8 +25,8 @@ wget '-N' '--directory-prefix=../' 'http://nlp.stanford.edu/software/stanford-co
 unzip '../stanford-corenlp-full-2015-04-20.zip' '-d' '../'
 echo '------------------Setting Up PostgreSQL Database---------------------'
 initdb "$(brew --prefix)/var/postgres"
-mkdir -p "~/Library/LaunchAgents"
-ln -sfv "$(brew --prefix)/opt/postgresql/*.plist" "~/Library/LaunchAgents"
+mkdir -p "$HOME/Library/LaunchAgents"
+ln -sfv "$(brew --prefix)/opt/postgresql/*.plist" "$HOME/Library/LaunchAgents"
 export PGDATA="$(brew --prefix)/var/postgres"
 export PGHOST=localhost
 [ "$(pg_ctl status | grep 'PID:' )" == "" ] && ( pg_ctl start > /dev/null )
