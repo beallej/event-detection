@@ -259,6 +259,19 @@ public class ArticleManager {
 	}
 	
 	/**
+	 * Converts the {@link Path} to the saved text of an article to the {@link Path} to the serialized form of the
+	 * corresponding {@link Article} object
+	 * 
+	 * @param textPath
+	 *            the {@link Path} to the saved text of an article
+	 * @return the {@link Path} to the serialized form of the corresponding {@link Article} object
+	 */
+	public Path toSerializedPath(Path textPath) {
+		String filename = toSerializedName(textPath.getFileName().toString());
+		return textPath.getParent().resolve("serialized").resolve(filename);
+	}
+	
+	/**
 	 * @return the {@link Connection}
 	 */
 	public Connection getConnection() {

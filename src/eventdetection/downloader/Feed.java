@@ -11,8 +11,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
 import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndFeed;
@@ -124,47 +122,42 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 	}
 	
 	@Override
-	public List<Article> get() {
+	public synchronized List<Article> get() {
 		List<Article> out = new ArrayList<>();
 		Scraper s = getScraper();
 		if (s == null)
 			return out;
-		try (PreparedStatement stmt = connection.prepareStatement("select * from articles where articles.url = ?")) {
-			try {
-				SyndFeed feed = input.build(new XmlReader(url));
-				List<Future<Article>> outs = new ArrayList<>();
-				for (SyndEntry e : feed.getEntries()) {
-					stmt.setString(1, e.getLink());
-					try {
-						if (stmt.executeQuery().next())
-							continue;
-					}
-					catch (SQLException ex) {
+		List<SyndEntry> entries = new ArrayList<>();
+		SyndFeed feed = null;
+		try (Connection connection = Downloader.getConnection(); PreparedStatement stmt = connection.prepareStatement("select * from articles where articles.url = ?")) {
+			feed = input.build(new XmlReader(url));
+			for (SyndEntry e : feed.getEntries()) {
+				stmt.setString(1, e.getLink());
+				try {
+					if (stmt.executeQuery().next())
 						continue;
-					}
-					outs.add(DownloaderController.pool.submit(() -> {
-						String text = s.scrape(new URL(e.getLink()));
-						if (text == null)
-							return null;
-						return new Article(e.getTitle(), text, e.getLink(), getSource());
-					}));
 				}
-				out = outs.stream().collect(ArrayList::new, (a, b) -> {
-					try {
-						Article article = b.get();
-						if (article != null)
-							a.add(article);
-					}
-					catch (ExecutionException | InterruptedException e) {}
-				}, ArrayList::addAll);
-				lastSeen = feed.getEntries().get(0).getLink();
-			}
-			catch (IllegalArgumentException | FeedException | IOException e) {
-				e.printStackTrace();
+				catch (SQLException ex) {
+					continue;
+				}
+				entries.add(e);
 			}
 		}
-		catch (SQLException e) {
+		catch (SQLException | IllegalArgumentException | FeedException | IOException e) {
 			e.printStackTrace();
+		}
+		finally {
+			if (feed != null)
+				lastSeen = feed.getEntries().get(0).getLink();
+		}
+		for (SyndEntry entry : entries) {
+			try {
+				String text = s.scrape(new URL(entry.getLink()));
+				if (text == null)
+					return null;
+				out.add(new Article(entry.getTitle(), text, entry.getLink(), getSource()));
+			}
+			catch (IOException e) {}
 		}
 		return out;
 	}
