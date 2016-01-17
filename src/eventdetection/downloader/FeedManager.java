@@ -1,6 +1,8 @@
 package eventdetection.downloader;
 
 import java.io.IOException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
@@ -96,7 +98,8 @@ public class FeedManager extends Downloader {
 	 *             if an error occurs while loading the JSON files
 	 */
 	public List<String> addScraper(Path path) throws IOException {
-		return loadItemsFromFile(Scraper::loadFromJSON, p -> p.toString().endsWith(".json"), path, scrapers::put);
+		ClassLoader cl = new URLClassLoader(new URL[]{path.toUri().toURL()});
+		return loadItemsFromFile(p -> Scraper.loadFromJSON(p, cl), p -> p.toString().endsWith(".json"), path, scrapers::put);
 	}
 	
 	/**

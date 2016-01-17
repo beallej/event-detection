@@ -2,6 +2,7 @@ package eventdetection.downloader;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.sql.ResultSet;
@@ -239,14 +240,24 @@ public class Scraper implements IDAble<String>, JSONRepresentable {
 	 * 
 	 * @param json
 	 *            a {@link Path} to the JSON file
+	 * @param classloader
+	 *            a {@link ClassLoader} for the directory in which the JSON file was contained
 	 * @return the {@link Scraper} described in the JSON file
 	 * @throws IOException
 	 *             an I/O error occurs
 	 */
-	public static Scraper loadFromJSON(Path json) throws IOException {
+	public static Scraper loadFromJSON(Path json, ClassLoader classloader) throws IOException {
 		JSONObject config = (JSONObject) JSONSystem.loadJSON(json);
+		JSONSystem.transferField("class", new JSONString(Scraper.class.getName()), config);
 		String id = (String) config.get("id").value();
-		return new Scraper(id, jsonArrayToPairs((JSONArray) config.get("sectioning")), jsonArrayToPairs((JSONArray) config.get("filtering")));
+		try {
+			return (Scraper) classloader.loadClass((String) config.get("class").value()).getConstructor(String.class, List.class, List.class).newInstance(id,
+					jsonArrayToPairs((JSONArray) config.get("sectioning")), jsonArrayToPairs((JSONArray) config.get("filtering")));
+		}
+		catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException | ClassNotFoundException e) {
+			e.printStackTrace();
+			return new Scraper(id, jsonArrayToPairs((JSONArray) config.get("sectioning")), jsonArrayToPairs((JSONArray) config.get("filtering")));
+		}
 	}
 	
 	@Override
