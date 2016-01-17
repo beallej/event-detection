@@ -122,7 +122,8 @@ public class ArticleManager {
 					if (attrs.creationTime().toInstant().compareTo(oldest) >= 0)
 						continue;
 					Files.delete(path);
-					Path serialized = store.resolve("serialized").resolve(toSerializedName(filename));
+					
+					Path serialized = toSerializedPath(path);
 					if (Files.exists(serialized))
 						Files.delete(serialized);
 					deleted = true;
@@ -149,7 +150,7 @@ public class ArticleManager {
 	 *             if the storage directory does not exist and cannot be created or the article file cannot be written to
 	 *             disk
 	 */
-	public Future<Article> store(Article article) throws SQLException, IOException {
+	public synchronized Future<Article> store(Article article) throws SQLException, IOException {
 		Path storagePath = storage.iterator().next(), serializedPath = storagePath.resolve("serialized");
 		if (!Files.exists(serializedPath))
 			Files.createDirectories(serializedPath);
