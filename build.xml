@@ -81,6 +81,14 @@
 			<patternset refid="Build Excludes" />
 			<classpath if:true="${use.libs}" refid="build.classpath" />
 		</javac>
+		<javac srcdir="${src}/../scrapers" destdir="${src}/../scrapers" includeAntRuntime="false" debug="true" debuglevel="lines,vars,source">
+			<include name="**/*.java" />
+			<classpath>
+				<path if:true="${use.libs}" refid="build.classpath" />
+				<path location="${bin}" />
+			</classpath>
+			<classpath if:true="${use.libs}" refid="build.classpath" />
+		</javac>
 		<!--Copy css files to their appropriate locations in the bin directory (for JavaFx)-->
 		<copy todir="${bin}">
 			<fileset dir="${src}" includes="**/*.css" />
