@@ -31,9 +31,7 @@ class ArticleProcessorDaemon:
                 body = open("articles/{0}".format(article[2])).read()
                 article_with_body = Article(article[1], body, article[3], article[4])
                 keywords = extractor.extract_keywords(article_with_body)
-
                 keyword_string = json.dumps(keywords)
-                print(keyword_string)
                 ds.add_keywords_to_article(article[0], keyword_string)
         finally:
             fcntl.lockf(fd, fcntl.LOCK_UN)

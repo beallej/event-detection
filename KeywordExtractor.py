@@ -83,7 +83,6 @@ class KeywordExtractor:
         for pos in all_keywords_with_tags:
             all_keywords_with_tags[pos] = map(self.format_for_db, all_keywords_with_tags[pos])
             all_keywords_with_tags[pos] = list(all_keywords_with_tags[pos])
-        print(all_keywords_with_tags)
         return all_keywords_with_tags
 
     def format_for_db(self, keyword_tuple):
