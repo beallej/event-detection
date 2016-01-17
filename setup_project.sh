@@ -26,7 +26,7 @@ unzip '../stanford-corenlp-full-2015-04-20.zip' '-d' '../'
 echo '------------------Setting Up PostgreSQL Database---------------------'
 initdb "$(brew --prefix)/var/postgres"
 mkdir -p "$HOME/Library/LaunchAgents"
-ln -sfv "$(brew --prefix)/opt/postgresql/*.plist" "$HOME/Library/LaunchAgents"
+ln -sfv "$(brew --prefix)"/opt/postgresql/*.plist "$HOME/Library/LaunchAgents"
 export PGDATA="$(brew --prefix)/var/postgres"
 export PGHOST=localhost
 [ "$(pg_ctl status | grep 'PID:' )" == "" ] && ( pg_ctl start > /dev/null )
