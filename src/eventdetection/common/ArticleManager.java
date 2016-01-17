@@ -1,6 +1,10 @@
 package eventdetection.common;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -15,13 +19,15 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import toberumono.json.JSONArray;
 import toberumono.json.JSONBoolean;
 import toberumono.json.JSONObject;
 
-import eventdetection.downloader.POSTagger;
-import eventdetection.downloader.RawArticle;
+import eventdetection.downloader.Downloader;
+import eventdetection.downloader.DownloaderController;
 
 /**
  * A mechanism for managing articles.
@@ -108,13 +114,18 @@ public class ArticleManager {
 				for (Path store : storage) {
 					if (!Files.exists(store))
 						continue;
-					Path path = store.resolve(rs.getString("filename"));
+					String filename = rs.getString("filename");
+					Path path = store.resolve(filename);
 					if (!Files.exists(path))
 						continue;
 					BasicFileAttributes attrs = Files.readAttributes(path, BasicFileAttributes.class);
 					if (attrs.creationTime().toInstant().compareTo(oldest) >= 0)
 						continue;
 					Files.delete(path);
+					
+					Path serialized = toSerializedPath(path);
+					if (Files.exists(serialized))
+						Files.delete(serialized);
 					deleted = true;
 				}
 				if (deleted) {
@@ -139,13 +150,13 @@ public class ArticleManager {
 	 *             if the storage directory does not exist and cannot be created or the article file cannot be written to
 	 *             disk
 	 */
-	public Path store(Article article) throws SQLException, IOException {
-		Path storagePath = storage.iterator().next();
-		if (!Files.exists(storagePath))
-			Files.createDirectories(storagePath);
+	public synchronized Future<Article> store(Article article) throws SQLException, IOException {
+		Path storagePath = storage.iterator().next(), serializedPath = storagePath.resolve("serialized");
+		if (!Files.exists(serializedPath))
+			Files.createDirectories(serializedPath);
 		String statement = "insert into " + table + " (title, url, source) values (?, ?, ?)";
 		try (PreparedStatement stmt = connection.prepareStatement(statement)) {
-			String untaggedTitle = article.getUntagged().getTitle();
+			String untaggedTitle = article.getUntaggedTitle();
 			stmt.setString(1, untaggedTitle);
 			stmt.setString(2, article.getURL().toString());
 			stmt.setInt(3, article.getSource().getID());
@@ -161,19 +172,48 @@ public class ArticleManager {
 					stm.setLong(2, rs.getLong("id"));
 					stm.executeUpdate();
 				}
-				Path filePath = storagePath.resolve(filename);
-				try {
-					StringBuilder fileText = new StringBuilder(article.getTitle().length() + article.getText().length() + 14); //14 is the length of the section dividers
-					fileText.append("TITLE:\n").append(article.getTitle()).append("\nTEXT:\n").append(article.getText());
-					Files.write(filePath, fileText.toString().getBytes());
-				}
-				catch (IOException e) {
-					try (Statement stm = connection.createStatement()) {
-						stm.executeUpdate("delete from " + table + " where id = " + rs.getLong("id"));
+				Path filePath = storagePath.resolve(filename), serialPath = serializedPath.resolve(toSerializedName(filename));
+				return DownloaderController.pool.submit(() -> {
+					System.out.println("Started Processing: " + article.getUntaggedTitle());
+					try {
+						StringBuilder fileText = new StringBuilder(article.getUntaggedTitle().length() + article.getUntaggedText().length() + 14); //14 is the length of the section dividers
+						fileText.append("TITLE:\n").append(article.getUntaggedTitle()).append("\nTEXT:\n").append(article.getUntaggedText());
+						Files.write(filePath, fileText.toString().getBytes());
+						Future<Boolean> test = DownloaderController.pool.submit(() -> {
+							try (ObjectOutputStream serialOut = new ObjectOutputStream(new FileOutputStream(serialPath.toFile()))) {
+								article.process();
+								serialOut.writeObject(article);
+								return true;
+							}
+						});
+						try {
+							if (!test.get())
+								throw new IOException("Serialization failed");
+						}
+						catch (InterruptedException e) {
+							try (ObjectInputStream serialIn = new ObjectInputStream(new FileInputStream(serialPath.toFile()))) {
+								serialIn.readObject(); //Test to be sure that the serialization worked
+							}
+							catch (Throwable t) {
+								throw new IOException(t); //If anything goes wrong with reading the Article
+							}
+						}
+						catch (ExecutionException e) {
+							throw new IOException(e.getCause());
+						}
 					}
-					throw e;
-				}
-				return filePath;
+					catch (IOException e) {
+						try (Statement stm = Downloader.getConnection().createStatement()) {
+							stm.executeUpdate("delete from " + table + " where id = " + rs.getLong("id"));
+						}
+						if (Files.exists(filePath))
+							Files.delete(filePath);
+						if (Files.exists(serialPath))
+							Files.delete(serialPath);
+						throw e;
+					}
+					return article;
+				});
 			}
 		}
 	}
@@ -209,19 +249,27 @@ public class ArticleManager {
 	}
 	
 	/**
-	 * Converts a {@link RawArticle} into an {@link Article}. This applies pos tagging to both the title and text.
+	 * Converts an {@link Article Article's} filename from the .txt ending to a name ending in .data
 	 * 
-	 * @param ra
-	 *            the {@link RawArticle} to process
-	 * @return the processed {@link RawArticle} as an {@link Article}
+	 * @param filename
+	 *            the filename to convert
+	 * @return the converted filename
 	 */
-	public Article process(RawArticle ra) {
-		String title = ra.getTitle(), text = ra.getText();
-		if (posTaggingEnabled) {
-			title = POSTagger.tag(title).replaceAll("(\\w+?)_(\\w+)\\s+(\\w*?'\\w*?)_(\\w+)", "$1$3_$2");
-			text = POSTagger.tag(text).replaceAll("(\\w+?)_(\\w+)\\s+(\\w*?'\\w*?)_(\\w+)", "$1$3_$2");
-		}
-		return new Article(title, text, ra.getURL(), ra.getSource(), isPOSTaggingEnabled());
+	public String toSerializedName(String filename) {
+		return filename.substring(0, filename.length() - 3) + ".data";
+	}
+	
+	/**
+	 * Converts the {@link Path} to the saved text of an article to the {@link Path} to the serialized form of the
+	 * corresponding {@link Article} object
+	 * 
+	 * @param textPath
+	 *            the {@link Path} to the saved text of an article
+	 * @return the {@link Path} to the serialized form of the corresponding {@link Article} object
+	 */
+	public Path toSerializedPath(Path textPath) {
+		String filename = toSerializedName(textPath.getFileName().toString());
+		return textPath.getParent().resolve("serialized").resolve(filename);
 	}
 	
 	/**

@@ -5,9 +5,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import eventdetection.common.Article;
+
 /**
  * Implements a {@link Downloader} that queries a list of other {@link Downloader Downloaders} and returns the
- * {@link RawArticle RawArticles} that they find.
+ * {@link Article Articles} that they find.
  * 
  * @author Joshua Lipstone
  */
@@ -48,8 +50,8 @@ public class DownloaderCollection extends Downloader {
 	}
 	
 	@Override
-	public List<RawArticle> get() {
-		List<RawArticle> out = new ArrayList<>();
+	public List<Article> get() {
+		List<Article> out = new ArrayList<>();
 		for (Downloader downloader : getDownloaders())
 			out.addAll(downloader.get());
 		return out;

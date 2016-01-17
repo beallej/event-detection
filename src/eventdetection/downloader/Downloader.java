@@ -24,6 +24,7 @@ import toberumono.json.JSONData;
 import toberumono.json.JSONObject;
 import toberumono.utils.functions.IOExceptedFunction;
 
+import eventdetection.common.Article;
 import eventdetection.common.IDAble;
 import eventdetection.common.SQLExceptedFunction;
 import eventdetection.common.Source;
@@ -33,12 +34,11 @@ import eventdetection.common.Source;
  * 
  * @author Joshua Lipstone
  */
-public abstract class Downloader implements Supplier<List<RawArticle>>, Closeable {
+public abstract class Downloader implements Supplier<List<Article>>, Closeable {
 	/**
 	 * The available news {@link Source Sources}
 	 */
 	public static final Map<Integer, Source> sources = new LinkedHashMap<>();
-	private static Connection connection = null;
 	
 	/**
 	 * Adds a {@link Source} or a folder of {@link Source Sources} to {@link #sources}.
@@ -68,7 +68,7 @@ public abstract class Downloader implements Supplier<List<RawArticle>>, Closeabl
 	 *             if an I/O error occurs
 	 */
 	public static List<Integer> loadSource(Connection connection, String table) throws SQLException, IOException {
-		return loadItemsFromSQL(table, Source::loadFromSQL, sources::put);
+		return loadItemsFromSQL(table, connection, Source::loadFromSQL, sources::put);
 	}
 	
 	/**
@@ -155,6 +155,7 @@ public abstract class Downloader implements Supplier<List<RawArticle>>, Closeabl
 	 * @throws IOException
 	 *             if an error occurs while loading
 	 */
+	@Deprecated
 	public static <T extends IDAble<V>, V> List<V> loadItemsFromSQL(String table, SQLExceptedFunction<ResultSet, T> loader, BiFunction<V, T, T> store)
 			throws SQLException, IOException {
 		return loadItemsFromSQL(table, getConnection(), loader, store);
@@ -182,9 +183,8 @@ public abstract class Downloader implements Supplier<List<RawArticle>>, Closeabl
 	public static <T extends IDAble<V>, V> List<V> loadItemsFromSQL(String table, Connection connection, SQLExceptedFunction<ResultSet, T> loader, BiFunction<V, T, T> store)
 			throws SQLException, IOException {
 		List<V> ids = new ArrayList<>();
-		Connection con = getConnection();
 		String statement = "select * from " + table;
-		try (PreparedStatement stmt = con.prepareStatement(statement)) {
+		try (PreparedStatement stmt = connection.prepareStatement(statement)) {
 			ResultSet rs = stmt.executeQuery();
 			if (!rs.next()) //Set the pointer to the first row and test if it is not valid
 				return ids;
@@ -237,8 +237,6 @@ public abstract class Downloader implements Supplier<List<RawArticle>>, Closeabl
 	 *             if something goes wrong while creating the {@link Connection}
 	 */
 	public static Connection getConnection() throws SQLException {
-		if (connection != null)
-			return connection;
 		String dbtype = System.getProperty("db.type");
 		if (dbtype == null)
 			return null;
@@ -258,6 +256,6 @@ public abstract class Downloader implements Supplier<List<RawArticle>>, Closeabl
 		}
 		connectionProps.put("user", System.getProperty("db.user", "root"));
 		connectionProps.put("password", System.getProperty("db.password", ""));
-		return Downloader.connection = DriverManager.getConnection(connection, connectionProps);
+		return DriverManager.getConnection(connection, connectionProps);
 	}
 }

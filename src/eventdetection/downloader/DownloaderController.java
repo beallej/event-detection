@@ -7,8 +7,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import toberumono.json.JSONArray;
 import toberumono.json.JSONBoolean;
@@ -16,6 +23,7 @@ import toberumono.json.JSONData;
 import toberumono.json.JSONObject;
 import toberumono.json.JSONSystem;
 
+import eventdetection.common.Article;
 import eventdetection.common.ArticleManager;
 
 /**
@@ -24,6 +32,10 @@ import eventdetection.common.ArticleManager;
  * @author Joshua Lipstone
  */
 public class DownloaderController {
+	/**
+	 * A work stealing pool for use by all classes in this program.
+	 */
+	public static final ExecutorService pool = Executors.newWorkStealingPool();
 	
 	/**
 	 * The main method.
@@ -43,22 +55,23 @@ public class DownloaderController {
 			JSONSystem.writeJSON(config, configPath);
 		Downloader.configureConnection((JSONObject) config.get("database"));
 		try (DownloaderCollection dc = new DownloaderCollection()) {
+			Connection connection = Downloader.getConnection();
 			JSONObject paths = (JSONObject) config.get("paths");
 			JSONObject articles = (JSONObject) config.get("articles");
-			Downloader.loadSource(Downloader.getConnection(), "sources");
+			Downloader.loadSource(connection, "sources");
 			for (JSONData<?> str : ((JSONArray) paths.get("sources")).value())
 				Downloader.loadSource(Paths.get(str.toString()));
 				
-			FeedManager fm = new FeedManager();
+			FeedManager fm = new FeedManager(connection);
 			for (JSONData<?> str : ((JSONArray) paths.get("scrapers")).value())
 				fm.addScraper(Paths.get(str.toString()));
 			for (JSONData<?> str : ((JSONArray) paths.get("feeds")).value())
 				fm.addFeed(Paths.get(str.toString()));
-			fm.addFeed(Downloader.getConnection(), "feeds");
+			fm.addFeed(connection, "feeds");
 			
 			dc.addDownloader(fm);
-			ArticleManager am = new ArticleManager(dc.getConnection(), "articles", paths, articles);
-					
+			ArticleManager am = new ArticleManager(connection, "articles", paths, articles);
+			
 			Path active = Paths.get(System.getProperty("user.home"), ".event-detection-active");
 			if (!Files.exists(active)) {
 				Files.createDirectories(active.getParent());
@@ -68,9 +81,16 @@ public class DownloaderController {
 			try (FileChannel chan = FileChannel.open(active, StandardOpenOption.CREATE, StandardOpenOption.WRITE); FileLock lock = chan.lock();) {
 				Calendar oldest = computeOldest((JSONObject) articles.get("deletion-delay"));
 				am.removeArticlesBefore(oldest);
-				for (RawArticle ra : dc.get()) {
-					am.store(am.process(ra));
-					System.out.println("Processed: " + ra.getTitle());
+				List<Future<Article>> processed = new ArrayList<>();
+				for (Article article : dc.get())
+					processed.add(am.store(article));
+				for (Future<Article> done : processed) {
+					try {
+						System.out.println("Finished Processing: " + done.get().getUntaggedTitle());
+					}
+					catch (InterruptedException | ExecutionException e) {
+						e.printStackTrace();
+					}
 				}
 			}
 		}
