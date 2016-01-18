@@ -1,4 +1,3 @@
-from collections import Counter
 from numpy import zeros
 from DataSource import *
 import json
@@ -14,6 +13,7 @@ class Matrix:
 		self.ids = []
 		self.num_entries = 0
 		self.num_datapoints = 0
+		self.article_titles = []
 
 	def get_num_entries(self):
 		'''Gets the number of non-zero entries in the matrix.'''
@@ -23,6 +23,11 @@ class Matrix:
 		'''Gets the number of datapoints/rows in the matrix 
 		   (in our case, the number of articles).'''
 		return self.num_datapoints
+
+	def get_article_titles(self):
+		'''Gets ordered list of article titles corresponding to
+		   article ids in self.ids.'''
+		return self.article_titles
 
 	def retrieve_article_ids(self):
 		'''Gets list of article ids so that keywords and titles can be 
@@ -34,7 +39,7 @@ class Matrix:
 		self.num_datapoints = len(ids) # Track num datapoints to calculate K
 		return ids
 
-	def get_article_titles(self):
+	def retrieve_article_titles(self):
 		'''Gets ordered list of article titles corresponding to 
 		   article ids in self.ids.'''
 		titles = []
@@ -88,12 +93,15 @@ class Matrix:
 		return matrix
 
 	def get_keyword_matrix(self):
+		# Initialize article ids and titles
 		self.ids = self.retrieve_article_ids()
-		article_titles = self.get_article_titles()
+		self.article_titles = self.retrieve_article_titles()
+
+		# Get keywords to construct matrix
 		article_keywords = self.get_article_keywords()
 		keyword_set = self.get_keyword_set()
 		keyword_list = list(keyword_set)
-		matrix = self.construct_matrix(keyword_list, article_ids, article_keywords)
+		matrix = self.construct_matrix(keyword_list, self.ids, article_keywords)
 
 if __name__ == '__main__':
 	main()
