@@ -12,10 +12,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 import toberumono.json.JSONArray;
 import toberumono.json.JSONBoolean;
@@ -25,6 +23,7 @@ import toberumono.json.JSONSystem;
 
 import eventdetection.common.Article;
 import eventdetection.common.ArticleManager;
+import eventdetection.common.DBConnection;
 
 /**
  * Main class of the downloader. Controls startup and and article management.
@@ -53,9 +52,9 @@ public class DownloaderController {
 		updateJSONConfiguration(config);
 		if (config.isModified())
 			JSONSystem.writeJSON(config, configPath);
-		Downloader.configureConnection((JSONObject) config.get("database"));
+		DBConnection.configureConnection((JSONObject) config.get("database"));
 		try (DownloaderCollection dc = new DownloaderCollection()) {
-			Connection connection = Downloader.getConnection();
+			Connection connection = DBConnection.getConnection();
 			JSONObject paths = (JSONObject) config.get("paths");
 			JSONObject articles = (JSONObject) config.get("articles");
 			Downloader.loadSource(connection, "sources");
@@ -81,17 +80,11 @@ public class DownloaderController {
 			try (FileChannel chan = FileChannel.open(active, StandardOpenOption.CREATE, StandardOpenOption.WRITE); FileLock lock = chan.lock();) {
 				Calendar oldest = computeOldest((JSONObject) articles.get("deletion-delay"));
 				am.removeArticlesBefore(oldest);
-				List<Future<Article>> processed = new ArrayList<>();
+				List<Article> processed = new ArrayList<>();
 				for (Article article : dc.get())
 					processed.add(am.store(article));
-				for (Future<Article> done : processed) {
-					try {
-						System.out.println("Finished Processing: " + done.get().getUntaggedTitle());
-					}
-					catch (InterruptedException | ExecutionException e) {
-						e.printStackTrace();
-					}
-				}
+				for (Article done : processed)
+					System.out.println("Finished Processing: " + done.getUntaggedTitle());
 			}
 		}
 	}

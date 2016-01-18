@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 import eventdetection.common.Article;
+import eventdetection.common.DBConnection;
 
 /**
  * A system for loading and managing {@link Feed Feeds} and {@link Scraper Scrapers}.
@@ -32,7 +33,7 @@ public class FeedManager extends Downloader {
 	 *             if an error occurs while getting the {@link Connection}
 	 */
 	public FeedManager() throws SQLException {
-		this(Downloader.getConnection());
+		this(DBConnection.getConnection());
 	}
 	
 	/**

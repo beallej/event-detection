@@ -26,6 +26,7 @@ import toberumono.json.JSONString;
 import toberumono.json.JSONSystem;
 
 import eventdetection.common.Article;
+import eventdetection.common.DBConnection;
 import eventdetection.common.IDAble;
 import eventdetection.common.Source;
 
@@ -71,7 +72,7 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 	 *             if an error occurs while getting the {@link Connection}
 	 */
 	public Feed(int id, String name, Source source, List<String> scraperIDs, String lastSeen, URL url, Map<String, Scraper> scrapers) throws SQLException {
-		this(id, name, source, scraperIDs, lastSeen, url, scrapers, null, null, Downloader.getConnection());
+		this(id, name, source, scraperIDs, lastSeen, url, scrapers, null, null, DBConnection.getConnection());
 	}
 	
 	/**
@@ -129,7 +130,7 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 			return out;
 		List<SyndEntry> entries = new ArrayList<>();
 		SyndFeed feed = null;
-		try (Connection connection = Downloader.getConnection(); PreparedStatement stmt = connection.prepareStatement("select * from articles where articles.url = ?")) {
+		try (Connection connection = DBConnection.getConnection(); PreparedStatement stmt = connection.prepareStatement("select * from articles where articles.url = ?")) {
 			feed = input.build(new XmlReader(url));
 			for (SyndEntry e : feed.getEntries()) {
 				stmt.setString(1, e.getLink());
