@@ -240,7 +240,7 @@ public class ArticleManager {
 	 * @return the converted filename
 	 */
 	public static String toSerializedName(String filename) {
-		return filename.substring(0, filename.length() - 3) + ".data";
+		return filename.substring(0, filename.length() - 4) + ".data";
 	}
 	
 	/**
