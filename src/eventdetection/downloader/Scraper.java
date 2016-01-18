@@ -2,6 +2,7 @@ package eventdetection.downloader;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.nio.file.Path;
@@ -251,8 +252,9 @@ public class Scraper implements IDAble<String>, JSONRepresentable {
 		JSONSystem.transferField("class", new JSONString(Scraper.class.getName()), config);
 		String id = (String) config.get("id").value();
 		try {
-			return (Scraper) classloader.loadClass((String) config.get("class").value()).getConstructor(String.class, List.class, List.class).newInstance(id,
-					jsonArrayToPairs((JSONArray) config.get("sectioning")), jsonArrayToPairs((JSONArray) config.get("filtering")));
+			Constructor<?> constructor = classloader.loadClass((String) config.get("class").value()).getConstructor(String.class, List.class, List.class);
+			constructor.setAccessible(true);
+			return (Scraper) constructor.newInstance(id, jsonArrayToPairs((JSONArray) config.get("sectioning")), jsonArrayToPairs((JSONArray) config.get("filtering")));
 		}
 		catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException | ClassNotFoundException e) {
 			e.printStackTrace();
