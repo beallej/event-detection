@@ -22,7 +22,7 @@ import eventdetection.validator.ValidatorController;
 
 public class SwoogleSemanticAnalysisValidator extends Validator {
 	private static final String URL_PREFIX = "http://swoogle.umbc.edu/StsService/GetStsSim?operation=api";
-
+	
 	/**
 	 * Constructs a new instance of the {@link Validator} for the given {@code ID}, {@link Query}, and {@link Article}
 	 * 
@@ -50,11 +50,9 @@ public class SwoogleSemanticAnalysisValidator extends Validator {
 			List<CoreMap> sentences = paragraph.get(SentencesAnnotation.class);
 			for (CoreMap sentence : sentences) {
 				String sen = reconstructSentence(sentence);
-				System.out.println(sen);
 				String url = String.format("%s&phrase1=%s&phrase2=%s", URL_PREFIX, URLEncoder.encode(phrase1.toString(), StandardCharsets.UTF_8.name()),
 						URLEncoder.encode(sen, StandardCharsets.UTF_8.name()));
-				System.out.println(url);
-				URLConnection connection = new URL(URL_PREFIX + url).openConnection();
+				URLConnection connection = new URL(url).openConnection();
 				connection.setRequestProperty("Accept-Charset", StandardCharsets.UTF_8.name());
 				try (BufferedReader response = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
 					sum += Double.parseDouble(response.readLine().trim());

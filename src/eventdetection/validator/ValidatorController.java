@@ -104,14 +104,12 @@ public class ValidatorController {
 							continue;
 						try (ObjectInputStream serialIn = new ObjectInputStream(new FileInputStream(serialized.toFile()))) {
 							Article article = (Article) serialIn.readObject();
-							System.out.println(serialized);
 							articles.add(article);
 						}
 					}
 				}
 			}
 		}
-		
 		return articles;
 	}
 	
@@ -145,14 +143,15 @@ public class ValidatorController {
 				try {
 					ValidationResult res = result.get();
 					System.out.println(res);
-					try (PreparedStatement stmt = connection.prepareStatement("insert into validation_results (query, algorithm, validates, invalidates) values (?, ?, ?, ?)")) {
+					try (PreparedStatement stmt = connection.prepareStatement("insert into validation_results (query, algorithm, article, validates, invalidates) values (?, ?, ?, ?, ?)")) {
 						stmt.setInt(1, query.getId());
 						stmt.setInt(2, res.getAlgorithmID());
-						stmt.setFloat(3, res.getValidates().floatValue());
+						stmt.setInt(3, res.getArticleID());
+						stmt.setFloat(4, res.getValidates().floatValue());
 						if (res.getInvalidates() != null)
-							stmt.setFloat(4, res.getInvalidates().floatValue());
+							stmt.setFloat(5, res.getInvalidates().floatValue());
 						else
-							stmt.setNull(4, Types.REAL);
+							stmt.setNull(5, Types.REAL);
 						stmt.executeUpdate();
 						System.out.println("(" + query.getId() + ", " + res.getAlgorithmID() + ", " + res.getArticleID() + ") -> (" + res.getValidates() + ", " +
 								(res.getInvalidates() == null ? "null" : res.getInvalidates()) + ")");
