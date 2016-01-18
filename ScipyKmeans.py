@@ -5,15 +5,9 @@ from scipy.cluster.vq import kmeans, vq, whiten
 from Matrix import *
 from math import sqrt
 
+# Cluster by article keywords
 m = Matrix()
-
-### Old version - cluster by article titles
-# article_titles = m.get_article_titles('article_titles.txt')
-# matrix = m.get_matrix('article_titles.txt')
-# whitened_matrix = whiten(matrix)
-
-# New version - cluster by article keywords
-keywords = m.get_keywords()
+article_titles = m.get_article_titles()
 matrix = m.get_keyword_matrix()
 whitened_matrix = whiten(matrix)
 
