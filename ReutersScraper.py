@@ -1,17 +1,18 @@
 from bs4 import BeautifulSoup
 import urllib.request
 
-def read(page):
+def read():
     """
     Reads the main content from a Reuters page
     """
+    url = input()
+    page = urllib.request.urlopen(url)
     soup = BeautifulSoup(page, "html.parser")
     text = soup.find(id = "articleText")
-    return " ".join(text.strings)
+    print(" ".join(text.strings))
 
 def main():
-    page = urllib.request.urlopen("http://www.reuters.com/article/us-usa-election-democrats-idUSKCN0UV058?feedType=RSS&feedName=topNews")
-    read(page)
+    read()
 
 if __name__ == "__main__":
     main()
