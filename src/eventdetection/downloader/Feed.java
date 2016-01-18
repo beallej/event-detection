@@ -155,7 +155,7 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 			try {
 				String text = s.scrape(new URL(entry.getLink()));
 				if (text == null)
-					return null;
+					continue;
 				out.add(new Article(entry.getTitle(), text, entry.getLink(), getSource()));
 			}
 			catch (IOException e) {}
