@@ -30,6 +30,7 @@ import eventdetection.common.Article;
 import eventdetection.common.ArticleManager;
 import eventdetection.common.DBConnection;
 import eventdetection.common.Query;
+import eventdetection.validator.implementations.SwoogleSemanticAnalysisValidator;
 
 /**
  * A class that manages multiple validation algorithms and allows them to run in parallel.
@@ -76,6 +77,7 @@ public class ValidatorController {
 			}
 			ValidatorController vc = new ValidatorController(connection);
 			//ADD VALIDATORS HERE
+			vc.addValidator("Swoogle Semantic Analysis", SwoogleSemanticAnalysisValidator::new);
 			List<Article> articles = loadArticles(connection, config, args);
 			vc.executeValidators(query, articles);
 		}
