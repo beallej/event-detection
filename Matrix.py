@@ -57,7 +57,7 @@ class Matrix:
 			db_keywords_str = self.ds.get_article_keywords(id)[0]
 			db_keywords_dict = json.loads(db_keywords_str)
 			for pos in db_keywords_dict:
-				for keyword_with_weight in pos_keywords:
+				for keyword_with_weight in pos:
 					keyword = keyword_with_weight[0]
 					weight = keyword_with_weight[1]
 					article_keyword_weights[keyword] = weight
