@@ -81,7 +81,7 @@ class KeywordExtractor:
                     if not found:
                         all_keywords_with_tags[pos].add(title_keyword)
         for pos in all_keywords_with_tags:
-            all_keywords_with_tags[pos] = map(self.format_for_db, all_keywords_with_tags[pos])
+            #all_keywords_with_tags[pos] = map(self.format_for_db, all_keywords_with_tags[pos])
             all_keywords_with_tags[pos] = list(all_keywords_with_tags[pos])
         return all_keywords_with_tags
 
