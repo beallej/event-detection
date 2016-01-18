@@ -16,10 +16,10 @@ public abstract class Validator implements Callable<ValidationResult> {
 	protected final Integer algorithmID;
 	
 	/**
-	 * Constructs a new instance of the {@link Validator} for the given {@link Query} and {@link Article}
+	 * Constructs a new instance of the {@link Validator} for the given {@code ID}, {@link Query}, and {@link Article}
 	 * 
 	 * @param algorithmID
-	 *            the ID of the implemented algorithm as determined by the {@link ValidatorController}
+	 *            the {@code ID} of the implemented algorithm as determined by the {@link ValidatorController}
 	 * @param query
 	 *            the {@link Query} to validate
 	 * @param article
@@ -37,5 +37,12 @@ public abstract class Validator implements Callable<ValidationResult> {
 	 * @return a {@link ValidationResult} with the appropriate information
 	 */
 	@Override
-	public abstract ValidationResult call();
+	public abstract ValidationResult call() throws Exception;
+	
+	/**
+	 * @return the {@code ID} of the algorithm that the {@link Validator} implements as it is listed in the database
+	 */
+	public Integer getID() {
+		return algorithmID;
+	}
 }

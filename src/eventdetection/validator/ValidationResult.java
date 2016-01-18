@@ -8,6 +8,14 @@ public class ValidationResult {
 	private final Integer articleID;
 	private final Double validates, invalidates;
 	
+	public ValidationResult(Validator algorithm, Article article, Double validates) {
+		this(algorithm, article, validates, null);
+	}
+	
+	public ValidationResult(Validator algorithm, Article article, Double validates, Double invalidates) {
+		this(algorithm.getID(), article.getID(), validates, invalidates);
+	}
+	
 	public ValidationResult(Integer algorithmID, Integer articleID, Double validates) {
 		this(algorithmID, articleID, validates, null);
 	}
@@ -20,14 +28,15 @@ public class ValidationResult {
 	}
 	
 	/**
-	 * @return the algorithmID
+	 * @return the {@code ID} of the algorithm that produced the {@link ValidationResult} as it appears in the database
 	 */
 	public Integer getAlgorithmID() {
 		return algorithmID;
 	}
 	
 	/**
-	 * @return the articleID
+	 * @return the {@code ID} of the {@link Article} that produced the {@link ValidationResult} references as it appears in
+	 *         the database
 	 */
 	public Integer getArticleID() {
 		return articleID;
