@@ -7,8 +7,9 @@ from math import sqrt
 
 # Cluster by article keywords
 m = Matrix()
-article_titles = m.get_article_titles()
 matrix = m.get_keyword_matrix()
+article_titles = m.get_article_titles()
+article_ids = m.get_article_ids()
 whitened_matrix = whiten(matrix)
 
 # Compute k
@@ -24,12 +25,18 @@ text_databases_k = (num_articles * num_keywords) // num_entries
 # Method 2: Square root of (number of documents / 2)
 rule_of_thumb_k = round(sqrt(m.get_num_datapoints()))
 
+print("text databases k: ", text_databases_k)
+print("rule of thumb k:", rule_of_thumb_k)
+k = round((text_databases_k + rule_of_thumb_k) / 2)
+
 # Compute k-means with k clusters
-codebook, distortion = kmeans(whitened_matrix, text_databases_k)
+codebook, distortion = kmeans(whitened_matrix, k)
 
 # Assign each article title to a cluster
 cluster_ids, distortion = vq(whitened_matrix, codebook)
 
 # Print article titles grouped by cluster
-for cluster_id, title in sorted(zip(cluster_ids, article_titles)):
-	print(cluster_id, title)
+article_keywords = m.get_article_keywords()
+
+for cluster_id, id in sorted(zip(cluster_ids, article_ids)):
+	print(cluster_id, id, article_keywords[id])
