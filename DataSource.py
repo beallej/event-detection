@@ -149,9 +149,6 @@ class DataSource:
         self.cursor.execute("SELECT id, title, filename, url, source FROM articles WHERE keywords is null;")
         return self.cursor.fetchall()
 
-    def get_unprocessed_articles2(self):
-        self.cursor.execute("SELECT id, title, filename, url, source FROM articles;")
-        return self.cursor.fetchall()
 
     def add_keywords_to_article(self, id, keyword_string):
         self.cursor.execute("UPDATE articles SET keywords = %s WHERE id = %s", (keyword_string, id))

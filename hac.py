@@ -42,26 +42,27 @@ class HACClusterer:
     def plot_data(self, Z, cutoff, article_titles):
 
         # calculate full dendrogram
-        plt.figure(figsize=(20, 10))
+        plt.figure(figsize=(10, 10))
         #plt.title('Hierarchical Clustering Dendrogram')
         plt.xlabel('distance')
         plt.axhline(y=2.3, c='k')
         dendrogram(
             Z,
-            #p=5,  # show only the last p merged clusters
-            orientation="bottom",
+            p=5,  # show only the last p merged clusters
+            orientation="right",
             labels=article_titles,
             show_leaf_counts=False,  # otherwise numbers in brackets are counts
-            leaf_rotation=90.,  # rotates the x axis labels
+            #leaf_rotation=90.,  # rotates the x axis labels
             leaf_font_size=9.,  # font size for the x axis labels
         )
         plt.show()
 
     def get_clusters(self, Z, cutoff, article_titles):
-        clustered = fcluster(Z, cutoff, criterion='maxclust')
+        #clustered = fcluster(Z, cutoff, criterion='maxclust')
+        clustered = fcluster(Z, cutoff)
         clusters = collections.defaultdict(list)
         for i in range(len(article_titles)):
-            clusters[clustered[i]].append(article_titles[i])
+            clusters[clustered[i]].append((article_titles[i], self.keywords[i]))
         final_clusters = []
         for item in clusters:
             if len(article_titles)/4 > len(clusters[item]) > 1:
@@ -86,6 +87,8 @@ class HACClusterer:
         for item in result:
             titles.append(item[0])
             keywords.append(self.extract_keywords_from_blob(item[1]))
+        self.titles = titles
+        self.keywords = keywords
         return titles, keywords
 
     def stemmatize(self,word):
@@ -104,6 +107,7 @@ class HACClusterer:
         for keyword_list in keywords:
             for keyword in keyword_list:
                 all_keywords.add(keyword)
+        self.all_keywords = all_keywords
         return all_keywords
 
 
@@ -115,16 +119,16 @@ class Cluster:
 def main():
     ds = DataSource.DataSource()
     clusterer = HACClusterer()
-    titles_and_keywords = ds.get_all_article_ids_and_keywords()
+    titles_and_keywords = ds.get_all_titles_and_keywords()
     titles, keywords = clusterer.extract_titles_and_keywords_from_db_result(titles_and_keywords)
     all_keywords = clusterer.get_all_keywords(keywords)
     X = clusterer.get_array(keywords, all_keywords)
     Z = clusterer.get_cluster_matrix(X)
-    clusters = clusterer.get_clusters(Z, 58, titles)
+    clusters = clusterer.get_clusters(Z, 7, titles)
     for cluster in clusters:
         print(cluster.article_titles)
 
-    #clusterer.plot_data(Z, 0.10, article_titles)
+    clusterer.plot_data(Z,8 , titles)
 
 if __name__ == '__main__':
     main()

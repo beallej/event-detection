@@ -9,7 +9,6 @@ from math import sqrt
 m = Matrix()
 matrix = m.get_keyword_matrix()
 article_titles = m.get_article_titles()
-article_ids = m.get_article_ids()
 whitened_matrix = whiten(matrix)
 
 # Compute k
@@ -30,13 +29,11 @@ print("rule of thumb k:", rule_of_thumb_k)
 k = round((text_databases_k + rule_of_thumb_k) / 2)
 
 # Compute k-means with k clusters
-codebook, distortion = kmeans(whitened_matrix, k)
+codebook, distortion = kmeans(whitened_matrix, 25)
 
 # Assign each article title to a cluster
 cluster_ids, distortion = vq(whitened_matrix, codebook)
 
 # Print article titles grouped by cluster
-article_keywords = m.get_article_keywords()
-
-for cluster_id, id in sorted(zip(cluster_ids, article_ids)):
-	print(cluster_id, id, article_keywords[id])
+for cluster_id, title in sorted(zip(cluster_ids, article_titles)):
+	print(cluster_id, title)
