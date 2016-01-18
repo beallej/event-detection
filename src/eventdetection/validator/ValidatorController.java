@@ -72,6 +72,8 @@ public class ValidatorController {
 			try (PreparedStatement stmt = connection.prepareStatement("select * from queries where queries.id = ?")) {
 				stmt.setInt(1, Integer.parseInt(args[1]));
 				try (ResultSet rs = stmt.executeQuery()) {
+					if (!rs.next())
+						return;
 					query = new Query(rs);
 				}
 			}
@@ -91,6 +93,8 @@ public class ValidatorController {
 			for (int i = 2; i < args.length; i++) {
 				stmt.setInt(1, Integer.parseInt(args[i]));
 				try (ResultSet rs = stmt.executeQuery()) {
+					if (!rs.next())
+						continue;
 					for (Path store : storage) {
 						if (!Files.exists(store))
 							continue;
@@ -100,6 +104,7 @@ public class ValidatorController {
 							continue;
 						try (ObjectInputStream serialIn = new ObjectInputStream(new FileInputStream(serialized.toFile()))) {
 							Article article = (Article) serialIn.readObject();
+							System.out.println(serialized);
 							articles.add(article);
 						}
 					}
@@ -139,6 +144,7 @@ public class ValidatorController {
 			for (Future<ValidationResult> result : results) {
 				try {
 					ValidationResult res = result.get();
+					System.out.println(res);
 					try (PreparedStatement stmt = connection.prepareStatement("insert into validation_results (query, algorithm, validates, invalidates) values (?, ?, ?, ?)")) {
 						stmt.setInt(1, query.getId());
 						stmt.setInt(2, res.getAlgorithmID());
@@ -169,6 +175,7 @@ class ValidatorWrapper {
 		try (PreparedStatement stmt = connection.prepareStatement("select id from validation_algorithms as va where va.algorithm = ?")) {
 			stmt.setString(1, algorithm);
 			try (ResultSet rs = stmt.executeQuery()) {
+				rs.next();
 				algorithmID = rs.getInt("id");
 			}
 		}

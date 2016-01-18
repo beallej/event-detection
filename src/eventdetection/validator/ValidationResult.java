@@ -55,4 +55,9 @@ public class ValidationResult {
 	public Double getInvalidates() {
 		return invalidates;
 	}
+	
+	@Override
+	public String toString() {
+		return "(" + getAlgorithmID() + ", " + getArticleID() + ", " + getValidates() + ", " + (getInvalidates() == null ? "null" : getInvalidates()) + ")";
+	}
 }
