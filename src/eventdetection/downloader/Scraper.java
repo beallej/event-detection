@@ -1,7 +1,9 @@
 package eventdetection.downloader;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
@@ -31,6 +33,11 @@ import eventdetection.common.IDAble;
  * @author Joshua Lipstone
  */
 public class Scraper implements IDAble<String>, JSONRepresentable {
+	/**
+	 * The path required to run the system's Python 3 executable.
+	 */
+	public static final String pythonPath = getPythonPath();
+	
 	private final List<Pair<Pattern, String>> sectioning;
 	private final List<Pair<Pattern, String>> filtering;
 	private final String id;
@@ -234,6 +241,22 @@ public class Scraper implements IDAble<String>, JSONRepresentable {
 			pairs.add(new Pair<>(Pattern.compile(a.get(0).toString()), a.get(1).toString()));
 		}
 		return pairs;
+	}
+	
+	private static final String getPythonPath() {
+		ProcessBuilder pb = new ProcessBuilder();
+		pb.command("[ \"$(python --version | grep 'Python 3')\" != \"\" ] && echo \"$(which python)\" || echo \"$(which python3)\"");
+		try {
+			Process p = pb.start();
+			try (InputStreamReader temp = new InputStreamReader(p.getInputStream()); BufferedReader reader = new BufferedReader(temp)) {
+				p.waitFor();
+				return reader.readLine().trim();
+			}
+		}
+		catch (IOException | InterruptedException e) {
+			e.printStackTrace();
+		}
+		return "python3";
 	}
 	
 	/**
