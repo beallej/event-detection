@@ -130,7 +130,36 @@
 				<attribute unless:true="${use.libs}" name="Class-Path" value="." />
 			</manifest>
 			<fileset dir="${bin}">
-				<patternset refid="Build Excludes" />
+				<patternset>
+					<patternset refid="Build Excludes" />
+					<exclude name="**/validator/**" />
+				</patternset>
+				<patternset refid="Debug" />
+			</fileset>
+			<fileset if:true="${package.doc}" dir="." includes="${doc}/**" />
+			<fileset if:true="${package.nativelibs}" dir="." includes="${nativelibs}/**" />
+			<fileset if:true="${package.src}" dir="${src}" />
+			<restrict if:true="${package.libs}">
+				<name regex=".*\.(class|java)" />
+				<archives>
+					<zips>
+						<multirootfileset refid="library" />
+					</zips>
+				</archives>
+			</restrict>
+		</jar>
+		<property name="validator-jar" location="${prefix}validator.jar" />
+		<jar destfile="${validator-jar}" filesetmanifest="mergewithoutmain">
+			<manifest>
+				<attribute name="Main-Class" value="eventdetection.validator.ValidatorController" />
+				<attribute if:true="${use.libs}" name="Class-Path" value="${manifest.classpath}" />
+				<attribute unless:true="${use.libs}" name="Class-Path" value="." />
+			</manifest>
+			<fileset dir="${bin}">
+				<patternset>
+					<patternset refid="Build Excludes" />
+					<exclude name="**/downloader/**" />
+				</patternset>
 				<patternset refid="Debug" />
 			</fileset>
 			<fileset if:true="${package.doc}" dir="." includes="${doc}/**" />
