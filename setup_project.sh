@@ -20,7 +20,7 @@ wget '-N' '--directory-prefix=../' 'http://central.maven.org/maven2/com/rometool
 wget '-N' '--directory-prefix=../' 'http://central.maven.org/maven2/org/jdom/jdom2/2.0.6/jdom2-2.0.6.jar'
 wget '-N' '--directory-prefix=../' 'http://central.maven.org/maven2/org/slf4j/slf4j-api/1.7.12/slf4j-api-1.7.12.jar'
 wget '-N' '--directory-prefix=../' 'http://central.maven.org/maven2/org/slf4j/slf4j-simple/1.7.12/slf4j-simple-1.7.12.jar'
-wget '-N' '--directory-prefix=../' 'https://jdbc.postgresql.org/download/postgresql-9.4-1205.jdbc42.jar'
+wget '-N' '--directory-prefix=../' 'https://jdbc.postgresql.org/download/postgresql-9.4.1207.jar'
 wget '-N' '--directory-prefix=../' 'http://nlp.stanford.edu/software/stanford-corenlp-full-2015-04-20.zip'
 unzip '../stanford-corenlp-full-2015-04-20.zip' '-d' '../'
 echo '------------------Setting Up PostgreSQL Database---------------------'
