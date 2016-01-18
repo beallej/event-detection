@@ -248,7 +248,7 @@ public class Scraper implements IDAble<String>, JSONRepresentable {
 		pb.command("[ \"$(python --version | grep 'Python 3')\" != \"\" ] && echo \"$(which python)\" || echo \"$(which python3)\"");
 		try {
 			Process p = pb.start();
-			try (InputStreamReader temp = new InputStreamReader(p.getInputStream()); BufferedReader reader = new BufferedReader(temp)) {
+			try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
 				p.waitFor();
 				return reader.readLine().trim();
 			}
