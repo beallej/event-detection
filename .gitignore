@@ -7,3 +7,4 @@ venv/
 *.pyc
 .DS_STORE
 eclipse.userlibraries
+event-detection.jar
