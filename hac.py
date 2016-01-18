@@ -115,7 +115,7 @@ class Cluster:
 def main():
     ds = DataSource.DataSource()
     clusterer = HACClusterer()
-    titles_and_keywords = ds.get_all_titles_and_keywords()
+    titles_and_keywords = ds.get_all_article_ids_and_keywords()
     titles, keywords = clusterer.extract_titles_and_keywords_from_db_result(titles_and_keywords)
     all_keywords = clusterer.get_all_keywords(keywords)
     X = clusterer.get_array(keywords, all_keywords)
