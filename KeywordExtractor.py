@@ -66,11 +66,27 @@ class KeywordExtractor:
 
         for pos in title_keywords_with_tags:
             if pos in all_keywords_with_tags:
-                all_keywords_with_tags[pos] = all_keywords_with_tags[pos].union(title_keywords_with_tags[pos])
+                for title_keyword in title_keywords_with_tags[pos]:
+                    title_word = title_keyword[0]
+                    found = False
+                    for keyword in all_keywords_with_tags[pos]:
+                        word = keyword[0]
+                        if word == title_word:
+                            found = True
+                            new_keyword = (word, title_keyword[1] + keyword[1])
+                            break
+                    if found:
+                        all_keywords_with_tags[pos].remove(keyword)
+                        all_keywords_with_tags[pos].add(new_keyword)
+                    if not found:
+                        all_keywords_with_tags[pos].add(title_keyword)
         for pos in all_keywords_with_tags:
+            all_keywords_with_tags[pos] = map(self.format_for_db, all_keywords_with_tags[pos])
             all_keywords_with_tags[pos] = list(all_keywords_with_tags[pos])
         return all_keywords_with_tags
 
+    def format_for_db(self, keyword_tuple):
+        return keyword_tuple[0] + "_" + str(keyword_tuple[1])
 
 
     def get_neighbors(self, i, tokens):
@@ -181,6 +197,7 @@ class KeywordExtractor:
         #(kw, weight)
         for keyword_tuple in keywords:
             keyword = keyword_tuple[0]
+            weight = keyword_tuple[1]
             
             if re.search(r'[a-zA-Z]', keyword) != None :
                 
@@ -196,7 +213,7 @@ class KeywordExtractor:
                         #add instance's pos and actual word
                         if pos not in keywords_tagged:
                             keywords_tagged[pos] = set()
-                        keywords_tagged[pos].add(word)
+                        keywords_tagged[pos].add((word, weight))
                 elif re.search(r'^[a-zA-Z] (.*)[a-zA-Z]$', keyword) != None:
 
                     #heuristic: if it ends in a noun, likely to be a noun keyword, starts with verb, likely
@@ -208,13 +225,13 @@ class KeywordExtractor:
                     if first_tag[0] == 'V' and first_tag != "VBG":
                         if first_tag not in keywords_tagged:
                             keywords_tagged[first_tag] = set()
-                        keywords_tagged[first_tag].add(unstemmed)
+                        keywords_tagged[first_tag].add((unstemmed, weight))
 
                     #ends with noun or gerund, probably a noun --> ex. "long-distance running", "cat's pajamas"
                     if last_tag[0] == 'N' or last_tag == "VBG":
                         if last_tag not in keywords_tagged:
                             keywords_tagged[last_tag] = set()
-                        keywords_tagged[last_tag].add(unstemmed)
+                        keywords_tagged[last_tag].add((unstemmed, weight))
 
         return keywords_tagged
 

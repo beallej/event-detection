@@ -93,7 +93,7 @@ class KeywordValidator(AbstractValidator):
             for query_word in query_synonyms[pos]:
                 max_match_value += 2
                 if pos in article_keyword:
-                    article_keyword_with_same_tag = article_keyword[pos]
+                    article_keyword_with_same_tag = article_keyword[pos].split("_")[0]
                     #Compare main key. If match, match_value += 2
                     if query_word in article_keyword_with_same_tag:
                         match_value += 2

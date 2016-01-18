@@ -144,15 +144,11 @@ class DataSource:
     def add_keywords_to_article(self, id, keyword_string):
         self.cursor.execute("UPDATE articles SET keywords = %s WHERE id = %s", (keyword_string, id))
 
-    def get_article_titles(self):
-        """Gets the article titles for all articles in the database"""
-        self.cursor.execute("SELECT title FROM articles")
-        return [article[0] for article in self.cursor.fetchall()]
 
-    def get_article_filenames(self):
-        """Gets the filenames for all articles in the database"""
-        self.cursor.execute("SELECT filename FROM articles")
-        return [article[0] for article in self.cursor.fetchall()]
+    def article_processed(self, article_id):
+        self.cursor.execute("SELECT keywords FROM articles WHERE id = %s;", (article_id, ))
+        return self.cursor.fetchone()[0] is not None
+
 
 #def main():
 #    pass
