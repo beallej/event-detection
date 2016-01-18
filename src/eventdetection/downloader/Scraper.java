@@ -148,7 +148,7 @@ public class Scraper implements IDAble<String>, JSONRepresentable {
 	 *            the rules to use to extract the text
 	 * @return the extracted text
 	 */
-	public static String separate(String page, List<Pair<Pattern, String>> rules) {
+	public String separate(String page, List<Pair<Pattern, String>> rules) {
 		StringBuffer sb = new StringBuffer();
 		boolean didFind = false;
 		for (Pair<Pattern, String> rule : rules) {
@@ -182,7 +182,7 @@ public class Scraper implements IDAble<String>, JSONRepresentable {
 	 *            the rules to use to filter the text
 	 * @return the filtered text
 	 */
-	public static String filter(String text, List<Pair<Pattern, String>> rules) {
+	public String filter(String text, List<Pair<Pattern, String>> rules) {
 		for (Pair<Pattern, String> rule : rules)
 			text = rule.getX().matcher(text).replaceAll(rule.getY());
 		return text;
