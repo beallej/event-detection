@@ -169,6 +169,7 @@ public class ArticleManager {
 				}
 				Path filePath = storagePath.resolve(filename), serialPath = serializedPath.resolve(toSerializedName(filename));
 				System.out.println("Started Processing: " + article.getUntaggedTitle());
+				article = article.copyWithID(rs.getInt("id"));
 				try {
 					StringBuilder fileText = new StringBuilder(article.getTaggedTitle().length() + article.getTaggedText().length() + 14); //14 is the length of the section dividers
 					fileText.append("TITLE:\n").append(article.getTaggedTitle()).append("\nTEXT:\n").append(article.getTaggedText());
