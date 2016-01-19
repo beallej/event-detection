@@ -1,6 +1,6 @@
 from Validator import AbstractValidator, QueryArticleList
 import DataSource
-from hac import *
+from HierarchicalAgglomerativeClusterer import *
 import Matrix
 
 
@@ -67,9 +67,9 @@ class HACValidator(AbstractValidator):
         all_keywords = clusterer.get_all_keywords(keywords)
         X = clusterer.get_array(keywords, all_keywords)
         Z = clusterer.get_cluster_matrix(X)
-        clusters = clusterer.get_clusters(Z, 0.10, titles)
+        clusters = clusterer.cluster(Z, 0.10, titles)
 
-        for cluster in clusters:
+        #for cluster in clusters:
 
 
 

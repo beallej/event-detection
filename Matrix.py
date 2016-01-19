@@ -1,9 +1,7 @@
 from numpy import zeros
 from DataSource import *
-import json
 from nltk.stem.snowball import SnowballStemmer
 from nltk.stem.wordnet import WordNetLemmatizer
-from collections import Counter
 import nltk.corpus
 
 # Uncomment following 2 lines to print out full arrays
