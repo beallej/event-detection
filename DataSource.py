@@ -149,10 +149,14 @@ class DataSource:
         self.cursor.execute("SELECT id, title, filename, url, source FROM articles WHERE keywords is null;")
         return self.cursor.fetchall()
 
-
     def add_keywords_to_article(self, id, keyword_string):
         self.cursor.execute("UPDATE articles SET keywords = %s WHERE id = %s", (keyword_string, id))
 
+
+    def set_all_unprocessed(self):
+        self.cursor.execute("UPDATE articles SET keywords = NULL")
+        self.cursor.execute("UPDATE query_articles SET processed = false")
+        self.cursor.execute("UPDATE query_articles SET accuracy = 0")
 
     def article_processed(self, article_id):
         self.cursor.execute("SELECT keywords FROM articles WHERE id = %s;", (article_id, ))
