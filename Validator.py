@@ -164,16 +164,12 @@ class Article:
         :return: nothing
         """
 
-        tagged_items = body.split("TITLE:")[1].split("TEXT:")
-        self.title_tagged = tagged_items[0]
-        self.body_tagged = tagged_items[1]
+        pattern =  re.compile(r'TITLE:(.*)TEXT:(.*)', re.DOTALL)
+        tagged_items = re.match(pattern, body)
 
-        # pattern =  re.compile(r'TITLE:\n([.\n]*)\nTEXT:\n([\n.]*)', re.MULTILINE)
-        # tagged_items = re.match(pattern, body)
-        #
-        #
-        # self.title_tagged = tagged_items.group(1)
-        # self.body_tagged = tagged_items.group(2)
+
+        self.title_tagged = tagged_items.group(1)
+        self.body_tagged = tagged_items.group(2)
         self.title = title
         self.url = url
         self.source = source
