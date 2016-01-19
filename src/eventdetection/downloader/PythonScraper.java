@@ -14,6 +14,10 @@ import toberumono.json.JSONSystem;
 
 public class PythonScraper extends Scraper {
 	/**
+	 * The path required to run the system's bash executable.
+	 */
+	public static final String bashPath = getBashPath();
+	/**
 	 * The path required to run the system's Python 3 executable.
 	 */
 	public static final String pythonPath = getPythonPath();
@@ -40,9 +44,25 @@ public class PythonScraper extends Scraper {
 		this.parameters = (JSONObject) python.get("parameters");
 	}
 	
+	private static final String getBashPath() {
+		ProcessBuilder pb = new ProcessBuilder();
+		pb.command("which", "bash");
+		try {
+			Process p = pb.start();
+			try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+				p.waitFor();
+				return reader.readLine().trim();
+			}
+		}
+		catch (IOException | InterruptedException e) {
+			e.printStackTrace();
+		}
+		return "/bin/bash";
+	}
+	
 	private static final String getPythonPath() {
 		ProcessBuilder pb = new ProcessBuilder();
-		pb.command("[ \"$(python --version | grep 'Python 3')\" != \"\" ] && echo \"$(which python)\" || echo \"$(which python3)\"");
+		pb.command(bashPath, "-l", "-c", "[ \"$(python --version | grep 'Python 3')\" != \"\" ] && echo \"$(which python)\" || echo \"$(which python3)\"");
 		try {
 			Process p = pb.start();
 			try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
