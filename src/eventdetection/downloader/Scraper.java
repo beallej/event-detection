@@ -1,7 +1,9 @@
 package eventdetection.downloader;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
@@ -31,6 +33,11 @@ import eventdetection.common.IDAble;
  * @author Joshua Lipstone
  */
 public class Scraper implements IDAble<String>, JSONRepresentable {
+	/**
+	 * The path required to run the system's Python 3 executable.
+	 */
+	public static final String pythonPath = getPythonPath();
+	
 	private final List<Pair<Pattern, String>> sectioning;
 	private final List<Pair<Pattern, String>> filtering;
 	private final String id;
@@ -41,6 +48,18 @@ public class Scraper implements IDAble<String>, JSONRepresentable {
 		arr.add(new JSONString(e.getY()));
 		return arr;
 	};
+	
+	/**
+	 * Creates a {@link Scraper} using the given configuration data.
+	 * 
+	 * @param json
+	 *            the {@link Path} to the JSON file that describes the {@link Scraper}
+	 * @param config
+	 *            a {@link JSONObject} containing the configuration data for the {@link Scraper}
+	 */
+	public Scraper(Path json, JSONObject config) {
+		this((String) config.get("id").value(), jsonArrayToPairs((JSONArray) config.get("sectioning")), jsonArrayToPairs((JSONArray) config.get("filtering")), config);
+	}
 	
 	/**
 	 * Creates a {@link Scraper} with the given id and patterns.
@@ -236,6 +255,22 @@ public class Scraper implements IDAble<String>, JSONRepresentable {
 		return pairs;
 	}
 	
+	private static final String getPythonPath() {
+		ProcessBuilder pb = new ProcessBuilder();
+		pb.command("[ \"$(python --version | grep 'Python 3')\" != \"\" ] && echo \"$(which python)\" || echo \"$(which python3)\"");
+		try {
+			Process p = pb.start();
+			try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+				p.waitFor();
+				return reader.readLine().trim();
+			}
+		}
+		catch (IOException | InterruptedException e) {
+			e.printStackTrace();
+		}
+		return "python3";
+	}
+	
 	/**
 	 * Loads a {@link Scraper} from a JSON file
 	 * 
@@ -250,15 +285,14 @@ public class Scraper implements IDAble<String>, JSONRepresentable {
 	public static Scraper loadFromJSON(Path json, ClassLoader classloader) throws IOException {
 		JSONObject config = (JSONObject) JSONSystem.loadJSON(json);
 		JSONSystem.transferField("class", new JSONString(Scraper.class.getName()), config);
-		String id = (String) config.get("id").value();
 		try {
-			Constructor<?> constructor = classloader.loadClass((String) config.get("class").value()).getConstructor(String.class, List.class, List.class);
+			Constructor<?> constructor = classloader.loadClass((String) config.get("class").value()).getConstructor(Path.class, JSONObject.class);
 			constructor.setAccessible(true);
-			return (Scraper) constructor.newInstance(id, jsonArrayToPairs((JSONArray) config.get("sectioning")), jsonArrayToPairs((JSONArray) config.get("filtering")));
+			return (Scraper) constructor.newInstance(json, config);
 		}
 		catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException | ClassNotFoundException e) {
 			e.printStackTrace();
-			return new Scraper(id, jsonArrayToPairs((JSONArray) config.get("sectioning")), jsonArrayToPairs((JSONArray) config.get("filtering")));
+			return new Scraper(json, config);
 		}
 	}
 	
