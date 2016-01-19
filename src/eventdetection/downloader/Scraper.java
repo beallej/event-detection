@@ -1,9 +1,7 @@
 package eventdetection.downloader;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
@@ -33,11 +31,6 @@ import eventdetection.common.IDAble;
  * @author Joshua Lipstone
  */
 public class Scraper implements IDAble<String>, JSONRepresentable {
-	/**
-	 * The path required to run the system's Python 3 executable.
-	 */
-	public static final String pythonPath = getPythonPath();
-	
 	private final List<Pair<Pattern, String>> sectioning;
 	private final List<Pair<Pattern, String>> filtering;
 	private final String id;
@@ -58,7 +51,8 @@ public class Scraper implements IDAble<String>, JSONRepresentable {
 	 *            a {@link JSONObject} containing the configuration data for the {@link Scraper}
 	 */
 	public Scraper(Path json, JSONObject config) {
-		this((String) config.get("id").value(), jsonArrayToPairs((JSONArray) config.get("sectioning")), jsonArrayToPairs((JSONArray) config.get("filtering")), config);
+		this((String) config.get("id").value(), config.get("sectioning") != null ? jsonArrayToPairs((JSONArray) config.get("sectioning")) : new ArrayList<>(),
+				config.get("filtering") != null ? jsonArrayToPairs((JSONArray) config.get("filtering")) : new ArrayList<>(), config);
 	}
 	
 	/**
@@ -160,7 +154,18 @@ public class Scraper implements IDAble<String>, JSONRepresentable {
 	}
 	
 	/**
-	 * Extracts the text that composes an article from the given page
+	 * Extracts the text that composes an article from the given page using the rules stored in the {@link Scraper}.
+	 * 
+	 * @param page
+	 *            the page from which to extract the text as a {@link String}
+	 * @return the extracted text
+	 */
+	public String separate(String page) {
+		return separate(page, sectioning);
+	}
+	
+	/**
+	 * Extracts the text that composes an article from the given page.
 	 * 
 	 * @param page
 	 *            the page from which to extract the text as a {@link String}
@@ -191,6 +196,17 @@ public class Scraper implements IDAble<String>, JSONRepresentable {
 		if (!didFind)
 			return null;
 		return page;
+	}
+	
+	/**
+	 * Filters already scraped text using the rules stored in the {@link Scraper}.
+	 * 
+	 * @param text
+	 *            the text to filter
+	 * @return the filtered text
+	 */
+	public String filter(String text) {
+		return filter(text, filtering);
 	}
 	
 	/**
@@ -253,22 +269,6 @@ public class Scraper implements IDAble<String>, JSONRepresentable {
 			pairs.add(new Pair<>(Pattern.compile(a.get(0).toString()), a.get(1).toString()));
 		}
 		return pairs;
-	}
-	
-	private static final String getPythonPath() {
-		ProcessBuilder pb = new ProcessBuilder();
-		pb.command("[ \"$(python --version | grep 'Python 3')\" != \"\" ] && echo \"$(which python)\" || echo \"$(which python3)\"");
-		try {
-			Process p = pb.start();
-			try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-				p.waitFor();
-				return reader.readLine().trim();
-			}
-		}
-		catch (IOException | InterruptedException e) {
-			e.printStackTrace();
-		}
-		return "python3";
 	}
 	
 	/**
