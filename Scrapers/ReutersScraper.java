@@ -1,5 +1,6 @@
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.Scanner;
@@ -54,19 +55,12 @@ class ReutersScraper extends PythonScraper {
 	}
 
 	@Override
-	public String scrape(String url) throws IOException {
+	public String scrape(URL url) throws IOException {
+		String link = url.toString();
 		JSONObject variableParameters = new JSONObject();
-		variableParameters.put("url", new JSONString(url));
-		System.out.println(sectioned);
-		String filtered = filter(sectioned);
-		return filtered.trim();
-	}
-
-    @Override
-    public String scrape(URL url) throws IOException {
-        JSONObject variableParameters = new JSONObject();
-		variableParameters.put("url", new JSONString(url.toString()));
+		variableParameters.put("url", new JSONString(link));
 		String sectioned = callScript("sectioning", variableParameters);
+		System.out.println(sectioned);
 		return sectioned.trim();
 	}
 

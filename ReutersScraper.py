@@ -13,7 +13,9 @@ def read():
     print(" ".join(text.strings))
 
 def main():
-    read()
+    print('Hi there!')
+    #read()
 
+print(__name__)
 if __name__ == "__main__":
     main()

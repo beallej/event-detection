@@ -78,12 +78,14 @@ public class PythonScraper extends Scraper {
 	
 	public String callScript(String scriptName, JSONObject variableParameters) throws IOException {
 		String[] comm = ((JSONArray) scripts.get(scriptName)).stream().collect(ArrayList::new, (a, b) -> a.add((String) b.value()), ArrayList::addAll).toArray(new String[0]);
-		Path scriptPath = json.resolve(comm[0]);
-		String[] command = new String[comm.length + 1];
+		Path scriptPath = json.getParent().resolve(comm[0]);
+		String[] command = new String[comm.length + 3];
 		for (int i = 1; i < comm.length; i++)
-			command[i + 1] = comm[i];
-		command[0] = pythonPath;
-		command[1] = scriptPath.toString();
+			command[i + 3] = comm[i];
+		command[0] = bashPath;
+		command[1] = "-l";
+		command[2] = pythonPath;
+		command[3] = scriptPath.normalize().toString();
 		JSONObject parameters = new JSONObject();
 		JSONObject scriptParameters = (JSONObject) parameters.get(scriptName);
 		JSONObject globalParameters = (JSONObject) parameters.get("global");
