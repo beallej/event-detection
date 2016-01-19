@@ -62,10 +62,11 @@ class HACClusterer:
         clustered = fcluster(Z, cutoff)
         clusters = collections.defaultdict(list)
         for i in range(len(article_titles)):
-            clusters[clustered[i]].append((article_titles[i], self.keywords[i]))
+            clusters[clustered[i]].append(article_titles[i])
         final_clusters = []
         for item in clusters:
-            if len(article_titles)/4 > len(clusters[item]) > 1:
+            if True:
+            #if len(article_titles)/4 > len(clusters[item]) > 1:
                 print(cutoff, item, clusters[item])
                 final_cluster = Cluster(item, clusters[item])
                 final_clusters.append(final_cluster)
@@ -119,16 +120,19 @@ class Cluster:
 def main():
     ds = DataSource.DataSource()
     clusterer = HACClusterer()
-    titles_and_keywords = ds.get_all_titles_and_keywords()
-    titles, keywords = clusterer.extract_titles_and_keywords_from_db_result(titles_and_keywords)
-    all_keywords = clusterer.get_all_keywords(keywords)
-    X = clusterer.get_array(keywords, all_keywords)
-    Z = clusterer.get_cluster_matrix(X)
-    clusters = clusterer.get_clusters(Z, 7, titles)
-    for cluster in clusters:
-        print(cluster.article_titles)
+    # titles_and_keywords = ds.get_all_titles_and_keywords()
+    # titles, keywords = clusterer.extract_titles_and_keywords_from_db_result(titles_and_keywords)
 
-    clusterer.plot_data(Z,8 , titles)
+    # all_keywords = clusterer.get_all_keywords(keywords)
+    # X = clusterer.get_array(keywords, all_keywords)
+    titles = ds.get_all_ids_and_titles()
+    X = clusterer.get_array()
+    Z = clusterer.get_cluster_matrix(X)
+    # clusters = clusterer.get_clusters(Z, 7, titles)
+    # for cluster in clusters:
+    #     print(cluster.article_titles)
+
+    #clusterer.plot_data(Z,8 , titles)
 
 if __name__ == '__main__':
     main()

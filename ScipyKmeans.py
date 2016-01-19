@@ -7,7 +7,7 @@ from math import sqrt
 
 # Cluster by article keywords
 m = Matrix()
-matrix = m.get_keyword_matrix()
+matrix = m.construct_matrix()
 article_titles = m.get_article_titles()
 whitened_matrix = whiten(matrix)
 

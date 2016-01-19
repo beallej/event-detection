@@ -1,7 +1,10 @@
 from numpy import zeros
 from DataSource import *
 import json
+from nltk.stem.snowball import SnowballStemmer
+from nltk.stem.wordnet import WordNetLemmatizer
 from collections import Counter
+import nltk.corpus
 
 # Uncomment following 2 lines to print out full arrays
 # import numpy
@@ -9,13 +12,17 @@ from collections import Counter
 
 class Matrix:
 
+
     def __init__(self):
         self.ds = DataSource()
         self.ids = []
         self.num_entries = 0
         self.num_datapoints = 0
         self.article_titles = []
-        self.article_keywords = {}
+        self.title_words_by_article = []
+        self.stopwords = set(nltk.corpus.stopwords.words('english'))
+        self.lemmatizer = WordNetLemmatizer()
+
 
     def get_num_entries(self):
         '''Gets the number of non-zero entries in the matrix.'''
@@ -31,11 +38,25 @@ class Matrix:
            article ids in self.ids.'''
         return self.article_titles
 
-    def get_article_keywords(self):
-        return self.article_keywords
+    def get_title_words_by_article(self):
+        return self.title_words_by_article
 
     def get_article_ids(self):
         return self.ids
+
+    def retrieve_article_ids_and_titles(self):
+        '''Gets list of article ids and titles that can be
+           accessed consistently even if articles are added mid-process.'''
+        ids = []
+        titles = []
+        db_ids_and_titles = self.ds.get_articles()
+        for item in db_ids_and_titles:
+            ids.append(item[0])
+            titles.append(item[1])
+        self.num_datapoints = len(ids) # Track num datapoints to calculate K
+        self.ids = ids
+        self.article_titles = titles
+        return ids, titles
 
     def retrieve_article_ids(self):
         '''Gets list of article ids so that keywords and titles can be
@@ -56,63 +77,49 @@ class Matrix:
             titles.append(title)
         return titles
 
-    def get_article_keywords(self):
-        '''Gets dictionary of dictionary of keyword weights
-           {article_id:{word:weight}}'''
-        article_keywords = {}
-        for id in self.ids:
-            article_keyword_weights = Counter()
-            db_keywords_str = self.ds.get_article_keywords(id)[0]
-            db_keywords_dict = json.loads(db_keywords_str)
-            for pos in db_keywords_dict:
-                for keyword_with_weight in db_keywords_dict[pos]:
-                    keyword = keyword_with_weight[0]
-                    weight = keyword_with_weight[1]
-                    article_keyword_weights[keyword] = weight
-            article_keywords[id] = article_keyword_weights
-        self.article_keywords = article_keywords
-        return article_keywords
+    def get_title_words_by_article(self):
+        '''Gets ordered list [set(stemmed title words)] of article titles
+           and set of unique stemmed title words'''
+        self.title_words_by_article = []
+        self.all_title_words_set = set()
+        titles = self.get_article_titles()
+        for idx, id in enumerate(self.ids):
+            title_words = set()
+            title = titles[idx]
+            for word in title:
+                normalized_word = self.normalize_word(word)
+                title_words.add(normalized_word) # For the article
+                self.all_title_words_set.add(normalized_word) # Global
+            self.title_words_by_article.append(title_words)
+        return self.title_words_by_article
 
-    def get_keyword_set(self):
-        '''Gets set of unique keywords across all articles.'''
-        keyword_set = set()
-        keywords = self.ds.get_all_article_keywords()
-        for row in keywords:
-            article_keyword_dict = json.loads(row[0])
-            for pos in article_keyword_dict:
-                pos_keywords = article_keyword_dict[pos]
-                for keyword_with_weight in pos_keywords:
-                    keyword = keyword_with_weight[0]
-                    keyword_set.add(keyword)
-        return keyword_set
 
-    def construct_matrix(self, keyword_list, article_ids, article_keywords):
-        '''Constructs an articles X keywords numpy array and populates it
-           with keyword weights in each article.'''
-        num_keywords = len(keyword_list)
-        num_articles = len(article_ids)
-        matrix = zeros((num_articles, num_keywords))
-        num_entries = 0
-        for kword_idx, keyword in enumerate(keyword_list):
-            for article_idx, article_id in enumerate(article_ids):
-                if article_keywords[article_id][keyword] > 0:
-                    matrix[article_idx, kword_idx] = article_keywords[article_id][keyword]
-                    num_entries += 1
-        self.num_entries = num_entries # Count num entries to calculate K
-        return matrix
+    def construct_matrix(self):
+        '''Constructs an articles X title words numpy array and populates it
+           with counts in each article.'''
 
-    def get_keyword_matrix(self):
         # Initialize article ids and titles
         self.ids = self.retrieve_article_ids()
         self.article_titles = self.retrieve_article_titles()
 
         # Get keywords to construct matrix
-        article_keywords = self.get_article_keywords()
-        keyword_set = self.get_keyword_set()
-        keyword_list = list(keyword_set)
-        matrix = self.construct_matrix(keyword_list, self.ids, article_keywords)
-
+        title_words_by_article = self.get_title_words_by_article()
+        all_title_words_list = list(self.all_title_words_set)
+        num_title_words = len(all_title_words_list)
+        num_articles = len(self.ids)
+        matrix = zeros((num_articles, num_title_words))
+        num_entries = 0
+        for title_word_idx, title_word in enumerate(all_title_words_list):
+            for article_idx, article_id in enumerate(self.ids):
+                if title_word in title_words_by_article[article_idx]:
+                    matrix[article_idx, title_word_idx] = 1
+                    num_entries += 1
+        self.num_entries = num_entries # Count num entries to calculate K
         return matrix
 
-if __name__ == '__main__':
-    main()
+
+    def normalize_word(self, word):
+        lemma = self.lemmatizer.lemmatize(word.lower())
+        stem = (SnowballStemmer("english").stem(lemma))
+        return stem
+

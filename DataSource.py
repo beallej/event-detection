@@ -158,6 +158,10 @@ class DataSource:
         self.cursor.execute("UPDATE query_articles SET processed = false")
         self.cursor.execute("UPDATE query_articles SET accuracy = 0")
 
+    def get_all_ids_and_titles(self):
+        self.cursor.execute("SELECT id, title FROM articles;")
+        return self.cursor.fetchall()
+
     def article_processed(self, article_id):
         self.cursor.execute("SELECT keywords FROM articles WHERE id = %s;", (article_id, ))
         return self.cursor.fetchone()[0] is not None
