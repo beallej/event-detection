@@ -34,7 +34,7 @@ class KMeansClusterer():
 		"""Computes k with average of rule of thumb k and text databases k.
 		   Methods developed from:
 		   https://en.wikipedia.org/wiki/Determining_the_number_of_clusters_in_a_data_set"""
-		text_databases_k = self.get_text_databases_k(self.whitened_matrix.shape)
+		text_databases_k = self.get_text_databases_k()
 		rule_of_thumb_k = self.get_rule_of_thumb_k()
 		average_k = round((text_databases_k + rule_of_thumb_k) / 2)
 		return average_k
@@ -44,10 +44,10 @@ class KMeansClusterer():
 		rule_of_thumb_k = round(sqrt(self.m.get_num_datapoints() / 2))
 		return rule_of_thumb_k
 
-	def get_text_databases_k(self, shape):
+	def get_text_databases_k(self):
 		"""Calculates k with (m*n)/t, matrix dimensions over number of entries"""
-		num_articles = shape[0]
-		num_keywords = shape[1]
+		num_articles = self.whitened_matrix.shape[0]
+		num_keywords = self.whitened_matrix.shape[1]
 		num_entries = self.m.get_num_entries()
 		text_databases_k = (num_articles * num_keywords) // num_entries 
 		return text_databases_k
