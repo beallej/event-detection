@@ -20,6 +20,10 @@ import eventdetection.validator.ValidationResult;
 import eventdetection.validator.Validator;
 import eventdetection.validator.ValidatorController;
 
+import toberumono.structures.tuples.Pair;
+import toberumono.structures.collections.lists.SortedList;
+import toberumono.structures.SortingMethods;
+
 public class SwoogleSemanticAnalysisValidator extends Validator {
 	private static final String URL_PREFIX = "http://swoogle.umbc.edu/StsService/GetStsSim?operation=api";
 	
@@ -46,6 +50,7 @@ public class SwoogleSemanticAnalysisValidator extends Validator {
 		if (query.getIndirectObject() != null && query.getIndirectObject().length() > 0)
 			phrase1.append(" ").append(query.getIndirectObject());
 		double most = 0.0;
+        SortedList<Pair<Double, String>> topFive = new SortedList<>((a, b) -> b.getX().compareTo(a.getX()));
 		for (Annotation paragraph : article.getAnnotatedText()) {
 			List<CoreMap> sentences = paragraph.get(SentencesAnnotation.class);
 			for (CoreMap sentence : sentences) {
@@ -55,13 +60,18 @@ public class SwoogleSemanticAnalysisValidator extends Validator {
 				URLConnection connection = new URL(url).openConnection();
 				connection.setRequestProperty("Accept-Charset", StandardCharsets.UTF_8.name());
 				try (BufferedReader response = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-					double temp = Double.parseDouble(response.readLine().trim());
-					if (temp > most)
-						most = temp;
+					Double temp = Double.parseDouble(response.readLine().trim());
+                    topFive.add(new Pair<>(temp, sen));
+                    if (topFive.size() > 5)
+                        topFive.remove(topFive.size() - 1);
 				}
 			}
 		}
-		return new ValidationResult(this.getID(), article.getID(), most);
+        double average = 0.0;
+        for (Pair<Double, String> p : topFive)
+            average += p.getX();
+        average /= (double) topFive.size();
+		return new ValidationResult(this.getID(), article.getID(), average);
 	}
 	
 	private static String reconstructSentence(CoreMap sentence) {
