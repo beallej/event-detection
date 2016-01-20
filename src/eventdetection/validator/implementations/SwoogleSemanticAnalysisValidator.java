@@ -45,7 +45,7 @@ public class SwoogleSemanticAnalysisValidator extends Validator {
 			phrase1.append(" ").append(query.getDirectObject());
 		if (query.getIndirectObject() != null && query.getIndirectObject().length() > 0)
 			phrase1.append(" ").append(query.getIndirectObject());
-		double queries = 0.0, sum = 0.0;
+		double most = 0.0;
 		for (Annotation paragraph : article.getAnnotatedText()) {
 			List<CoreMap> sentences = paragraph.get(SentencesAnnotation.class);
 			for (CoreMap sentence : sentences) {
@@ -55,12 +55,13 @@ public class SwoogleSemanticAnalysisValidator extends Validator {
 				URLConnection connection = new URL(url).openConnection();
 				connection.setRequestProperty("Accept-Charset", StandardCharsets.UTF_8.name());
 				try (BufferedReader response = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
-					sum += Double.parseDouble(response.readLine().trim());
-					queries++;
+					double temp = Double.parseDouble(response.readLine().trim());
+					if (temp > most)
+						most = temp;
 				}
 			}
 		}
-		return new ValidationResult(this.getID(), article.getID(), sum / queries);
+		return new ValidationResult(this.getID(), article.getID(), most);
 	}
 	
 	private static String reconstructSentence(CoreMap sentence) {
