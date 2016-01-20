@@ -7,26 +7,34 @@ from math import sqrt
 
 class KMeansClusterer():
 
-	def cluster(self):#self, matrix, cutoff, article_titles, article_ids):
+	def cluster(self): # TODO add taking in parameter for type of k calculation
+
 		# Cluster by article title words
 		m = Matrix()
 		matrix = m.construct_matrix()
 		article_titles = m.get_article_titles()
 		whitened_matrix = whiten(matrix)
 
-		# Compute k with average of two methods, which were taken from:
-		# https://en.wikipedia.org/wiki/Determining_the_number_of_clusters_in_a_data_set
-		text_databases_k = self.get_text_databases_k(m, whitened_matrix.shape)
-		rule_of_thumb_k = self.get_rule_of_thumb_k(m)
-		k = round((text_databases_k + rule_of_thumb_k) / 2)
+		# Compute k
+		k = self.get_average_k(m, whitened_matrix)
 
-		# Compute k-means with k clusters
+		# Compute k-means clustering with k clusters
 		codebook, distortion = kmeans(whitened_matrix, k)
 
 		# Assign each article title to a cluster
 		cluster_ids, distortion = vq(whitened_matrix, codebook)
 
+		# Print clustering results
 		self.print_clusters(cluster_ids, article_titles)
+
+	def get_average_k(self, matrix, whitened_matrix):
+		"""Computes k with average of rule of thumb k and text databases k.
+		   Methods developed from:
+		   https://en.wikipedia.org/wiki/Determining_the_number_of_clusters_in_a_data_set"""
+		text_databases_k = self.get_text_databases_k(matrix, whitened_matrix.shape)
+		rule_of_thumb_k = self.get_rule_of_thumb_k(matrix)
+		average_k = round((text_databases_k + rule_of_thumb_k) / 2)
+		return average_k
 
 	def get_rule_of_thumb_k(self, matrix):
 		"""Calculates k with square root of (number of documents / 2)"""
