@@ -1,6 +1,6 @@
 {
 	"id" : "REUTERS",
-    "class" : "ReutersScraper",
+    "class" : "eventdetection.downloader.PythonScraper",
     "python" : {
     	"scripts" : {
     		"sectioning" : ["../ReutersScraper.py"]
