@@ -1,8 +1,7 @@
 from Validator import AbstractValidator, QueryArticleList
-import DataSource
+from DataSource import *
 from HierarchicalAgglomerativeClusterer import *
-import MatrixCreator
-
+import json
 
 class HACValidator(AbstractValidator):
     """
@@ -61,13 +60,8 @@ class HACValidator(AbstractValidator):
             query_synonyms[w[1]][w[0]]=w[3]
 
 
-        clusterer = HACClusterer()
-        titles_and_keywords = ds.get_all_titles_and_keywords()
-        titles, keywords = clusterer.extract_titles_and_keywords_from_db_result(titles_and_keywords)
-        all_keywords = clusterer.get_all_keywords(keywords)
-        X = clusterer.get_array(keywords, all_keywords)
-        Z = clusterer.get_cluster_matrix(X)
-        clusters = clusterer.cluster(Z, 0.10, titles)
+        clusterer = HierarchicalAgglomerativeClusterer()
+        clusters = clusterer.cluster()
 
         #for cluster in clusters:
 
@@ -75,9 +69,10 @@ class HACValidator(AbstractValidator):
 
 
         #print(ds.get_article_keywords(article_id))
-        article_keyword = json.loads(ds.get_article_keywords(article_id)[0]) #{NN: [list of keywords], VB:[list of verb keywords]}
+        # article_keyword = json.loads(ds.get_article_keywords(article_id)[0]) #{NN: [list of keywords], VB:[list of verb keywords]}
         #print(query_synonyms)
         #print(article_keyword)
+        max_match_value = 1 # might change this -- but it might not be safe in general to have it start at 0, not change, and cause divide by 0 errors
         for pos in query_synonyms:
             for query_word in query_synonyms[pos]:
                 max_match_value += 2
@@ -93,3 +88,10 @@ class HACValidator(AbstractValidator):
                                 break
         match_percentage = match_value/max_match_value
         return match_percentage
+
+def main():
+    hacValidator = HACValidator()
+    hacValidator.validate(1, 1)
+
+if __name__ == "__main__":
+    main()
