@@ -8,7 +8,7 @@ import nltk.corpus
 # import numpy
 # numpy.set_printoptions(threshold=numpy.nan)
 
-class Matrix:
+class MatrixCreator:
 
 
     def __init__(self):
@@ -30,6 +30,13 @@ class Matrix:
         '''Gets the number of datapoints/rows in the matrix
            (in our case, the number of articles).'''
         return self.num_datapoints
+
+    def get_num_title_words(self):
+        '''
+        Gets the number of columns in the matrix
+        :return:number of columns
+        '''
+        return self.num_title_words
 
     def get_article_titles(self):
         '''Gets ordered list of article titles corresponding to
@@ -89,6 +96,7 @@ class Matrix:
                 title_words.add(normalized_word) # For the article
                 self.all_title_words_set.add(normalized_word) # Global
             self.title_words_by_article.append(title_words)
+        self.num_title_words = len(self.all_title_words_set)
         return self.title_words_by_article
 
 

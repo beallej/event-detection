@@ -1,7 +1,7 @@
 from Validator import AbstractValidator, QueryArticleList
 import DataSource
 from HierarchicalAgglomerativeClusterer import *
-import Matrix
+import MatrixCreator
 
 
 class HACValidator(AbstractValidator):
