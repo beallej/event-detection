@@ -22,10 +22,10 @@ class KMeansClusterer(AbstractClusterer):
         self.print_clusters(cluster_ids)
 
         clusters = {}
-        for i in range(len(self.article_titles)):
+        for i in range(len(self.article_ids)):
             cluster_id = cluster_ids[i]
             clusters.setdefault(cluster_id, Cluster(cluster_id))
-            clusters[cluster_id].add_article(self.article_ids[i], self.article_titles[i])
+            clusters[cluster_id].add_article(self.article_ids[i], self.matrix_creator.filenames[i])
         final_clusters = [v for (k,v) in clusters.items() if v.is_valid_cluster(len(self.article_ids))]
         return final_clusters
 

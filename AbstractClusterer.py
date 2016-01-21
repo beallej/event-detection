@@ -29,6 +29,8 @@ class AbstractClusterer:
             cutoff = self.get_rule_of_thumb_k()
         elif k_function == "get_text_databases_k":
             cutoff = self.get_text_databases_k()
+        elif k_function == "every_article_is_cluster_k":
+            cutoff = self.every_article_is_cluster_k()
         else:
             cutoff = self.get_average_k()
         self.k = cutoff
@@ -68,3 +70,6 @@ class AbstractClusterer:
         """Calculates k as 3/4 times the number of articles"""
         num_articles = self.matrix_creator.get_num_datapoints()
         return num_articles * 3 // 4
+
+    def every_article_is_cluster_k(self):
+        return self.matrix_creator.get_num_datapoints()

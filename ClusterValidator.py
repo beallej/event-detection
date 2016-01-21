@@ -11,7 +11,7 @@ class ClusterValidator:
     class ClusterValidator: Uses keywords from an article to validate a query
     """
 
-    MIN_THRESHOLD = .1
+    MIN_THRESHOLD = 0
 
     def __init__(self, cluster_class, k_function):
         """
@@ -46,7 +46,6 @@ class ClusterValidator:
             if w[1] not in query_synonyms:
                 query_synonyms[w[1]] = {}
             query_synonyms[w[1]][w[0]] = w[3]
-        print(query_synonyms)
 
         cluster_matches = {}
         for cluster in self.clusters:
@@ -76,7 +75,7 @@ class ClusterValidator:
         return None
 
 def main():
-    clusterValidator = ClusterValidator(KMeansClusterer, "get_bigger_k")
+    clusterValidator = ClusterValidator(KMeansClusterer, "every_article_is_cluster_k")
     result = clusterValidator.validate(3)
     if result is None:
         print("No clusters found")
