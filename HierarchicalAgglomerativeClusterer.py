@@ -1,5 +1,4 @@
-
-from matplotlib import pyplot as plt
+# from matplotlib import pyplot as plt
 from scipy.cluster.hierarchy import dendrogram, linkage
 from scipy.cluster.hierarchy import fcluster
 from Cluster import Cluster
@@ -43,19 +42,16 @@ class HierarchicalAgglomerativeClusterer(AbstractClusterer):
         )
         plt.show()
 
-    def cluster(self):
-        matrix = self.pre_cluster()
+    def cluster(self, k_function = None):
+        matrix = self.pre_cluster(k_function)
         Z = self.get_cluster_matrix(matrix)
-        article_ids = self.matrix_creator.get_article_ids()
-        article_titles = self.matrix_creator.get_article_titles()
-        cutoff = self.get_average_k()
-        cluster_matrix = fcluster(Z, cutoff, criterion='maxclust')
+        cluster_matrix = fcluster(Z, self.k, criterion='maxclust')
         clusters = {}
-        for i in range(len(article_titles)):
+        for i in range(len(self.article_titles)):
             cluster_id = cluster_matrix[i]
             clusters.setdefault(cluster_id, Cluster(cluster_id))
-            clusters[cluster_id].add_article(article_ids[i], article_titles[i])
-        final_clusters = [v for (k,v) in clusters.items() if v.is_valid_cluster(len(article_ids))]
+            clusters[cluster_id].add_article(self.article_ids[i], self.article_titles[i])
+        final_clusters = [v for (k,v) in clusters.items() if v.is_valid_cluster(len(self.article_ids))]
         return final_clusters
 
 
@@ -67,7 +63,7 @@ def main():
     for cluster in clusters:
         print(cluster.article_titles)
 
-    clusterer.plot_data()
+    #clusterer.plot_data()
 
 if __name__ == '__main__':
     main()

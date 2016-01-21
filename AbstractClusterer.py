@@ -3,7 +3,7 @@ from math import sqrt
 
 class AbstractClusterer:
     """
-    Abstact Validator: An interface for validators, which validate queries with articles
+    Abstact Clusterer: An interface for clusters, which cluster articles
     """
     def __init__(self):
         """
@@ -12,14 +12,34 @@ class AbstractClusterer:
         """
         pass
 
-    def pre_cluster(self):
+    def pre_cluster(self, k_function = None):
+        """
+        pre_cluster: creates matrix for clustering, gets article titles and ids
+        :return: the matrix for clustering
+        """
         # Cluster by article title words
         self.matrix_creator = MatrixCreator()
         matrix = self.matrix_creator.construct_matrix()
         self.article_titles = self.matrix_creator.get_article_titles()
+        self.article_ids = self.matrix_creator.get_article_ids()
+
+        if k_function == "get_bigger_k":
+            cutoff = self.get_bigger_k()
+        elif k_function == "get_rule_of_thumb_k":
+            cutoff = self.get_rule_of_thumb_k()
+        elif k_function == "get_text_databases_k":
+            cutoff = self.get_text_databases_k()
+        else:
+            cutoff = self.get_average_k()
+        self.k = cutoff
+
         return matrix
 
     def cluster(self):
+        """
+        Performs clustering on articles
+        :return: a list of clusters
+        """
         assert False
 
     def get_average_k(self):
@@ -43,3 +63,8 @@ class AbstractClusterer:
         num_entries = self.matrix_creator.get_num_entries()
         text_databases_k = (num_articles * num_title_words) // num_entries
         return text_databases_k
+
+    def get_bigger_k(self):
+        """Calculates k as 3/4 times the number of articles"""
+        num_articles = self.matrix_creator.get_num_datapoints()
+        return num_articles * 3 // 4

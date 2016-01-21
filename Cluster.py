@@ -15,7 +15,8 @@ class Cluster:
         self.article_titles.append(article_title)
 
     def is_valid_cluster(self, num_articles):
-        return num_articles/4 > len(self.article_ids) > 1
+        # return num_articles/4 > len(self.article_ids) > 1
+        return num_articles / 4 > len(self.article_ids)
 
     def get_keywords(self):
         # don't build keywords dictionary if it has already been built

@@ -22,7 +22,7 @@ class AbstractValidator:
 
   def validate(self, query, article):
       """
-        All validators must have a validate method
+      All validators must have a validate method
       :param Query: query to validate
       :param Article: article used for validation
       :return:
