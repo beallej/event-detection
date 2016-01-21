@@ -61,6 +61,10 @@ class DataSource:
         self.cursor.execute("SELECT id FROM articles")
         return self.cursor.fetchall()
 
+    def get_all_article_ids_and_filenames(self):
+        self.cursor.execute("SELECT id, filename FROM articles;")
+        return self.cursor.fetchall()
+
     def insert_article_keywords(self, article_title, source, url, filename, keyword_list):
         keywords = []
         for pos in keyword_list:
