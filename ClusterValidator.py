@@ -46,7 +46,6 @@ class ClusterValidator:
             if w[1] not in query_synonyms:
                 query_synonyms[w[1]] = {}
             query_synonyms[w[1]][w[0]] = w[3]
-        print(query_synonyms)
 
         cluster_matches = {}
         for cluster in self.clusters:
@@ -70,7 +69,6 @@ class ClusterValidator:
 
         # find the max match_percentage
         max_match_cluster= max(cluster_matches.items(), key=operator.itemgetter(1))[0]
-        print(cluster_matches[max_match_cluster])
         if cluster_matches[max_match_cluster] >= self.MIN_THRESHOLD:
             return max_match_cluster
         return None

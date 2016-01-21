@@ -18,9 +18,6 @@ class KMeansClusterer(AbstractClusterer):
         # Assign each article title to a cluster
         cluster_ids, distortion2 = vq(self.whitened_matrix, codebook)
 
-        # Print clustering results
-        self.print_clusters(cluster_ids)
-
         clusters = {}
         for i in range(len(self.article_titles)):
             cluster_id = cluster_ids[i]
