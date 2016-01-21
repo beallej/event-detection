@@ -53,6 +53,7 @@
 		<include name="**/slf4j*.jar" />
 		<include name="**/stanford-corenlp*.jar" />
 		<include name="**/postgresql*.jar" />
+		<include name="**/Semilar*.jar" />
 	</patternset>
 
 	<patternset id="Build Excludes">
