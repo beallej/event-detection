@@ -43,6 +43,19 @@ public class Scraper implements IDAble<String>, JSONRepresentable {
 	};
 	
 	/**
+	 * Creates a {@link Scraper} using the given configuration data.
+	 * 
+	 * @param json
+	 *            the {@link Path} to the JSON file that describes the {@link Scraper}
+	 * @param config
+	 *            a {@link JSONObject} containing the configuration data for the {@link Scraper}
+	 */
+	public Scraper(Path json, JSONObject config) {
+		this((String) config.get("id").value(), config.get("sectioning") != null ? jsonArrayToPairs((JSONArray) config.get("sectioning")) : new ArrayList<>(),
+				config.get("filtering") != null ? jsonArrayToPairs((JSONArray) config.get("filtering")) : new ArrayList<>(), config);
+	}
+	
+	/**
 	 * Creates a {@link Scraper} with the given id and patterns.
 	 * 
 	 * @param id
@@ -141,7 +154,18 @@ public class Scraper implements IDAble<String>, JSONRepresentable {
 	}
 	
 	/**
-	 * Extracts the text that composes an article from the given page
+	 * Extracts the text that composes an article from the given page using the rules stored in the {@link Scraper}.
+	 * 
+	 * @param page
+	 *            the page from which to extract the text as a {@link String}
+	 * @return the extracted text
+	 */
+	public String separate(String page) {
+		return separate(page, sectioning);
+	}
+	
+	/**
+	 * Extracts the text that composes an article from the given page.
 	 * 
 	 * @param page
 	 *            the page from which to extract the text as a {@link String}
@@ -172,6 +196,17 @@ public class Scraper implements IDAble<String>, JSONRepresentable {
 		if (!didFind)
 			return null;
 		return page;
+	}
+	
+	/**
+	 * Filters already scraped text using the rules stored in the {@link Scraper}.
+	 * 
+	 * @param text
+	 *            the text to filter
+	 * @return the filtered text
+	 */
+	public String filter(String text) {
+		return filter(text, filtering);
 	}
 	
 	/**
@@ -250,15 +285,14 @@ public class Scraper implements IDAble<String>, JSONRepresentable {
 	public static Scraper loadFromJSON(Path json, ClassLoader classloader) throws IOException {
 		JSONObject config = (JSONObject) JSONSystem.loadJSON(json);
 		JSONSystem.transferField("class", new JSONString(Scraper.class.getName()), config);
-		String id = (String) config.get("id").value();
 		try {
-			Constructor<?> constructor = classloader.loadClass((String) config.get("class").value()).getConstructor(String.class, List.class, List.class);
+			Constructor<?> constructor = classloader.loadClass((String) config.get("class").value()).getConstructor(Path.class, JSONObject.class);
 			constructor.setAccessible(true);
-			return (Scraper) constructor.newInstance(id, jsonArrayToPairs((JSONArray) config.get("sectioning")), jsonArrayToPairs((JSONArray) config.get("filtering")));
+			return (Scraper) constructor.newInstance(json, config);
 		}
 		catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException | ClassNotFoundException e) {
 			e.printStackTrace();
-			return new Scraper(id, jsonArrayToPairs((JSONArray) config.get("sectioning")), jsonArrayToPairs((JSONArray) config.get("filtering")));
+			return new Scraper(json, config);
 		}
 	}
 	

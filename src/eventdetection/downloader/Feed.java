@@ -11,6 +11,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndFeed;
@@ -151,15 +153,27 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 			if (feed != null)
 				lastSeen = feed.getEntries().get(0).getLink();
 		}
+		List<Future<Article>> futures = new ArrayList<>();
 		for (SyndEntry entry : entries) {
-			try {
+			futures.add(DownloaderController.pool.submit(() -> {
 				String text = s.scrape(new URL(entry.getLink()));
-				if (text == null)
-					continue;
-				out.add(new Article(entry.getTitle(), text, entry.getLink(), getSource()));
-			}
-			catch (IOException e) {}
+				if (text == null || text.length() < 1)
+					return null;
+				return new Article(entry.getTitle(), text, entry.getLink(), getSource());
+			}));
 		}
+		for (Future<Article> future : futures)
+			try {
+				Article article = future.get();
+				if (article != null)
+					out.add(article);
+			}
+			catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			catch (ExecutionException e) {
+				e.getCause().printStackTrace();
+			}
 		return out;
 	}
 	
