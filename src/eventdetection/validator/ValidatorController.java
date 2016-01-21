@@ -46,6 +46,12 @@ public class ValidatorController {
 	private final Connection connection;
 	private final Map<String, ValidatorWrapper> validators;
 	
+	/**
+	 * Constructs a {@link ValidatorController} that uses the given {@link Connection} to connect to the database.
+	 * 
+	 * @param connection
+	 *            a {@link Connection} to the database to be used
+	 */
 	public ValidatorController(Connection connection) {
 		this.connection = connection;
 		this.validators = new LinkedHashMap<>();
@@ -113,6 +119,18 @@ public class ValidatorController {
 		return articles;
 	}
 	
+	/**
+	 * Adds the given algorithm to the {@link ValidatorController}.
+	 * 
+	 * @param algorithm
+	 *            the name of the algorithm as it appears in the database
+	 * @param constructor
+	 *            the constructor of a {@link Validator} that implements the given algorithm
+	 * @return {@code true} if the algorithm was successfully added to the {@link ValidatorController}, otherwise
+	 *         {@code false}
+	 * @throws SQLException
+	 *             if an error occurs while connecting to the database
+	 */
 	public boolean addValidator(String algorithm, ValidatorConstructor constructor) throws SQLException {
 		synchronized (connection) {
 			if (validators.containsKey(algorithm))
@@ -122,7 +140,18 @@ public class ValidatorController {
 		}
 	}
 	
-	public void executeValidators(Query query, List<Article> articles) throws SQLException {
+	/**
+	 * Executes the {@link Validator Validators} registered with the {@link ValidatorController} on the given {@link Query}
+	 * and {@link Collection} of {@link Article Articles} and writes the results to the database.
+	 * 
+	 * @param query
+	 *            the {@link Query} to be validated
+	 * @param articles
+	 *            the {@link Article Articles} against which the {@link Query} is to be validated
+	 * @throws SQLException
+	 *             if an error occurs while reading from or writing to the database
+	 */
+	public void executeValidators(Query query, Collection<Article> articles) throws SQLException {
 		synchronized (connection) {
 			List<Future<ValidationResult>> results = new ArrayList<>();
 			try (PreparedStatement stmt = connection.prepareStatement("select * from validation_results as vr where vr.query = ? and vr.algorithm = ? and vr.article = ?")) {
