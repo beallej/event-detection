@@ -86,7 +86,7 @@ public class ValidatorController {
 			}
 			ValidatorController vc = new ValidatorController(connection);
 			//ADD VALIDATORS HERE
-			//vc.addValidator("Swoogle Semantic Analysis", SwoogleSemanticAnalysisValidator::new);
+			vc.addValidator("Swoogle Semantic Analysis", SwoogleSemanticAnalysisValidator::new);
             vc.addValidator("SEMILAR Semantic Analysis", SIMILATSemanticAnalysisValidator::new);
 			List<Article> articles = loadArticles(connection, config, args);
 			vc.executeValidators(query, articles);
