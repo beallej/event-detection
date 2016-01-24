@@ -84,6 +84,12 @@ public class SIMILATSemanticAnalysisValidator extends Validator {
     //BELOW ARE SOME OF THE LIBRARY ALGORITH!
     //NEED TO TEST AND DECIDE WHICH ONE WE WANT TO USE
     // ----------------------------------------------
+    
+    // TESTING SO FAR: 
+    // cmComparer works but is not very good.
+    // BLEU is BAD
+    // LSA is much better, but loading + training time is much longer, AND it's not working right now due to not be able to find the file
+    
     //greedy matching (see the available word 2 word similarity in the separate example file). Here I use some of them
     // for the illustration.
     GreedyComparer greedyComparerWNLin; //greedy matching, use wordnet LIN method for Word 2 Word similarity
@@ -167,7 +173,7 @@ public class SIMILATSemanticAnalysisValidator extends Validator {
     
 	@Override
 	public ValidationResult call() throws IOException {
-        ConfigManager.setSemilarDataRootFolder("../../semilar-data/");
+        ConfigManager.setSemilarDataRootFolder("../semilar-data/");
         
         Sentence querySentence;
         Sentence articleSentence;
@@ -198,7 +204,7 @@ public class SIMILATSemanticAnalysisValidator extends Validator {
                 articleSentence = preprocessor.preprocessSentence(sen);
                 temp =  cmComparer.computeSimilarity(querySentence, articleSentence);
            
-                topN.add(new Pair<>(Double.parseDouble(temp.toString()), articleSentence.toString()));
+                topN.add(new Pair<>(Double.parseDouble(temp.toString()), sen));
                 if (topN.size() > MAX_SENTENCES)
                     topN.remove(topN.size() - 1);
             }
@@ -206,8 +212,10 @@ public class SIMILATSemanticAnalysisValidator extends Validator {
         
   
   		double average = 0.0;
-		for (Pair<Double, String> p : topN)
+		for (Pair<Double, String> p : topN){
 			average += p.getX();
+            System.out.println(p.getY() + p.getX());
+        }
 		average /= (double) topN.size(); 
         //System.out.println("AVERGARE OF SEMILAR = " + average);
         return new ValidationResult(this.getID(), article.getID(), average);
