@@ -47,7 +47,7 @@ class HierarchicalAgglomerativeClusterer(AbstractClusterer):
         Z = self.get_cluster_matrix(matrix)
         cluster_matrix = fcluster(Z, self.k, criterion='maxclust')
         clusters = {}
-        for i in range(len(self.article_titles)):
+        for i in range(len(self.article_ids)):
             cluster_id = cluster_matrix[i]
             clusters.setdefault(cluster_id, Cluster(cluster_id))
             clusters[cluster_id].add_article(self.article_ids[i], self.article_titles[i])

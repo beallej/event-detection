@@ -75,7 +75,7 @@ class ClusterValidator:
         return None
 
 def main():
-    clusterValidator = ClusterValidator(KMeansClusterer, "every_article_is_cluster_k")
+    clusterValidator = ClusterValidator(HierarchicalAgglomerativeClusterer, "get_bigger_k")
     result = clusterValidator.validate(3)
     if result is None:
         print("No clusters found")

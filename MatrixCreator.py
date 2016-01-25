@@ -6,6 +6,8 @@ import nltk.corpus
 from KeywordExtractor import *
 import re
 import functools
+import json
+from collections import  Counter
 
 # Uncomment following 2 lines to print out full arrays
 # import numpy
@@ -52,19 +54,11 @@ class MatrixCreator:
     def get_article_ids(self):
         return self.ids
 
-    def retrieve_article_ids_and_filenames(self):
-        '''Gets list of article ids and filenames that can be
-           accessed consistently even if articles are added mid-process.'''
-        ids = []
-        filenames = []
-        db_ids_and_filenames = self.ds.get_all_article_ids_and_filenames()
-        for item in db_ids_and_filenames:
-            ids.append(item[0])
-            filenames.append(item[1])
-        self.num_datapoints = len(ids) # Track num datapoints to calculate K
-        self.ids = ids
-        self.filenames = filenames
-        return ids, filenames
+    def retrieve_article_ids_titles_filenames(self):
+        articles = self.ds.get_article_ids_titles_filenames()
+        self.ids = [article[0] for article in articles]
+        self.article_titles = [article[1] for article in articles]
+        self.filenames = [article[2] for article in articles]
 
     def get_article_text_by_article(self):
         '''Gets ordered list [set(stemmed title words)] of article titles
@@ -100,7 +94,7 @@ class MatrixCreator:
            with counts in each article.'''
 
         # Initialize article ids and titles
-        self.ids, self.filenames = self.retrieve_article_ids_and_filenames()
+        self.retrieve_article_ids_titles_filenames()
 
         # Get keywords to construct matrix
         all_article_words_list = list(self.get_article_text_by_article())
