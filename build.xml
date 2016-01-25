@@ -51,7 +51,10 @@
 		<include name="**/rome*.jar" />
 		<include name="**/jdom*.jar" />
 		<include name="**/slf4j*.jar" />
-		<include name="**/stanford-corenlp*.jar" />
+		<exclude name="**/slf4j-api.jar" />
+		<exclude name="**/slf4j-simple.jar" />
+		<include name="**/repackaged-stanford-corenlp*.jar" />
+		<include name="**/stanford-corenlp-full*/**/*.jar" />
 		<include name="**/postgresql*.jar" />
 	</patternset>
 
@@ -92,6 +95,7 @@
 		<!--Copy css files to their appropriate locations in the bin directory (for JavaFx)-->
 		<copy todir="${bin}">
 			<fileset dir="${src}" includes="**/*.css" />
+			<fileset dir="${libs}" includes="**/stop-words.txt" />
 		</copy>
 	</target>
 
