@@ -24,7 +24,7 @@ class Cluster:
         # don't build keywords dictionary if it has already been built
         final_dict = defaultdict(set)
         if self.keywords is None:
-            keyword_dicts = [json.loads(ds.get_article_keywords(article)[0])
+            keyword_dicts = [json.loads(self.ds.get_article_keywords(article)[0])
                             for article in self.article_ids]
             for kw_dict in keyword_dicts:
                 for pos in kw_dict:

@@ -18,12 +18,11 @@ class MatrixCreator:
 
     def __init__(self):
         self.ds = DataSource()
-        self.ids = []
-        self.num_entries = 0
-        self.num_articles = 0
-        self.num_article_words = 0
-        self.article_titles = []
-        self.title_words_by_article = []
+        #self.ids = []
+        # self.num_entries = 0
+        # self.num_articles = 0
+        # self.num_article_words = 0
+        # self.article_titles = []
         self.stopwords = set(nltk.corpus.stopwords.words('english'))
         self.lemmatizer = WordNetLemmatizer()
 
@@ -32,7 +31,7 @@ class MatrixCreator:
         '''Gets the number of non-zero entries in the matrix.'''
         return self.num_entries
 
-    def get_num_datapoints(self):
+    def get_num_articles(self):
         '''Gets the number of datapoints/rows in the matrix
            (in our case, the number of articles).'''
         return self.num_articles
@@ -57,7 +56,7 @@ class MatrixCreator:
         return self.article_titles
 
     def get_title_words_by_article(self):
-        return self.title_words_by_article
+        return self.article_words_by_article
 
     def get_article_ids(self):
         return self.ids
@@ -67,6 +66,7 @@ class MatrixCreator:
         self.ids = [article[0] for article in articles]
         self.article_titles = [article[1] for article in articles]
         self.filenames = [article[2] for article in articles]
+        self.num_articles = len(self.article_titles)
 
     def get_article_text_by_article(self):
         '''Gets ordered list [set(stemmed title words)] of article titles
@@ -76,10 +76,9 @@ class MatrixCreator:
 
         self.article_words_by_article = []
         self.all_article_words_set = set()
-        titles = self.get_article_titles()
+
         for idx, filename in enumerate(self.filenames):
             body = open("articles/" + filename).read()
-            article_words = set()
             tagged_items = re.match(pattern, body)
             title_tagged = tagged_items.group(1)
             body_tagged = tagged_items.group(2)

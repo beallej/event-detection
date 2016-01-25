@@ -55,12 +55,12 @@ class AbstractClusterer:
 
     def get_rule_of_thumb_k(self):
         """Calculates k with square root of (number of documents / 2)"""
-        rule_of_thumb_k = round(sqrt(self.matrix_creator.get_num_datapoints() / 2))
+        rule_of_thumb_k = round(sqrt(self.matrix_creator.get_num_articles() / 2))
         return rule_of_thumb_k
 
     def get_text_databases_k(self):
         """Calculates k with (m*n)/t, matrix dimensions over number of entries"""
-        num_articles = self.matrix_creator.get_num_datapoints()
+        num_articles = self.matrix_creator.get_num_articles()
         num_article_words = self.matrix_creator.get_num_article_words()
         num_entries = self.matrix_creator.get_num_entries()
         text_databases_k = (num_articles * num_article_words) // num_entries
@@ -68,8 +68,8 @@ class AbstractClusterer:
 
     def get_bigger_k(self):
         """Calculates k as 3/4 times the number of articles"""
-        num_articles = self.matrix_creator.get_num_datapoints()
+        num_articles = self.matrix_creator.get_num_articles()
         return num_articles * 3 // 4
 
     def every_article_is_cluster_k(self):
-        return self.matrix_creator.get_num_datapoints()
+        return self.matrix_creator.get_num_articles()
