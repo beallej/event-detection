@@ -20,7 +20,7 @@ class MatrixCreator:
         self.ds = DataSource()
         self.ids = []
         self.num_entries = 0
-        self.num_datapoints = 0
+        self.num_articles = 0
         self.num_article_words = 0
         self.article_titles = []
         self.title_words_by_article = []
@@ -35,7 +35,7 @@ class MatrixCreator:
     def get_num_datapoints(self):
         '''Gets the number of datapoints/rows in the matrix
            (in our case, the number of articles).'''
-        return self.num_datapoints
+        return self.num_articles
 
     def get_num_title_words(self):
         '''
@@ -106,7 +106,7 @@ class MatrixCreator:
 
         # Get keywords to construct matrix
         all_article_words_list = list(self.get_article_text_by_article())
-        matrix = zeros((self.num_datapoints, self.num_article_words))
+        matrix = zeros((self.num_articles, self.num_article_words))
         num_entries = 0
         for article_word_idx, article_word in enumerate(all_article_words_list):
             for article_idx, article_id in enumerate(self.ids):
