@@ -1,4 +1,4 @@
-# from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt
 from scipy.cluster.hierarchy import dendrogram, linkage
 from scipy.cluster.hierarchy import fcluster
 from Cluster import Cluster
@@ -59,11 +59,11 @@ class HierarchicalAgglomerativeClusterer(AbstractClusterer):
 def main():
     clusterer = HierarchicalAgglomerativeClusterer()
 
-    clusters = clusterer.cluster()
+    clusters = clusterer.cluster("get_bigger_k")
     for cluster in clusters:
         print(cluster.article_titles)
 
-    #clusterer.plot_data()
+    clusterer.plot_data()
 
 if __name__ == '__main__':
     main()

@@ -166,6 +166,10 @@ class DataSource:
         self.cursor.execute("SELECT keywords FROM articles WHERE id = %s;", (article_id, ))
         return self.cursor.fetchone()[0] is not None
 
+    def get_article_ids_titles_keywords(self):
+        self.cursor.execute("SELECT id, title, keywords FROM articles WHERE keywords is not NULL;")
+        return self.cursor.fetchall()
+
 
 #def main():
 #    pass

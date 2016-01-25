@@ -32,6 +32,7 @@ class AbstractClusterer:
         else:
             cutoff = self.get_average_k()
         self.k = cutoff
+        print("K", cutoff)
 
         return matrix
 
@@ -59,7 +60,7 @@ class AbstractClusterer:
     def get_text_databases_k(self):
         """Calculates k with (m*n)/t, matrix dimensions over number of entries"""
         num_articles = self.matrix_creator.get_num_datapoints()
-        num_title_words = self.matrix_creator.get_num_title_words()
+        num_title_words = self.matrix_creator.get_num_keywords()
         num_entries = self.matrix_creator.get_num_entries()
         text_databases_k = (num_articles * num_title_words) // num_entries
         return text_databases_k
