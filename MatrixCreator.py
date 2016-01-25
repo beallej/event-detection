@@ -7,7 +7,8 @@ from KeywordExtractor import *
 import re
 import functools
 import json
-from collections import  Counter
+from collections import Counter
+from sklearn.feature_extraction.text import TfidfTransformer
 
 # Uncomment following 2 lines to print out full arrays
 # import numpy
@@ -73,9 +74,8 @@ class MatrixCreator:
            and set of unique stemmed title words'''
         pattern =  re.compile(r'TITLE:(.*)TEXT:(.*)', re.DOTALL)
 
-
         self.article_words_by_article = []
-        self.all_article_words_set = set()
+        all_article_words_set = set()
 
         for idx, filename in enumerate(self.filenames):
             body = open("articles/" + filename).read()
@@ -88,13 +88,15 @@ class MatrixCreator:
             body_text, _ = extractor.preprocess_keywords(body_tagged)
             body_text.extend(title_text)
 
-            body_text = [set(sentence.strip().split()) for sentence in body_text]
-            body_text_set = functools.reduce(set.union, body_text)
+            body_text = [Counter(sentence.strip().split()) for sentence in body_text]
+            body_text_counter = Counter()
+            for sentence in body_text:
+                body_text_counter.update(sentence)
+                all_article_words_set.update(sentence.keys())
 
-            self.all_article_words_set.update(body_text_set) # Global
-            self.article_words_by_article.append(body_text_set)
-        self.num_article_words = len(self.all_article_words_set)
-        return self.all_article_words_set
+            self.article_words_by_article.append(body_text_counter)
+        self.num_article_words = len(all_article_words_set)
+        return all_article_words_set
 
     def construct_matrix(self):
         '''Constructs an articles X title words numpy array and populates it
@@ -110,13 +112,22 @@ class MatrixCreator:
         for article_word_idx, article_word in enumerate(all_article_words_list):
             for article_idx, article_id in enumerate(self.ids):
                 if article_word in self.article_words_by_article[article_idx]:
-                    matrix[article_idx, article_word_idx] = 1
+                    matrix[article_idx, article_word_idx] += self.article_words_by_article[article_idx][article_word]
                     num_entries += 1
         self.num_entries = num_entries # Count num entries to calculate K
-        return matrix
+        transformer = TfidfTransformer()
+        tfidf_matrix = transformer.fit_transform(matrix).toarray()
+        return tfidf_matrix
 
 
     def normalize_word(self, word):
         lemma = self.lemmatizer.lemmatize(word.lower())
         stem = (SnowballStemmer("english").stem(lemma))
         return stem
+
+def main():
+    mc = MatrixCreator()
+    mc.construct_matrix()
+
+if __name__ == "__main__":
+    main()

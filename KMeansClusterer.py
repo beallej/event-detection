@@ -37,7 +37,7 @@ class KMeansClusterer(AbstractClusterer):
 
 def main():
     kmc = KMeansClusterer()
-    kmc.cluster()
+    kmc.cluster("get_bigger_k")
 
 if __name__ == '__main__':
     main()
