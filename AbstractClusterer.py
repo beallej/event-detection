@@ -61,9 +61,9 @@ class AbstractClusterer:
     def get_text_databases_k(self):
         """Calculates k with (m*n)/t, matrix dimensions over number of entries"""
         num_articles = self.matrix_creator.get_num_datapoints()
-        num_title_words = self.matrix_creator.get_num_title_words()
+        num_article_words = self.matrix_creator.get_num_article_words()
         num_entries = self.matrix_creator.get_num_entries()
-        text_databases_k = (num_articles * num_title_words) // num_entries
+        text_databases_k = (num_articles * num_article_words) // num_entries
         return text_databases_k
 
     def get_bigger_k(self):

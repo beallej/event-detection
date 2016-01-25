@@ -21,6 +21,7 @@ class MatrixCreator:
         self.ids = []
         self.num_entries = 0
         self.num_datapoints = 0
+        self.num_article_words = 0
         self.article_titles = []
         self.title_words_by_article = []
         self.stopwords = set(nltk.corpus.stopwords.words('english'))
@@ -42,6 +43,13 @@ class MatrixCreator:
         :return:number of columns
         '''
         return self.num_title_words
+
+    def get_num_article_words(self):
+        '''
+        Gets the number of unique words across all documents
+        :return:number of global words
+        '''
+        return self.num_article_words
 
     def get_article_titles(self):
         '''Gets ordered list of article titles corresponding to

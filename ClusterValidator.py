@@ -20,7 +20,7 @@ class ClusterValidator:
         """
         self.query_list = []
         clusterer = cluster_class()
-        self.clusters = clusterer.cluster(k_function)
+        self.clusters = clusterer.cluster()
 
     def add_query(self, query):
         """
