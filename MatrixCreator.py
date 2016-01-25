@@ -21,8 +21,6 @@ class MatrixCreator:
         self.article_titles = []
         self.article_keywords = []
         self.keywords_by_article = []
-        # self.stopwords = set(nltk.corpus.stopwords.words('english'))
-        # self.lemmatizer = WordNetLemmatizer()
 
 
     def get_num_entries(self):
@@ -55,68 +53,6 @@ class MatrixCreator:
     def get_article_titles(self):
         return self.article_titles
 
-    # def retrieve_article_ids_and_keywords(self):
-    #     '''Gets list of article ids and titles that can be
-    #        accessed consistently even if articles are added mid-process.'''
-    #     ids = []
-    #     titles = []
-    #     db_ids_and_titles = self.ds.get_articles()
-    #     for item in db_ids_and_titles:
-    #         ids.append(item[0])
-    #         titles.append(item[1])
-    #     self.num_datapoints = len(ids) # Track num datapoints to calculate K
-    #     self.ids = ids
-    #     self.article_titles = titles
-    #     return ids, titles
-    #
-    # def retrieve_article_ids(self):
-    #     '''Gets list of article ids so that keywords and titles can be
-    #        accessed consistently even if articles are added mid-process.'''
-    #     ids = []
-    #     db_ids = self.ds.get_articles()
-    #     for id in db_ids:
-    #         ids.append(id[0])
-    #     self.num_datapoints = len(ids) # Track num datapoints to calculate K
-    #     return ids
-    # #
-    # def retrieve_article_titles(self):
-    #     '''Gets ordered list of article titles corresponding to
-    #        article ids in self.ids.'''
-    #     titles = []
-    #     for id in self.ids:
-    #         title = self.ds.get_article_title(id)
-    #         titles.append(title)
-    #     return titles
-    #
-    # def get_article_keywords(self):
-    #     '''Gets dictionary of dictionary of keyword weights
-    #        {article_id:{word:weight}}'''
-    #     article_keywords = {}
-    #     for id in self.ids:
-    #         article_keyword_weights = Counter()
-    #         db_keywords_str = self.ds.get_article_keywords(id)[0]
-    #         db_keywords_dict = json.loads(db_keywords_str)
-    #         for pos in db_keywords_dict:
-    #             for keyword_with_weight in db_keywords_dict[pos]:
-    #                 keyword = keyword_with_weight[0]
-    #                 weight = keyword_with_weight[1]
-    #                 article_keyword_weights[keyword] = weight
-    #         article_keywords[id] = article_keyword_weights
-    #     self.article_keywords = article_keywords
-    #     return article_keywords
-    #
-    # def get_keyword_set(self):
-    #     '''Gets set of unique keywords across all articles.'''
-    #     keyword_set = set()
-    #     keywords = self.ds.get_all_article_keywords()
-    #     for row in keywords:
-    #         article_keyword_dict = json.loads(row[0])
-    #         for pos in article_keyword_dict:
-    #             pos_keywords = article_keyword_dict[pos]
-    #             for keyword_with_weight in pos_keywords:
-    #                 keyword = keyword_with_weight[0]
-    #                 keyword_set.add(keyword)
-    #     return keyword_set
 
     def retrieve_article_ids_titles_keywords(self):
         articles = self.ds.get_article_ids_titles_keywords()

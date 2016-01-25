@@ -32,7 +32,6 @@ class AbstractClusterer:
         else:
             cutoff = self.get_average_k()
         self.k = cutoff
-        print("K", cutoff)
 
         return matrix
 
