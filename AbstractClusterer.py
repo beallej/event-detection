@@ -1,6 +1,6 @@
 from MatrixCreator import *
 from math import sqrt
-
+from ElbowMethodK import *
 class AbstractClusterer:
     """
     Abstact Clusterer: An interface for clusters, which cluster articles
@@ -34,6 +34,8 @@ class AbstractClusterer:
         else:
             cutoff = self.get_average_k()
         self.k = cutoff
+        # self.k = get_best_k(matrix)
+        # print(self.k, "MEOW")
 
         return matrix
 
