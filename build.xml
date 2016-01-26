@@ -123,7 +123,7 @@
 					<patternset refid="libraries" />
 				</multirootfileset>
 			</path>
-			<identitymapper />
+			<regexpmapper from="^(.*)$$" to="&quot;\1&quot;"/>
 		</pathconvert>
 	</target>
 
