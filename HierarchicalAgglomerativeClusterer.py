@@ -3,7 +3,7 @@ from scipy.cluster.hierarchy import dendrogram, linkage
 from scipy.cluster.hierarchy import fcluster
 from Cluster import Cluster
 from AbstractClusterer import AbstractClusterer
-
+import numpy as np
 
 
 class HierarchicalAgglomerativeClusterer(AbstractClusterer):
@@ -45,7 +45,31 @@ class HierarchicalAgglomerativeClusterer(AbstractClusterer):
     def cluster(self, k_function = None):
         matrix = self.pre_cluster(k_function)
         Z = self.get_cluster_matrix(matrix)
-        cluster_matrix = fcluster(Z, self.k, criterion='maxclust')
+        #cluster_matrix = fcluster(Z, self.k, criterion='maxclust')
+        #clusters = self.get_clusters(Z, .90)
+        clusters = self.get_final_clusters(Z)
+        return clusters
+
+    def get_final_clusters(self, Z):
+        max_dist = Z[-1][2]
+        best_dist = max_dist
+        num_clusters = 0
+        total_articles_clustered = 0
+        for i in np.arange(0,max_dist,0.05):
+            clusters = self.get_clusters(Z, i)
+            if len(clusters) >= num_clusters:
+                num_clusters = len(clusters)
+                total_articles_clustered = map(len, clusters)
+                best_dist = i
+            else:
+                clusters = self.get_clusters(Z, best_dist)
+                return clusters
+        return []
+
+
+
+    def get_clusters(self, Z, distance):
+        cluster_matrix = fcluster(Z, distance)
         clusters = {}
         for i in range(len(self.article_ids)):
             cluster_id = cluster_matrix[i]
@@ -56,6 +80,8 @@ class HierarchicalAgglomerativeClusterer(AbstractClusterer):
 
 
 
+
+
 def main():
     clusterer = HierarchicalAgglomerativeClusterer()
 
@@ -63,7 +89,7 @@ def main():
     for cluster in clusters:
         print(cluster.article_titles)
 
-    clusterer.plot_data()
+    #clusterer.plot_data()
 
 if __name__ == '__main__':
     main()

@@ -16,7 +16,7 @@ class Cluster:
         self.article_titles.append(article_title)
 
     def is_valid_cluster(self, num_articles):
-        # return num_articles/4 > len(self.article_ids) > 1
+        return num_articles/4 > len(self.article_ids) > 1
         return True
         #return num_articles / 4 > len(self.article_ids)
 
