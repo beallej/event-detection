@@ -136,7 +136,7 @@ public class SIMILATSemanticAnalysisValidator extends Validator {
 //        WNWordMetric wnMetricLin = new WNWordMetric(WordNetSimilarity.WNSimMeasure.LIN, wnFirstSenseOnly);
 //        WNWordMetric wnMetricLeskTanim = new WNWordMetric(WordNetSimilarity.WNSimMeasure.LESK_TANIM, wnFirstSenseOnly);
         //provide the LSA model name you want to use.
-        //LSAWordMetric lsaMetricTasa = new LSAWordMetric("LSA-MODEL-TASA-LEMMATIZED-DIM300");
+        LSAWordMetric lsaMetricTasa = new LSAWordMetric("LSA-MODEL-TASA-LEMMATIZED-DIM300");
         //provide the LDA model name you want to use.
         //LDAWordMetric ldaMetricTasa = new LDAWordMetric("LDA-MODEL-TASA-LEMMATIZED-TOPIC300");
 
@@ -164,7 +164,7 @@ public class SIMILATSemanticAnalysisValidator extends Validator {
         //lsaComparer: This is different from lsaMetricTasa, as this method will
         // directly calculate sentence level similarity whereas  lsaMetricTasa
         // is a word 2 word similarity metric used with Optimum and Greedy methods.
-        //lsaComparer = new LSAComparer("LSA-MODEL-TASA-LEMMATIZED-DIM300");
+        lsaComparer = new LSAComparer("LSA-MODEL-TASA-LEMMATIZED-DIM300");
         //lexicalOverlapComparer = new LexicalOverlapComparer(false);  // use base form of words? - No/false. 
         //for LDA based method.. please see the different example file.
     }
@@ -173,7 +173,7 @@ public class SIMILATSemanticAnalysisValidator extends Validator {
     
 	@Override
 	public ValidationResult call() throws IOException {
-        ConfigManager.setSemilarDataRootFolder("../semilar-data/");
+        //ConfigManager.setSemilarDataRootFolder("../semilar-data/");
         
         Sentence querySentence;
         Sentence articleSentence;
@@ -194,7 +194,7 @@ public class SIMILATSemanticAnalysisValidator extends Validator {
         
         querySentence = preprocessor.preprocessSentence(phrase1.toString());
         
-        Float temp;
+        Double temp;
 
         
         for (Annotation paragraph : article.getAnnotatedText()) {
@@ -202,9 +202,10 @@ public class SIMILATSemanticAnalysisValidator extends Validator {
 			for (CoreMap sentence : sentences) {
                 String sen = POSUtils.reconstructSentence(sentence);
                 articleSentence = preprocessor.preprocessSentence(sen);
-                temp =  cmComparer.computeSimilarity(querySentence, articleSentence);
-           
-                topN.add(new Pair<>(Double.parseDouble(temp.toString()), sen));
+                temp = (double) lsaComparer.computeSimilarity(querySentence, articleSentence);
+                if (temp.equals(Double.NaN))
+                    continue;
+                topN.add(new Pair<>(temp, sen));
                 if (topN.size() > MAX_SENTENCES)
                     topN.remove(topN.size() - 1);
             }
