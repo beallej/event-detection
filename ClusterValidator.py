@@ -44,7 +44,6 @@ class ClusterValidator:
 
         for w in query_synonyms_raw:
             query_synonyms[w[0]] = w[3]
-        print(query_synonyms)
         cluster_matches = {}
 
         for cluster in self.clusters:
@@ -58,7 +57,7 @@ class ClusterValidator:
             # flatten cluster_keywords
             for pos in cluster_keywords:
                 all_cluster_keywords.update(cluster_keywords[pos])
-            print(all_cluster_keywords)
+
             # find matches
             for query_word in query_synonyms:
                 max_match_value += 2
@@ -70,8 +69,7 @@ class ClusterValidator:
                     for synonym in query_synonyms[query_word]:
                         if synonym in all_cluster_keywords:
                             match_value += 1
-                            synonyms_matched += 1
-                            print(synonym)
+                            #synonyms_matched += 1
                             break
                     #match_value += synonyms_matched/len(query_synonyms[query_word])
             match_percentage = match_value / max_match_value
@@ -79,18 +77,19 @@ class ClusterValidator:
 
         # find the max match_percentage
         max_match_cluster= max(cluster_matches.items(), key=operator.itemgetter(1))[0]
-        print(cluster_matches[max_match_cluster])
-        if cluster_matches[max_match_cluster] >= self.MIN_THRESHOLD:
-            return max_match_cluster
-        return None
+        #print(cluster_matches[max_match_cluster])
+        best_value = cluster_matches[max_match_cluster]
+        if best_value >= self.MIN_THRESHOLD:
+            return max_match_cluster, best_value
+        return None, best_value
 
 def main():
     clusterValidator = ClusterValidator(HierarchicalAgglomerativeClusterer, None)
-    result = clusterValidator.validate(7)
+    result, value = clusterValidator.validate(7)
     if result is None:
-        print("No clusters found")
+        print("No clusters found for value " + str(value))
     else:
-        print(result.article_titles)
+        print(result.article_titles, value)
 
 if __name__ == "__main__":
     main()

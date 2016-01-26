@@ -1,4 +1,4 @@
-from matplotlib import pyplot as plt
+#from matplotlib import pyplot as plt
 from scipy.cluster.hierarchy import dendrogram, linkage
 from scipy.cluster.hierarchy import fcluster
 from Cluster import Cluster
@@ -45,8 +45,7 @@ class HierarchicalAgglomerativeClusterer(AbstractClusterer):
     def cluster(self, k_function = None):
         matrix = self.pre_cluster(k_function)
         Z = self.get_cluster_matrix(matrix)
-        #cluster_matrix = fcluster(Z, self.k, criterion='maxclust')
-        #clusters = self.get_clusters(Z, .90)
+
         clusters = self.get_final_clusters(Z)
         return clusters
 
