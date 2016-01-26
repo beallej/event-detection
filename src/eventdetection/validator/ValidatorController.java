@@ -30,8 +30,8 @@ import eventdetection.common.Article;
 import eventdetection.common.ArticleManager;
 import eventdetection.common.DBConnection;
 import eventdetection.common.Query;
-import eventdetection.validator.implementations.SwoogleSemanticAnalysisValidator;
 import eventdetection.validator.implementations.SIMILATSemanticAnalysisValidator;
+import eventdetection.validator.implementations.SwoogleSemanticAnalysisValidator;
 
 /**
  * A class that manages multiple validation algorithms and allows them to run in parallel.
