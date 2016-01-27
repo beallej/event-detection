@@ -87,7 +87,7 @@ public class ValidatorController {
 			ValidatorController vc = new ValidatorController(connection);
 			//ADD VALIDATORS HERE
 			vc.addValidator("Swoogle Semantic Analysis", SwoogleSemanticAnalysisValidator::new);
-            vc.addValidator("SEMILAR Semantic Analysis", SIMILATSemanticAnalysisValidator::new);
+			vc.addValidator("SEMILAR Semantic Analysis", SIMILATSemanticAnalysisValidator::new);
 			List<Article> articles = loadArticles(connection, config, args);
 			vc.executeValidators(query, articles);
 		}
@@ -155,7 +155,7 @@ public class ValidatorController {
 	 */
 	public void executeValidators(Query query, Collection<Article> articles) throws SQLException {
 		synchronized (connection) {
-			List<Future<ValidationResult>> results = new ArrayList<>();
+			List<Future<ValidationResult[]>> results = new ArrayList<>();
 			try (PreparedStatement stmt = connection.prepareStatement("select * from validation_results as vr where vr.query = ? and vr.algorithm = ? and vr.article = ?")) {
 				stmt.setInt(1, query.getId());
 				for (Article article : articles) {
@@ -170,22 +170,24 @@ public class ValidatorController {
 					}
 				}
 			}
-			for (Future<ValidationResult> result : results) {
+			for (Future<ValidationResult[]> result : results) {
 				try {
-					ValidationResult res = result.get();
-					System.out.println(res);
-					try (PreparedStatement stmt = connection.prepareStatement("insert into validation_results (query, algorithm, article, validates, invalidates) values (?, ?, ?, ?, ?)")) {
-						stmt.setInt(1, query.getId());
-						stmt.setInt(2, res.getAlgorithmID());
-						stmt.setInt(3, res.getArticleID());
-						stmt.setFloat(4, res.getValidates().floatValue());
-						if (res.getInvalidates() != null)
-							stmt.setFloat(5, res.getInvalidates().floatValue());
-						else
-							stmt.setNull(5, Types.REAL);
-						stmt.executeUpdate();
-						System.out.println("(" + query.getId() + ", " + res.getAlgorithmID() + ", " + res.getArticleID() + ") -> (" + res.getValidates() + ", " +
-								(res.getInvalidates() == null ? "null" : res.getInvalidates()) + ")");
+					ValidationResult[] ress = result.get();
+					for (ValidationResult res : ress) {
+						System.out.println(res);
+						try (PreparedStatement stmt = connection.prepareStatement("insert into validation_results (query, algorithm, article, validates, invalidates) values (?, ?, ?, ?, ?)")) {
+							stmt.setInt(1, query.getId());
+							stmt.setInt(2, res.getAlgorithmID());
+							stmt.setInt(3, res.getArticleID());
+							stmt.setFloat(4, res.getValidates().floatValue());
+							if (res.getInvalidates() != null)
+								stmt.setFloat(5, res.getInvalidates().floatValue());
+							else
+								stmt.setNull(5, Types.REAL);
+							stmt.executeUpdate();
+							System.out.println("(" + query.getId() + ", " + res.getAlgorithmID() + ", " + res.getArticleID() + ") -> (" + res.getValidates() + ", " +
+									(res.getInvalidates() == null ? "null" : res.getInvalidates()) + ")");
+						}
 					}
 				}
 				catch (InterruptedException | ExecutionException e) {

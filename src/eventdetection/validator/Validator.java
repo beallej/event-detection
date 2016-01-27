@@ -10,7 +10,7 @@ import eventdetection.common.Query;
  * 
  * @author Joshua Lipstone
  */
-public abstract class Validator implements Callable<ValidationResult> {
+public abstract class Validator implements Callable<ValidationResult[]> {
 	protected final Query query;
 	protected final Article article;
 	protected final Integer algorithmID;
@@ -37,7 +37,7 @@ public abstract class Validator implements Callable<ValidationResult> {
 	 * @return a {@link ValidationResult} with the appropriate information
 	 */
 	@Override
-	public abstract ValidationResult call() throws Exception;
+	public abstract ValidationResult[] call() throws Exception;
 	
 	/**
 	 * @return the {@code ID} of the algorithm that the {@link Validator} implements as it is listed in the database

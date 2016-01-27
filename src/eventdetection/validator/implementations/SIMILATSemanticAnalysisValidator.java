@@ -172,7 +172,7 @@ public class SIMILATSemanticAnalysisValidator extends Validator {
 
     
 	@Override
-	public ValidationResult call() throws IOException {
+	public ValidationResult[] call() throws IOException {
         //ConfigManager.setSemilarDataRootFolder("../semilar-data/");
         
         Sentence querySentence;
@@ -219,7 +219,7 @@ public class SIMILATSemanticAnalysisValidator extends Validator {
         }
 		average /= (double) topN.size(); 
         //System.out.println("AVERGARE OF SEMILAR = " + average);
-        return new ValidationResult(this.getID(), article.getID(), average);
+        return new ValidationResult[]{new ValidationResult(this.getID(), article.getID(), average)};
     }
     
    

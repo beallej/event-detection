@@ -48,7 +48,7 @@ public class SwoogleSemanticAnalysisValidator extends Validator {
 	}
 	
 	@Override
-	public ValidationResult call() throws IOException {
+	public ValidationResult[] call() throws IOException {
 		StringBuilder phrase1 = new StringBuilder();
 		phrase1.append(query.getSubject()).append(" ").append(query.getVerb());
 		if (query.getDirectObject() != null && query.getDirectObject().length() > 0)
@@ -75,6 +75,6 @@ public class SwoogleSemanticAnalysisValidator extends Validator {
 		for (Pair<Double, String> p : topN)
 			average += p.getX();
 		average /= (double) topN.size();
-		return new ValidationResult(this.getID(), article.getID(), average);
+		return new ValidationResult[]{new ValidationResult(this.getID(), article.getID(), average)};
 	}
 }
