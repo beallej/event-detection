@@ -84,7 +84,7 @@ def split_sentences_tagged(text):
 
     for s in sentences:
         if s != None and re.search("_", s) != None:
-            sentences_no_punct.append(s)
+            sentences_no_punct.append(s.strip())
 
     return sentences_no_punct
 

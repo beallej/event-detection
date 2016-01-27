@@ -5,7 +5,7 @@ import re
 import math
 from RAKEtutorialmaster.rake  import split_sentences_tagged
 import sys
-
+from collections import  defaultdict
 
 
 class KeywordCandidate:
@@ -32,6 +32,7 @@ class KeywordExtractor:
     min_letters_in_word_in_keyword = 4
     min_occurrences_body = 3
     min_occurrences_title = 1
+    max_words_title = 3
 
     def __init__(self):
         """
@@ -52,8 +53,8 @@ class KeywordExtractor:
 
         self.min_occurrences_body = min(self.min_occurrences_body, math.ceil(len(article.body_tagged)/2000))
 
-        rake_object_title = rake.Rake(self.stoplist_file, self.min_letters_in_word_in_keyword, self.max_words_in_keyword, self.min_occurrences_title)
-        rake_object_body = rake.Rake(self.stoplist_file, self.min_letters_in_word_in_keyword, self.max_words_in_keyword, self.min_occurrences_body)
+        rake_object_title = rake.Rake(self.stoplist_file, min_char_length=self.min_letters_in_word_in_keyword, max_words_length=self.max_words_title, min_keyword_frequency=self.min_occurrences_title)
+        rake_object_body = rake.Rake(self.stoplist_file, min_char_length=self.min_letters_in_word_in_keyword, max_words_length=self.max_words_in_keyword, min_keyword_frequency=self.min_occurrences_body)
 
         preprossed_title, title_keyword_candidates = self.preprocess_keywords(article.title_tagged)
         preprossed_body, body_keyword_candidates = self.preprocess_keywords(article.body_tagged)
@@ -81,13 +82,8 @@ class KeywordExtractor:
                     if not found:
                         all_keywords_with_tags[pos].add(title_keyword)
         for pos in all_keywords_with_tags:
-            #all_keywords_with_tags[pos] = map(self.format_for_db, all_keywords_with_tags[pos])
             all_keywords_with_tags[pos] = list(all_keywords_with_tags[pos])
         return all_keywords_with_tags
-
-    def format_for_db(self, keyword_tuple):
-        return keyword_tuple[0] + "_" + str(keyword_tuple[1])
-
 
     def get_neighbors(self, i, tokens):
         """
@@ -161,7 +157,7 @@ class KeywordExtractor:
                 try:
                     word, tag = token.split("_")
                     word = word.lower()
-                    stem = self.stemmatize(word)
+                    stem = self.stemmatize(word.strip())
                     stem = re.sub(r'(?<=(?<![a-zA-Z])[a-zA-Z])\.', r'', stem)
                     if re.search(r'[a-zA-Z]', stem) != None:
                         stemmed.append(stem)
@@ -177,7 +173,6 @@ class KeywordExtractor:
             text_stemmed = " ".join(stemmed)
             sentence_list.append(text_stemmed)
 
-
         return sentence_list, candidate_keywords
 
 
@@ -192,7 +187,7 @@ class KeywordExtractor:
         """
 
         #final dictionary
-        keywords_tagged = {}
+        keywords_tagged = defaultdict(set)
 
         #(kw, weight)
         for keyword_tuple in keywords:
@@ -211,27 +206,34 @@ class KeywordExtractor:
                         pos = instance.tag
 
                         #add instance's pos and actual word
-                        if pos not in keywords_tagged:
-                            keywords_tagged[pos] = set()
+                        # if pos not in keywords_tagged:
+                        #     keywords_tagged[pos] = set()
                         keywords_tagged[pos].add((word, weight))
-                elif re.search(r'^[a-zA-Z] (.*)[a-zA-Z]$', keyword) != None:
+
+                #multiword
+                elif re.search(r'^[a-zA-Z]+ (.*)[a-zA-Z]+$', keyword) != None:
 
                     #heuristic: if it ends in a noun, likely to be a noun keyword, starts with verb, likely
                     #to be verb keyword. If both are true, added to both parts of speech lists
 
                     first_tag, last_tag, unstemmed = self.get_multiword_pos(keyword, candidate_keywords)
+                    added = False
+                    if None not in [first_tag, last_tag, unstemmed]:
+                        #starts with verb (non gerundal), probably a verb --> ex. "take shelter", NOT "taking a bath"
+                        if first_tag[0] == 'V' and first_tag != "VBG":
+                            if first_tag not in keywords_tagged:
+                                keywords_tagged[first_tag] = set()
+                            keywords_tagged[first_tag].add((unstemmed, weight))
+                            added = True
 
-                    #starts with verb (non gerundal), probably a verb --> ex. "take shelter", NOT "taking a bath"
-                    if first_tag[0] == 'V' and first_tag != "VBG":
-                        if first_tag not in keywords_tagged:
-                            keywords_tagged[first_tag] = set()
-                        keywords_tagged[first_tag].add((unstemmed, weight))
-
-                    #ends with noun or gerund, probably a noun --> ex. "long-distance running", "cat's pajamas"
-                    if last_tag[0] == 'N' or last_tag == "VBG":
-                        if last_tag not in keywords_tagged:
-                            keywords_tagged[last_tag] = set()
-                        keywords_tagged[last_tag].add((unstemmed, weight))
+                        #ends with noun or gerund, probably a noun --> ex. "long-distance running", "cat's pajamas"
+                        if last_tag[0] == 'N' or last_tag == "VBG":
+                            if last_tag not in keywords_tagged:
+                                keywords_tagged[last_tag] = set()
+                            keywords_tagged[last_tag].add((unstemmed, weight))
+                            added = True
+                        if not added:
+                            keywords_tagged["XXX"].add((unstemmed, weight))
 
         return keywords_tagged
 
@@ -271,8 +273,14 @@ class KeywordExtractor:
         last_word = sub_keywords[-1]
 
         #instances when first word showed up
-       
-        first_instances = candidate_keywords[first_word]
+        try:
+            first_instances = candidate_keywords[first_word]
+        except:
+            print(repr(keyword))
+            print(repr(first_word))
+            for k in candidate_keywords:
+                print(repr(k))
+            sys.exit()
 
         #instances when last word showed up
         last_instances = candidate_keywords[last_word]
@@ -281,7 +289,7 @@ class KeywordExtractor:
 
         first_tag, first_unstemmed = self.get_tag_and_original_from_keyword(keyword, first_instances)
         last_tag, last_unstemmed = self.get_tag_and_original_from_keyword(keyword, last_instances)
-        unstemmed = first_unstemmed if first_unstemmed != None else last_unstemmed if last_unstemmed != None else "XXX"
+        unstemmed = first_unstemmed if first_unstemmed != None else last_unstemmed
 
         return first_tag, last_tag, unstemmed
 
