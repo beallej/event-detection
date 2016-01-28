@@ -8,4 +8,4 @@ Just avoids repeated code by forwarding to subprocess.check_output with shell an
 def simpleSubprocess(args, executable=executable):
 	return subprocess.check_output(args, executable=executable, shell=True, universal_newlines=True)
 
-python_path = simpleSubprocess('''[ "$(python --version | grep 'Python 3')" != "" ] && echo "$(which python)" || echo "$(which python3)"''').strip()
+python_path = simpleSubprocess('''[ "$(python --version 2>&1 | grep 'Python 3')" != "" ] && echo "$(which python)" || echo "$(which python3)"''').strip()

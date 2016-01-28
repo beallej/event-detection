@@ -7,7 +7,6 @@ import java.nio.file.DirectoryStream.Filter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -15,15 +14,13 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
-import toberumono.json.JSONData;
-import toberumono.json.JSONObject;
 import toberumono.utils.functions.IOExceptedFunction;
 
+import eventdetection.common.Article;
+import eventdetection.common.DBConnection;
 import eventdetection.common.IDAble;
 import eventdetection.common.SQLExceptedFunction;
 import eventdetection.common.Source;
@@ -33,12 +30,11 @@ import eventdetection.common.Source;
  * 
  * @author Joshua Lipstone
  */
-public abstract class Downloader implements Supplier<List<RawArticle>>, Closeable {
+public abstract class Downloader implements Supplier<List<Article>>, Closeable {
 	/**
 	 * The available news {@link Source Sources}
 	 */
 	public static final Map<Integer, Source> sources = new LinkedHashMap<>();
-	private static Connection connection = null;
 	
 	/**
 	 * Adds a {@link Source} or a folder of {@link Source Sources} to {@link #sources}.
@@ -68,7 +64,7 @@ public abstract class Downloader implements Supplier<List<RawArticle>>, Closeabl
 	 *             if an I/O error occurs
 	 */
 	public static List<Integer> loadSource(Connection connection, String table) throws SQLException, IOException {
-		return loadItemsFromSQL(table, Source::loadFromSQL, sources::put);
+		return loadItemsFromSQL(table, connection, Source::loadFromSQL, sources::put);
 	}
 	
 	/**
@@ -155,9 +151,10 @@ public abstract class Downloader implements Supplier<List<RawArticle>>, Closeabl
 	 * @throws IOException
 	 *             if an error occurs while loading
 	 */
+	@Deprecated
 	public static <T extends IDAble<V>, V> List<V> loadItemsFromSQL(String table, SQLExceptedFunction<ResultSet, T> loader, BiFunction<V, T, T> store)
 			throws SQLException, IOException {
-		return loadItemsFromSQL(table, getConnection(), loader, store);
+		return loadItemsFromSQL(table, DBConnection.getConnection(), loader, store);
 	}
 	
 	/**
@@ -182,9 +179,8 @@ public abstract class Downloader implements Supplier<List<RawArticle>>, Closeabl
 	public static <T extends IDAble<V>, V> List<V> loadItemsFromSQL(String table, Connection connection, SQLExceptedFunction<ResultSet, T> loader, BiFunction<V, T, T> store)
 			throws SQLException, IOException {
 		List<V> ids = new ArrayList<>();
-		Connection con = getConnection();
 		String statement = "select * from " + table;
-		try (PreparedStatement stmt = con.prepareStatement(statement)) {
+		try (PreparedStatement stmt = connection.prepareStatement(statement)) {
 			ResultSet rs = stmt.executeQuery();
 			if (!rs.next()) //Set the pointer to the first row and test if it is not valid
 				return ids;
@@ -195,69 +191,5 @@ public abstract class Downloader implements Supplier<List<RawArticle>>, Closeabl
 			} while (rs.next()); //While the next row is valid
 		}
 		return ids;
-	}
-	
-	/**
-	 * Reads the {@link JSONObject} describing the database into the appropriate System property keys. The {@link JSONObject}
-	 * must have the following keys:
-	 * <ul>
-	 * <li>server : string</li>
-	 * <li>port : integer</li>
-	 * <li>type : string</li>
-	 * <li>name : string</li>
-	 * <li>user : string</li>
-	 * <li>pass : string</li>
-	 * </ul>
-	 * All fields other than name and type can be {@code null} - default values will be used instead.
-	 * 
-	 * @param database
-	 *            the {@link JSONObject} describing the connection
-	 */
-	public static void configureConnection(JSONObject database) {
-		for (Entry<String, JSONData<?>> e : database.entrySet()) {
-			String key = "db." + e.getKey();
-			if (System.getProperty(key) != null)
-				continue;
-			Object val = e.getValue().value();
-			if (val == null)
-				continue;
-			System.setProperty(key, val.toString().toLowerCase());
-		}
-	}
-	
-	/**
-	 * Generates a JDBC {@link Connection} using arguments from the command line.<br>
-	 * Currently works for:
-	 * <ul>
-	 * <li>PostgreSQL</li>
-	 * </ul>
-	 * 
-	 * @return a {@link Connection} based on the command line arguments
-	 * @throws SQLException
-	 *             if something goes wrong while creating the {@link Connection}
-	 */
-	public static Connection getConnection() throws SQLException {
-		if (connection != null)
-			return connection;
-		String dbtype = System.getProperty("db.type");
-		if (dbtype == null)
-			return null;
-		Properties connectionProps = new Properties();
-		String connection = "jdbc:";
-		switch (dbtype) {
-			case "postgresql":
-				connection += dbtype + "://";
-				if (System.getProperty("db.server") != null)
-					connection += System.getProperty("db.server");
-				if (System.getProperty("db.port") != null)
-					connection += ":" + System.getProperty("db.port");
-				connection += "/" + System.getProperty("db.name", "event_detection");
-				break;
-			default:
-				return null;
-		}
-		connectionProps.put("user", System.getProperty("db.user", "root"));
-		connectionProps.put("password", System.getProperty("db.password", ""));
-		return Downloader.connection = DriverManager.getConnection(connection, connectionProps);
 	}
 }

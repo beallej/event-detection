@@ -3,9 +3,11 @@ working_dir="$(pwd)"
 if [ "$(which brew)" != "" ] && [ "$(which brew)" != "brew not found" ]; then
 	pip3 install 'psycopg2'
 	pip3 install 'Flask'
+	pip3 install 'twilio'
+	pip3 install 'sendgrid'
 	brew tap 'toberumono/tap'
 	brew install 'toberumono/tap/utils' 'toberumono/tap/structures' 'toberumono/tap/lexer' 'toberumono/tap/json-library' 'wget'
-	brew install 'postgresql' '--devel'
+	brew install 'postgresql'
 else
 	cd ../
 	git clone "https://github.com/Toberumono/JSON-library.git"
@@ -20,13 +22,13 @@ wget '-N' '--directory-prefix=../' 'http://central.maven.org/maven2/com/rometool
 wget '-N' '--directory-prefix=../' 'http://central.maven.org/maven2/org/jdom/jdom2/2.0.6/jdom2-2.0.6.jar'
 wget '-N' '--directory-prefix=../' 'http://central.maven.org/maven2/org/slf4j/slf4j-api/1.7.12/slf4j-api-1.7.12.jar'
 wget '-N' '--directory-prefix=../' 'http://central.maven.org/maven2/org/slf4j/slf4j-simple/1.7.12/slf4j-simple-1.7.12.jar'
-wget '-N' '--directory-prefix=../' 'https://jdbc.postgresql.org/download/postgresql-9.4-1205.jdbc42.jar'
+wget '-N' '--directory-prefix=../' 'https://jdbc.postgresql.org/download/postgresql-9.4.1207.jar'
 wget '-N' '--directory-prefix=../' 'http://nlp.stanford.edu/software/stanford-corenlp-full-2015-04-20.zip'
 unzip '../stanford-corenlp-full-2015-04-20.zip' '-d' '../'
 echo '------------------Setting Up PostgreSQL Database---------------------'
 initdb "$(brew --prefix)/var/postgres"
-mkdir -p "~/Library/LaunchAgents"
-ln -sfv "$(brew --prefix)/opt/postgresql/*.plist" "~/Library/LaunchAgents"
+mkdir -p "$HOME/Library/LaunchAgents"
+ln -sfv "$(brew --prefix)"/opt/postgresql/*.plist "$HOME/Library/LaunchAgents"
 export PGDATA="$(brew --prefix)/var/postgres"
 export PGHOST=localhost
 [ "$(pg_ctl status | grep 'PID:' )" == "" ] && ( pg_ctl start > /dev/null )

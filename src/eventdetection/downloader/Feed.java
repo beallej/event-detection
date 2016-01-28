@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -11,8 +12,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import com.rometools.rome.feed.synd.SyndEntry;
@@ -28,6 +27,8 @@ import toberumono.json.JSONRepresentable;
 import toberumono.json.JSONString;
 import toberumono.json.JSONSystem;
 
+import eventdetection.common.Article;
+import eventdetection.common.DBConnection;
 import eventdetection.common.IDAble;
 import eventdetection.common.Source;
 
@@ -48,6 +49,7 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 	private final Map<String, Scraper> scrapers;
 	private final JSONObject json;
 	private final Path file;
+	private final Connection connection;
 	private boolean closed;
 	private boolean writeSQL;
 	
@@ -68,9 +70,11 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 	 *            the specific {@link URL} of the {@link Feed}
 	 * @param scrapers
 	 *            the {@link Scraper Scrapers} available to the {@link Feed}
+	 * @throws SQLException
+	 *             if an error occurs while getting the {@link Connection}
 	 */
-	public Feed(int id, String name, Source source, List<String> scraperIDs, String lastSeen, URL url, Map<String, Scraper> scrapers) {
-		this(id, name, source, scraperIDs, lastSeen, url, scrapers, null, null);
+	public Feed(int id, String name, Source source, List<String> scraperIDs, String lastSeen, URL url, Map<String, Scraper> scrapers) throws SQLException {
+		this(id, name, source, scraperIDs, lastSeen, url, scrapers, null, null, DBConnection.getConnection());
 	}
 	
 	/**
@@ -94,8 +98,10 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 	 *            the {@link JSONObject} on which the {@link Feed} is based
 	 * @param file
 	 *            the {@link Path} to the file from which the {@link Feed} was loaded
+	 * @param connection
+	 *            a {@link Connection} to the database to use
 	 */
-	public Feed(int id, String name, Source source, List<String> scraperIDs, String lastSeen, URL url, Map<String, Scraper> scrapers, JSONObject json, Path file) {
+	public Feed(int id, String name, Source source, List<String> scraperIDs, String lastSeen, URL url, Map<String, Scraper> scrapers, JSONObject json, Path file, Connection connection) {
 		this.id = id;
 		this.name = name;
 		this.source = source;
@@ -112,55 +118,62 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 			json.put("scraperIDs", JSONArray.wrap(scraperIDs));
 			json.put("lastSeen", new JSONString(lastSeen));
 		}
+		this.connection = connection;
 		this.json = json;
 		this.file = file;
 		closed = false;
 	}
 	
 	@Override
-	public List<RawArticle> get() {
-		List<RawArticle> out = new ArrayList<>();
+	public synchronized List<Article> get() {
+		List<Article> out = new ArrayList<>();
 		Scraper s = getScraper();
 		if (s == null)
 			return out;
-		try (PreparedStatement stmt = Downloader.getConnection().prepareStatement("select * from articles where articles.url = ?")) {
-			try {
-				SyndFeed feed = input.build(new XmlReader(url));
-				ExecutorService pool = Executors.newWorkStealingPool();
-				List<Future<RawArticle>> outs = new ArrayList<>();
-				for (SyndEntry e : feed.getEntries()) {
-					stmt.setString(1, e.getLink());
-					try {
-						if (stmt.executeQuery().next())
-							continue;
-					}
-					catch (SQLException ex) {
+		List<SyndEntry> entries = new ArrayList<>();
+		SyndFeed feed = null;
+		try (Connection connection = DBConnection.getConnection(); PreparedStatement stmt = connection.prepareStatement("select * from articles where articles.url = ?")) {
+			feed = input.build(new XmlReader(url));
+			for (SyndEntry e : feed.getEntries()) {
+				stmt.setString(1, e.getLink());
+				try {
+					if (stmt.executeQuery().next())
 						continue;
-					}
-					outs.add(pool.submit(() -> {
-						String text = s.scrape(new URL(e.getLink()));
-						if (text == null)
-							return null;
-						return new RawArticle(e.getTitle(), text, e.getLink(), getSource());
-					}));
 				}
-				out = outs.stream().collect(ArrayList::new, (a, b) -> {
-					try {
-						RawArticle ra = b.get();
-						if (ra != null)
-							a.add(ra);
-					}
-					catch (ExecutionException | InterruptedException e) {}
-				} , ArrayList::addAll);
-				lastSeen = feed.getEntries().get(0).getLink();
-			}
-			catch (IllegalArgumentException | FeedException | IOException e) {
-				e.printStackTrace();
+				catch (SQLException ex) {
+					continue;
+				}
+				entries.add(e);
 			}
 		}
-		catch (SQLException e) {
+		catch (SQLException | IllegalArgumentException | FeedException | IOException e) {
 			e.printStackTrace();
 		}
+		finally {
+			if (feed != null)
+				lastSeen = feed.getEntries().get(0).getLink();
+		}
+		List<Future<Article>> futures = new ArrayList<>();
+		for (SyndEntry entry : entries) {
+			futures.add(DownloaderController.pool.submit(() -> {
+				String text = s.scrape(new URL(entry.getLink()));
+				if (text == null || text.length() < 1)
+					return null;
+				return new Article(entry.getTitle(), text, entry.getLink(), getSource());
+			}));
+		}
+		for (Future<Article> future : futures)
+			try {
+				Article article = future.get();
+				if (article != null)
+					out.add(article);
+			}
+			catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			catch (ExecutionException e) {
+				e.getCause().printStackTrace();
+			}
 		return out;
 	}
 	
@@ -230,12 +243,14 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 	 *            a {@link Path} to the JSON file
 	 * @param scrapers
 	 *            the available {@link Scraper Scrapers}
+	 * @param connection
+	 *            a {@link Connection} to the database to use
 	 * @return the {@link Feed} described in the JSON file
 	 * @throws IOException
 	 *             an I/O error occurs
 	 */
 	@SuppressWarnings("unchecked")
-	public static Feed loadFromJSON(Path file, Map<String, Scraper> scrapers) throws IOException {
+	public static Feed loadFromJSON(Path file, Map<String, Scraper> scrapers, Connection connection) throws IOException {
 		JSONObject json = (JSONObject) JSONSystem.loadJSON(file);
 		List<String> scraperIDs = new ArrayList<>();
 		for (JSONString s : (List<JSONString>) json.get("scraperIDs").value())
@@ -243,12 +258,14 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 		URL url = new URL((String) json.get("url").value());
 		Source source = Downloader.sources.get(json.get("source"));
 		String lastSeen = json.containsKey("lastSeen") ? (String) json.get("lastSeen").value() : null;
-		return new Feed(-1, (String) json.get("name").value(), source, scraperIDs, lastSeen, url, scrapers);
+		return new Feed(-1, (String) json.get("name").value(), source, scraperIDs, lastSeen, url, scrapers, json, file, connection);
 	}
 	
 	/**
 	 * Loads a {@link Feed} from SQL data.
 	 * 
+	 * @param connection
+	 *            a {@link Connection} to the database to use
 	 * @param rs
 	 *            the {@link ResultSet} thats currently select row should be used to generate the {@link Feed}
 	 * @param scrapers
@@ -259,7 +276,7 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 	 * @throws MalformedURLException
 	 *             an I/O error occurs
 	 */
-	public static Feed loadFromSQL(ResultSet rs, Map<String, Scraper> scrapers) throws SQLException, MalformedURLException {
+	public static Feed loadFromSQL(Connection connection, ResultSet rs, Map<String, Scraper> scrapers) throws SQLException, MalformedURLException {
 		List<String> scraperIDs = new ArrayList<>();
 		for (String s : (String[]) rs.getArray("scrapers").getArray())
 			scraperIDs.add(s);
@@ -280,7 +297,7 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 		closed = true;
 		if (writeSQL) {
 			try {
-				PreparedStatement ps = Downloader.getConnection().prepareStatement("update feeds set lastseen = ? where id = ?");
+				PreparedStatement ps = connection.prepareStatement("update feeds set lastseen = ? where id = ?");
 				ps.setString(1, getLastSeen());
 				ps.setInt(2, getID());
 				ps.executeUpdate();

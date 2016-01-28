@@ -27,12 +27,15 @@ class ArticleProcessorDaemon:
             ds = DataSource()
             unprocessed_articles = ds.get_unprocessed_articles()
             for article in unprocessed_articles:
-                extractor = KeywordExtractor()
-                body = open("articles/{0}".format(article[2])).read()
-                article_with_body = Article(article[1], body, article[3], article[4])
-                keywords = extractor.extract_keywords(article_with_body)
-                keyword_string = json.dumps(keywords)
-                ds.add_keywords_to_article(article[0], keyword_string)
+                try:
+                    extractor = KeywordExtractor()
+                    body = open("articles/{0}".format(article[2])).read()
+                    article_with_body = Article(article[1], body, article[3], article[4])
+                    keywords = extractor.extract_keywords(article_with_body)
+                    keyword_string = json.dumps(keywords)
+                    ds.add_keywords_to_article(article[0], keyword_string)
+                except (FileNotFoundError, IOError):
+                        print("Wrong file or file path")
         finally:
             fcntl.lockf(fd, fcntl.LOCK_UN)
             fo.close()
