@@ -28,6 +28,29 @@ function submitQuery() {
     invalid = true;
   }
 
+  // make sure email matches basic format - not 100% foolproof
+  // regex from http://stackoverflow.com/questions/4964691/super-simple-email-validation-with-javascript
+  if (form["user-email"].value != "") {
+    var emailRe = /(.+)@(.+){2,}\.(.+){2,}/;
+    if (!emailRe.test(form["user-email"].value)) {
+    addToList(list, "Email must be valid");
+    invalid = true;
+    }
+  }
+
+  // make phone number only numeric, see if it has 10 digits
+  if (form["user-phone"].value != "") {
+    var phoneString = form["user-phone"].value;
+    phoneString = phoneString.replace(/\D/g, "");
+    if (phoneString.length == 10) {
+      // 10 digits, accept
+      form["user-phone"].value = phoneString;
+    } else {
+      addToList(list, "Phone numbers must have exactly 10 digits");
+      invalid = true;
+    }
+  }
+
   // if the form is invalid, show the errors and don't submit
   if (invalid) {
     document.getElementById("form-error").className = "alert alert-danger";
