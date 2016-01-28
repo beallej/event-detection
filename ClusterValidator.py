@@ -5,6 +5,7 @@ from KMeansClusterer import *
 import json
 import operator
 from AbstractClusterer import *
+from nltk.stem.wordnet import WordNetLemmatizer
 
 class ClusterValidator:
     """
@@ -21,6 +22,7 @@ class ClusterValidator:
         self.query_list = []
         clusterer = cluster_class()
         self.clusters = clusterer.cluster()
+        self.lemmatizer = WordNetLemmatizer()
 
     def add_query(self, query):
         """
@@ -43,7 +45,7 @@ class ClusterValidator:
         query_synonyms = {}
 
         for w in query_synonyms_raw:
-            query_synonyms[w[0]] = w[3]
+            query_synonyms[self.normalize_keyword(w[0])] = w[3]
         cluster_matches = {}
 
         for cluster in self.clusters:
@@ -58,30 +60,41 @@ class ClusterValidator:
             for pos in cluster_keywords:
                 all_cluster_keywords.update(cluster_keywords[pos])
 
+            all_cluster_keywords= set(self.normalize_keyword(kw) for kw in  all_cluster_keywords)
+            subkeywords = set()
+            for keyword in all_cluster_keywords:
+                subkeywords.update(self.normalize_keyword(kw) for kw in keyword.split())
+
+            all_cluster_keywords.update(subkeywords)
+
             # find matches
-            for query_word in query_synonyms:
+            for query_word_raw in query_synonyms:
+                query_word = self.normalize_keyword(query_word_raw)
                 max_match_value += 2
                 if query_word in all_cluster_keywords:
                     match_value += 2
-                    print(query_word)
                 else:
-                    synonyms_matched = 0
                     for synonym in query_synonyms[query_word]:
                         if synonym in all_cluster_keywords:
                             match_value += 1
-                            #synonyms_matched += 1
                             break
-                    #match_value += synonyms_matched/len(query_synonyms[query_word])
             match_percentage = match_value / max_match_value
             cluster_matches[cluster] = match_percentage
 
         # find the max match_percentage
         max_match_cluster= max(cluster_matches.items(), key=operator.itemgetter(1))[0]
-        #print(cluster_matches[max_match_cluster])
+
         best_value = cluster_matches[max_match_cluster]
         if best_value >= self.MIN_THRESHOLD:
             return max_match_cluster, best_value
         return None, best_value
+
+
+    def normalize_keyword(self, word):
+        lemma = self.lemmatizer.lemmatize(word.lower())
+        stem = (SnowballStemmer("english").stem(lemma))
+        return stem
+
 
 def main():
     clusterValidator = ClusterValidator(HierarchicalAgglomerativeClusterer, None)
@@ -89,7 +102,7 @@ def main():
     if result is None:
         print("No clusters found for value " + str(value))
     else:
-        print(result.article_titles, value)
+        print(result.article_titles, result.article_ids, value)
 
 if __name__ == "__main__":
     main()

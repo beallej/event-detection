@@ -53,14 +53,27 @@ class HierarchicalAgglomerativeClusterer(AbstractClusterer):
         max_dist = Z[-1][2]
         best_dist = max_dist
         num_clusters = 0
-        total_articles_clustered = 0
         for i in np.arange(0,max_dist,0.05):
             clusters = self.get_clusters(Z, i)
             if len(clusters) >= num_clusters:
                 num_clusters = len(clusters)
-                total_articles_clustered = map(len, clusters)
                 best_dist = i
             else:
+                clusters = self.get_clusters(Z, best_dist)
+                return clusters
+        return []
+
+    def get_final_clusters_max_articles(self, Z):
+        max_dist = Z[-1][2]
+        best_dist = max_dist
+        total_articles_clustered = 0
+        for i in np.arange(0,max_dist,0.05):
+            clusters = self.get_clusters(Z, i)
+            articles_clusters_current = sum(len(cluster.article_titles) for cluster in clusters)
+            if articles_clusters_current >= total_articles_clustered:
+                total_articles_clustered = articles_clusters_current
+                best_dist = i
+            elif total_articles_clustered > 0:
                 clusters = self.get_clusters(Z, best_dist)
                 return clusters
         return []
