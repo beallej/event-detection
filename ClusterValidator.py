@@ -1,8 +1,4 @@
-from Validator import QueryArticleList
-from DataSource import *
 from HierarchicalAgglomerativeClusterer import *
-from KMeansClusterer import *
-import json
 import operator
 from AbstractClusterer import *
 from nltk.stem.wordnet import WordNetLemmatizer
@@ -14,13 +10,13 @@ class ClusterValidator:
 
     MIN_THRESHOLD = 0.1
 
-    def __init__(self, cluster_class, k_function):
+    def __init__(self):
         """
         initializes query_article_lists, a list of list of articles defined around a query
         :return: nothing
         """
         self.query_list = []
-        clusterer = cluster_class()
+        clusterer = HierarchicalAgglomerativeClusterer()
         self.clusters = clusterer.cluster()
         self.lemmatizer = WordNetLemmatizer()
 
@@ -38,6 +34,9 @@ class ClusterValidator:
         :param query: query to get the best cluster for
         :return: a cluster or None (if below a certain threshold)
         """
+        # if there are no clusters, we can't validate
+        if len(self.clusters) == 0:
+            return None, 0
 
         # Need to process query and article formats
         ds = DataSource()
@@ -49,18 +48,12 @@ class ClusterValidator:
         cluster_matches = {}
 
         for cluster in self.clusters:
-            #print(cluster.article_titles)
 
             max_match_value = 0
             match_value = 0
-            cluster_keywords = cluster.get_keywords()
-            all_cluster_keywords = set()
-
-            # flatten cluster_keywords
-            for pos in cluster_keywords:
-                all_cluster_keywords.update(cluster_keywords[pos])
-
+            all_cluster_keywords = cluster.get_keywords()
             all_cluster_keywords= set(self.normalize_keyword(kw) for kw in  all_cluster_keywords)
+
             subkeywords = set()
             for keyword in all_cluster_keywords:
                 subkeywords.update(self.normalize_keyword(kw) for kw in keyword.split())
@@ -82,7 +75,7 @@ class ClusterValidator:
             cluster_matches[cluster] = match_percentage
 
         # find the max match_percentage
-        max_match_cluster= max(cluster_matches.items(), key=operator.itemgetter(1))[0]
+        max_match_cluster = max(cluster_matches.items(), key=operator.itemgetter(1))[0]
 
         best_value = cluster_matches[max_match_cluster]
         if best_value >= self.MIN_THRESHOLD:
@@ -97,7 +90,7 @@ class ClusterValidator:
 
 
 def main():
-    clusterValidator = ClusterValidator(HierarchicalAgglomerativeClusterer, None)
+    clusterValidator = ClusterValidator()
     result, value = clusterValidator.validate(7)
     if result is None:
         print("No clusters found for value " + str(value))

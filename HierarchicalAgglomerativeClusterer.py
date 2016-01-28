@@ -15,13 +15,23 @@ class HierarchicalAgglomerativeClusterer(AbstractClusterer):
     """
 
     def get_cluster_matrix(self, X):
-        # generate the linkage matrix
+        """
+        Generates the linkage matrix containing cluster information
+        See http://www.mathworks.com/help/stats/linkage.html for more information
+        :param X: the tfidf matrix over all the articles
+        :return: the linkage matrix
+        """
         Z = linkage(X, 'single')
         return Z
 
 
 
     def plot_data(self):
+        """
+        plots a dendogram of the hierarchical clustering
+        uncomment the matplotlib import if you call this function
+        :return: None
+        """
         matrix = self.pre_cluster()
         Z = self.get_cluster_matrix(matrix)
         article_titles = self.matrix_creator.get_article_titles()
@@ -42,14 +52,25 @@ class HierarchicalAgglomerativeClusterer(AbstractClusterer):
         )
         plt.show()
 
-    def cluster(self, k_function = None):
-        matrix = self.pre_cluster(k_function)
+    def cluster(self):
+        """
+        performs clustering on articles
+        :return: a list of cluster objects
+        """
+        matrix = self.pre_cluster()
         Z = self.get_cluster_matrix(matrix)
 
         clusters = self.get_final_clusters(Z)
         return clusters
 
     def get_final_clusters(self, Z):
+        """
+        Returns clusters where the number of clusters is as high as possible (while still being valid)
+        This is determined by trying a bunch of maximum distances between clusters as input to the cluster function
+        and using the one that is the most fruitful.
+        :param Z: the linkage matrix
+        :return: list of clusters
+        """
         max_dist = Z[-1][2]
         best_dist = max_dist
         num_clusters = 0
@@ -64,6 +85,13 @@ class HierarchicalAgglomerativeClusterer(AbstractClusterer):
         return []
 
     def get_final_clusters_max_articles(self, Z):
+        """
+        Returns clusters where the number of articles clustered is as high as possible (while still being valid)
+        This is determined by trying a bunch of maximum distances between clusters as input to the cluster function
+        and using the one that is the most fruitful.
+        :param Z: the linkage matrix
+        :return: list of clusters
+        """
         max_dist = Z[-1][2]
         best_dist = max_dist
         total_articles_clustered = 0
@@ -79,8 +107,14 @@ class HierarchicalAgglomerativeClusterer(AbstractClusterer):
         return []
 
 
-
     def get_clusters(self, Z, distance):
+        """
+        Performs clustering and returns cluster objects with given max distance between
+        clusters and linkage matrix
+        :param Z: linkage matrix
+        :param distance: max distance between clusters
+        :return: list of clusters
+        """
         cluster_matrix = fcluster(Z, distance)
         clusters = {}
         for i in range(len(self.article_ids)):
@@ -91,17 +125,12 @@ class HierarchicalAgglomerativeClusterer(AbstractClusterer):
         return final_clusters
 
 
-
-
-
 def main():
-    clusterer = HierarchicalAgglomerativeClusterer()
 
+    clusterer = HierarchicalAgglomerativeClusterer()
     clusters = clusterer.cluster()
     for cluster in clusters:
         print(cluster.article_titles)
 
-    #clusterer.plot_data()
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

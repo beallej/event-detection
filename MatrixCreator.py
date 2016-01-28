@@ -1,68 +1,78 @@
 from numpy import zeros
 from DataSource import *
-from nltk.stem.snowball import SnowballStemmer
-from nltk.stem.wordnet import WordNetLemmatizer
 import nltk.corpus
 from KeywordExtractor import *
 import re
-import functools
-import json
 from collections import Counter
 from sklearn.feature_extraction.text import TfidfTransformer
-
-# Uncomment following 2 lines to print out full arrays
-# import numpy
-# numpy.set_printoptions(threshold=numpy.nan)
 
 class MatrixCreator:
 
 
     def __init__(self):
+        """
+        Initialize class variables
+        :return: None
+        """
         self.ds = DataSource()
-        #self.ids = []
-        # self.num_entries = 0
-        # self.num_articles = 0
-        # self.num_article_words = 0
-        # self.article_titles = []
+        self.ids = []
+        self.num_entries = 0
+        self.num_articles = 0
+        self.num_article_words = 0
+        self.article_titles = []
         self.stopwords = set(nltk.corpus.stopwords.words('english'))
         self.lemmatizer = WordNetLemmatizer()
 
 
     def get_num_entries(self):
-        '''Gets the number of non-zero entries in the matrix.'''
+        """
+        Gets the number of non-zero entries in the matrix.
+        :return: number of non-zero entries in the matrix
+        """
         return self.num_entries
 
     def get_num_articles(self):
-        '''Gets the number of datapoints/rows in the matrix
-           (in our case, the number of articles).'''
+        """
+        Gets the number of articles, which is the number of rows in the matrix
+        :return: number of articles
+        """
         return self.num_articles
 
     def get_num_title_words(self):
-        '''
+        """
         Gets the number of columns in the matrix
         :return:number of columns
-        '''
+        """
         return self.num_title_words
 
     def get_num_article_words(self):
-        '''
+        """
         Gets the number of unique words across all documents
-        :return:number of global words
-        '''
+        :return: number of unique words across all documents
+        """
         return self.num_article_words
 
     def get_article_titles(self):
-        '''Gets ordered list of article titles corresponding to
-           article ids in self.ids.'''
+        """
+        Gets ordered list of article titles corresponding to
+        article ids in self.ids
+        :return: list of article titles
+        """
         return self.article_titles
 
-    def get_title_words_by_article(self):
-        return self.article_words_by_article
-
     def get_article_ids(self):
+        """
+        Gets article ids
+        :return: list of article ids
+        """
         return self.ids
 
     def retrieve_article_ids_titles_filenames(self):
+        """
+        Retrieves article ids, titles, and filenames from database
+        and sets class variables
+        :return: None
+        """
         articles = self.ds.get_article_ids_titles_filenames()
         self.ids = [article[0] for article in articles]
         self.article_titles = [article[1] for article in articles]
@@ -70,8 +80,11 @@ class MatrixCreator:
         self.num_articles = len(self.article_titles)
 
     def get_article_text_by_article(self):
-        '''Gets ordered list [set(stemmed title words)] of article titles
-           and set of unique stemmed title words'''
+        """
+        Gets list of sets of words by article, along with set of keywords
+        across all articles
+        :return: Set of words used in all articles
+        """
         pattern =  re.compile(r'TITLE:(.*)TEXT:(.*)', re.DOTALL)
 
         self.article_words_by_article = []
@@ -99,8 +112,11 @@ class MatrixCreator:
         return all_article_words_set
 
     def construct_matrix(self):
-        '''Constructs an articles X title words numpy array and populates it
-           with counts in each article.'''
+        """
+        Constructs an articles by words numpy array and populates it
+        with tfidf values for each article-word cell.
+        :return: tfidf matrix
+        """
 
         # Initialize article ids and titles
         self.retrieve_article_ids_titles_filenames()
@@ -118,12 +134,6 @@ class MatrixCreator:
         transformer = TfidfTransformer()
         tfidf_matrix = transformer.fit_transform(matrix).toarray()
         return tfidf_matrix
-
-
-    def normalize_word(self, word):
-        lemma = self.lemmatizer.lemmatize(word.lower())
-        stem = (SnowballStemmer("english").stem(lemma))
-        return stem
 
 def main():
     mc = MatrixCreator()
