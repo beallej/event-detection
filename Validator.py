@@ -22,7 +22,7 @@ class AbstractValidator:
 
   def validate(self, query, article):
       """
-        All validators must have a validate method
+      All validators must have a validate method
       :param Query: query to validate
       :param Article: article used for validation
       :return:
@@ -93,7 +93,7 @@ class KeywordValidator(AbstractValidator):
             for query_word in query_synonyms[pos]:
                 max_match_value += 2
                 if pos in article_keyword:
-                    article_keyword_with_same_tag = article_keyword[pos]
+                    article_keyword_with_same_tag = article_keyword[pos][0]
                     #Compare main key. If match, match_value += 2
                     if query_word in article_keyword_with_same_tag:
                         match_value += 2
@@ -163,7 +163,11 @@ class Article:
         :param source: article source
         :return: nothing
         """
-        tagged_items = re.match(r'TITLE:\n(.*)\nTEXT:\n(.*)', body)
+
+        pattern =  re.compile(r'TITLE:(.*)TEXT:(.*)', re.DOTALL)
+        tagged_items = re.match(pattern, body)
+
+
         self.title_tagged = tagged_items.group(1)
         self.body_tagged = tagged_items.group(2)
         self.title = title
