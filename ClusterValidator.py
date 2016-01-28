@@ -67,7 +67,7 @@ class ClusterValidator:
                 if query_word in all_cluster_keywords:
                     match_value += 2
                 else:
-                    for synonym in query_synonyms[query_word]:
+                    for synonym in query_synonyms[query_word_raw]:
                         if synonym in all_cluster_keywords:
                             match_value += 1
                             break
@@ -91,7 +91,7 @@ class ClusterValidator:
 
 def main():
     clusterValidator = ClusterValidator()
-    result, value = clusterValidator.validate(7)
+    result, value = clusterValidator.validate(8)
     if result is None:
         print("No clusters found for value " + str(value))
     else:
