@@ -45,8 +45,28 @@ class DataSource:
             keywords.append(wrd[0])
         return keywords
 
+    def get_all_article_keywords(self):
+        self.cursor.execute("SELECT keywords FROM articles WHERE keywords IS NOT null;")
+        return self.cursor.fetchall()
+
+    def get_all_titles_and_keywords(self):
+        self.cursor.execute("SELECT title, keywords FROM articles WHERE keywords IS NOT null;")
+        return self.cursor.fetchall()
+
+    def get_all_article_ids_and_keywords(self):
+        self.cursor.execute("SELECT id, keywords FROM articles WHERE keywords IS NOT null;")
+        return self.cursor.fetchall()
+
     def get_articles(self):
         self.cursor.execute("SELECT id FROM articles")
+        return self.cursor.fetchall()
+
+    def get_all_article_ids_and_filenames(self):
+        self.cursor.execute("SELECT id, filename FROM articles;")
+        return self.cursor.fetchall()
+
+    def get_article_ids_titles_filenames(self):
+        self.cursor.execute("SELECT id, title, filename FROM articles;")
         return self.cursor.fetchall()
 
     def insert_article_keywords(self, article_title, source, url, filename, keyword_list):
@@ -91,17 +111,17 @@ class DataSource:
     def get_user_id(self, user_name, phone, email):
         self.cursor.execute("SELECT id FROM users WHERE user_name=%s AND phone=%s AND email=%s", (user_name, phone, email))
         return self.cursor.fetchone()
-    
+
     def get_query_elements(self, query_id):
         self.cursor.execute("SELECT subject, verb, direct_obj, indirect_obj, loc FROM queries WHERE id=%s", (query_id, ))
         elements = self.cursor.fetchone()
         elements = [element for element in elements if element is not None or element is not ""]
         return elements
-    
+
     def get_article_url(self, article_id):
         self.cursor.execute("SELECT url FROM articles WHERE id=%s", (article_id, ))
         return str(self.cursor.fetchone()[0])
-    
+
     def get_article_title(self, article_id):
         self.cursor.execute("SELECT title FROM articles WHERE id=%s", (article_id, ))
         return str(self.cursor.fetchone()[0])
@@ -139,6 +159,16 @@ class DataSource:
 
     def add_keywords_to_article(self, id, keyword_string):
         self.cursor.execute("UPDATE articles SET keywords = %s WHERE id = %s", (keyword_string, id))
+
+
+    def set_all_unprocessed(self):
+        self.cursor.execute("UPDATE articles SET keywords = NULL")
+        self.cursor.execute("UPDATE query_articles SET processed = false")
+        self.cursor.execute("UPDATE query_articles SET accuracy = 0")
+
+    def get_all_ids_and_titles(self):
+        self.cursor.execute("SELECT id, title FROM articles;")
+        return self.cursor.fetchall()
 
     def article_processed(self, article_id):
         self.cursor.execute("SELECT keywords FROM articles WHERE id = %s;", (article_id, ))

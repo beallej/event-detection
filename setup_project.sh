@@ -5,6 +5,9 @@ key_library="postgresql-9.4.1207.jar"
 if [ "$(which brew)" != "" ] && [ "$(which brew)" != "brew not found" ]; then
 	pip3 install 'psycopg2'
 	pip3 install 'Flask'
+	pip3 install 'twilio'
+	pip3 install 'sendgrid'
+	pip3 install 'sklearn'
 	brew update
 	brew tap 'toberumono/tap'
 	brew install 'toberumono/tap/utils' 'toberumono/tap/structures' 'toberumono/tap/lexer' 'toberumono/tap/json-library' 'wget'
