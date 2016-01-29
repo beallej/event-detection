@@ -75,6 +75,6 @@ public class SwoogleSemanticAnalysisValidator extends Validator {
 		for (Pair<Double, String> p : topN)
 			average += p.getX();
 		average /= (double) topN.size();
-		return new ValidationResult[]{new ValidationResult(this.getID(), article.getID(), average)};
+		return new ValidationResult[]{new ValidationResult(article.getID(), average)};
 	}
 }
