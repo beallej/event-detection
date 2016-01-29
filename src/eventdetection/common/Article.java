@@ -5,7 +5,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 import edu.stanford.nlp.pipeline.Annotation;
-import eventdetection.downloader.POSTagger;
 
 /**
  * Represents an {@link Article} that has been processed. All {@link Annotation} processing and PoS tagging is done lazily. A
