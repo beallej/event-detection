@@ -22,15 +22,17 @@
 		"pass"		: null
 	},
 	"paths" : {
-		"sources"	: [],
-		"feeds"		: [],
-		"scrapers"	: ["./scrapers"],
-		"articles"	: ["./articles"]
+		"sources"		: [],
+		"feeds"			: [],
+		"scrapers"		: ["./scrapers"],
+		"articles"		: ["./articles"],
+		"validators"	: ["./validators"],
 	},
 	"tables" : {
-		"sources"	: "sources",
-		"feeds"		: "feeds",
-		"scrapers"	: null,
-		"articles"	: "articles"
+		"sources"		: "sources",
+		"feeds"			: "feeds",
+		"scrapers"		: null,
+		"articles"		: "articles",
+		"validators"	: "validation_algorithms"
 	}
 }

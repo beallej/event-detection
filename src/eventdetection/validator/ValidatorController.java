@@ -1,6 +1,13 @@
 package eventdetection.validator;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
@@ -22,7 +29,10 @@ import java.util.concurrent.Future;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import toberumono.json.JSONArray;
+import toberumono.json.JSONBoolean;
 import toberumono.json.JSONObject;
+import toberumono.json.JSONString;
 import toberumono.json.JSONSystem;
 import toberumono.structures.tuples.Triple;
 
@@ -30,7 +40,8 @@ import eventdetection.common.Article;
 import eventdetection.common.ArticleManager;
 import eventdetection.common.DBConnection;
 import eventdetection.common.Query;
-import eventdetection.validator.implementations.SwoogleSemanticAnalysisValidator;
+import eventdetection.validator.types.Validator;
+import eventdetection.validator.types.ValidatorType;
 
 /**
  * A class that manages multiple validation algorithms and allows them to run in parallel.
@@ -61,7 +72,39 @@ public class ValidatorController {
 		this.validators = new LinkedHashMap<>();
 		JSONObject paths = (JSONObject) config.get("paths");
 		JSONObject articles = (JSONObject) config.get("articles");
-		this.articleManager = new ArticleManager(connection, "articles", paths, articles);
+		this.articleManager = new ArticleManager(connection, ((JSONObject) config.get("tables")).get("articles").value().toString(), paths, articles);
+		((JSONArray) paths.get("validators")).value().stream().map(a -> ((JSONString) a).value()).forEach(s -> {
+			try {
+				loadValidators(((JSONObject) config.get("tables")).get("validators").value().toString(), Paths.get(s));
+			}
+			catch (ClassNotFoundException | NoSuchMethodException | SecurityException | SQLException | IOException e) {
+				logger.warn("Unabile to initialize a validator described in " + s, e);
+			}
+		});
+	}
+	
+	private void loadValidators(String table, Path path) throws ClassNotFoundException, NoSuchMethodException, SecurityException, SQLException, IOException {
+		if (Files.isRegularFile(path)) {
+			if (path.getFileName().toString().endsWith(".json")) {
+				JSONObject json = (JSONObject) JSONSystem.loadJSON(path);
+				if (!json.containsKey("enabled") || ((JSONBoolean) json.get("enabled")).value()) {
+					ValidatorWrapper vw = new ValidatorWrapper(connection, table, getClass().getClassLoader(), json);
+					validators.put(vw.getName(), vw);
+				}
+			}
+		}
+		else {
+			ClassLoader classloader = new URLClassLoader(new URL[]{path.toUri().toURL()});
+			try (DirectoryStream<Path> stream = Files.newDirectoryStream(path, p -> p.getFileName().toString().endsWith(".json"))) {
+				for (Path p : stream) {
+					JSONObject json = (JSONObject) JSONSystem.loadJSON(p);
+					if (!json.containsKey("enabled") || ((JSONBoolean) json.get("enabled")).value()) {
+						ValidatorWrapper vw = new ValidatorWrapper(connection, table, classloader, json);
+						validators.put(vw.getName(), vw);
+					}
+				}
+			}
+		}
 	}
 	
 	/**
@@ -100,9 +143,6 @@ public class ValidatorController {
 		DBConnection.configureConnection((JSONObject) config.get("database"));
 		try (Connection connection = DBConnection.getConnection()) {
 			ValidatorController vc = new ValidatorController(connection, config);
-			//ADD VALIDATORS HERE
-			vc.addValidator("Swoogle Semantic Analysis", SwoogleSemanticAnalysisValidator::new);
-			//vc.addValidator("SEMILAR Semantic Analysis", SIMILATSemanticAnalysisValidator::new);
 			vc.executeValidators(queryIDs, articleIDs);
 		}
 	}
@@ -122,27 +162,6 @@ public class ValidatorController {
 		if (ids.size() > 0)
 			logger.warn("Did not find queries with ids matching " + ids.stream().reduce("", (a, b) -> a + ", " + b.toString(), (a, b) -> a + b).substring(2));
 		return queries;
-	}
-	
-	/**
-	 * Adds the given algorithm to the {@link ValidatorController}.
-	 * 
-	 * @param algorithm
-	 *            the name of the algorithm as it appears in the database
-	 * @param constructor
-	 *            the constructor of a {@link Validator} that implements the given algorithm
-	 * @return {@code true} if the algorithm was successfully added to the {@link ValidatorController}, otherwise
-	 *         {@code false}
-	 * @throws SQLException
-	 *             if an error occurs while connecting to the database
-	 */
-	public boolean addValidator(String algorithm, ValidatorConstructor constructor) throws SQLException {
-		synchronized (connection) {
-			if (validators.containsKey(algorithm))
-				return false;
-			validators.put(algorithm, new ValidatorWrapper(connection, algorithm, constructor));
-			return true;
-		}
 	}
 	
 	/**
@@ -173,7 +192,12 @@ public class ValidatorController {
 								if (rs.next()) //If we've already processed the current article with the current validator for the current query 
 									continue;
 							}
-							results.add(new Triple<>(query.getId(), vw.getID(), pool.submit(vw.construct(query, article))));
+							try {
+								results.add(new Triple<>(query.getId(), vw.getID(), pool.submit(vw.construct(query, article))));
+							}
+							catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+								logger.error("Unable to initialize the " + vw.getName() + " for query " + query.getId() + " and article " + article.getID(), e);
+							}
 						}
 					}
 				}
@@ -208,17 +232,47 @@ public class ValidatorController {
 }
 
 class ValidatorWrapper {
-	private final int algorithmID;
-	private final ValidatorConstructor constructor;
+	private static final Logger logger = LoggerFactory.getLogger(ValidatorWrapper.class);
 	
-	public ValidatorWrapper(Connection connection, String algorithm, ValidatorConstructor constructor) throws SQLException {
-		this.constructor = constructor;
-		try (PreparedStatement stmt = connection.prepareStatement("select id from validation_algorithms as va where va.algorithm = ?")) {
-			stmt.setString(1, algorithm);
+	private final int algorithmID;
+	private final String name;
+	private final Class<? extends Validator> clazz;
+	private final ValidatorType type;
+	private final Constructor<? extends Validator> constructor;
+	
+	@SuppressWarnings("unchecked")
+	public ValidatorWrapper(Connection connection, String table, ClassLoader classloader, JSONObject validator) throws SQLException, ClassNotFoundException, NoSuchMethodException, SecurityException {
+		clazz = (Class<? extends Validator>) classloader.loadClass(validator.get("class").value().toString());
+		name = validator.get("id").value().toString();
+		type = ValidatorType.valueOf(validator.get("type").value().toString());
+		
+		constructor = clazz.getConstructor(type.getConstructorArgTypes());
+		constructor.setAccessible(true);
+		
+		try (PreparedStatement stmt = connection.prepareStatement("select id from " + table + " as va where va.algorithm = ?")) {
+			stmt.setString(1, name);
 			try (ResultSet rs = stmt.executeQuery()) {
 				rs.next();
 				algorithmID = rs.getInt("id");
 			}
+		}
+		if (validator.containsKey("properties"))
+			loadStaticProperties((JSONObject) validator.get("properties"));
+	}
+	
+	private void loadStaticProperties(JSONObject properties) {
+		try {
+			Method staticInit = clazz.getMethod("loadStaticProperties", JSONObject.class);
+			staticInit.setAccessible(true);
+			try {
+				staticInit.invoke(null, properties);
+			}
+			catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+				logger.error("Failed to invoke the found static property initialization method for " + name, e);
+			}
+		}
+		catch (NoSuchMethodException | SecurityException e) {
+			logger.warn("Unable to find the static property initialization method for " + name, e);
 		}
 	}
 	
@@ -226,7 +280,15 @@ class ValidatorWrapper {
 		return algorithmID;
 	}
 	
-	public Validator construct(Query query, Article article) {
-		return constructor.construct(algorithmID, query, article);
+	public String getName() {
+		return name;
+	}
+	
+	public ValidatorType getType() {
+		return type;
+	}
+	
+	public Validator construct(Object... args) throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+		return constructor.newInstance(args);
 	}
 }

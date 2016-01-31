@@ -9,6 +9,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import toberumono.json.JSONObject;
 import toberumono.structures.collections.lists.SortedList;
 import toberumono.structures.tuples.Pair;
 
@@ -19,8 +20,8 @@ import eventdetection.common.Article;
 import eventdetection.common.POSUtils;
 import eventdetection.common.Query;
 import eventdetection.validator.ValidationResult;
-import eventdetection.validator.Validator;
-import eventdetection.validator.ValidatorController;
+import eventdetection.validator.types.OneToOneValidator;
+import eventdetection.validator.types.Validator;
 
 /**
  * A relatively simple validator that uses the <a href="http://swoogle.umbc.edu/SimService/api.html">Swoogle semantic
@@ -29,22 +30,20 @@ import eventdetection.validator.ValidatorController;
  * 
  * @author Joshua Lipstone
  */
-public class SwoogleSemanticAnalysisValidator extends Validator {
-	private static final String URL_PREFIX = "http://swoogle.umbc.edu/StsService/GetStsSim?operation=api";
-	private static final int MAX_SENTENCES = 5;
+public class SwoogleSemanticAnalysisValidator extends OneToOneValidator {
+	private static String URL_PREFIX = "http://swoogle.umbc.edu/StsService/GetStsSim?operation=api";
+	private static int MAX_SENTENCES = 5;
 	
 	/**
 	 * Constructs a new instance of the {@link Validator} for the given {@code ID}, {@link Query}, and {@link Article}
 	 * 
-	 * @param algorithmID
-	 *            the {@code ID} of the implemented algorithm as determined by the {@link ValidatorController}
 	 * @param query
 	 *            the {@link Query} to validate
 	 * @param article
 	 *            the {@link Article} against which the {@link Query} is to be validated
 	 */
-	public SwoogleSemanticAnalysisValidator(Integer algorithmID, Query query, Article article) {
-		super(algorithmID, query, article);
+	public SwoogleSemanticAnalysisValidator(Query query, Article article) {
+		super(query, article);
 	}
 	
 	@Override
@@ -76,5 +75,16 @@ public class SwoogleSemanticAnalysisValidator extends Validator {
 			average += p.getX();
 		average /= (double) topN.size();
 		return new ValidationResult[]{new ValidationResult(article.getID(), average)};
+	}
+	
+	/**
+	 * Hook for loading properties from the Validator's JSON data
+	 * 
+	 * @param properties
+	 *            a {@link JSONObject} holding the validator's static properties
+	 */
+	public static void loadStaticProperties(JSONObject properties) {
+		URL_PREFIX = (String) properties.get("url-prefix").value();
+		MAX_SENTENCES = (Integer) properties.get("max-sentences").value();
 	}
 }

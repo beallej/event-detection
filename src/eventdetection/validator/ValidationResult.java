@@ -2,6 +2,7 @@ package eventdetection.validator;
 
 import eventdetection.common.Article;
 import eventdetection.common.Query;
+import eventdetection.validator.types.Validator;
 
 /**
  * Container for the result of a {@link Validator Validator's} algorithm.
