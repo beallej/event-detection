@@ -1,9 +1,6 @@
 package eventdetection.validator;
 
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
@@ -25,7 +22,6 @@ import java.util.concurrent.Future;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import toberumono.json.JSONArray;
 import toberumono.json.JSONObject;
 import toberumono.json.JSONSystem;
 import toberumono.structures.tuples.Triple;
@@ -50,16 +46,22 @@ public class ValidatorController {
 	private final Connection connection;
 	private final Map<String, ValidatorWrapper> validators;
 	private static final Logger logger = LoggerFactory.getLogger(ValidatorController.class);
+	private final ArticleManager articleManager;
 	
 	/**
 	 * Constructs a {@link ValidatorController} that uses the given {@link Connection} to connect to the database.
 	 * 
 	 * @param connection
 	 *            a {@link Connection} to the database to be used
+	 * @param config
+	 *            the {@link JSONObject} holding the configuration data
 	 */
-	public ValidatorController(Connection connection) {
+	public ValidatorController(Connection connection, JSONObject config) {
 		this.connection = connection;
 		this.validators = new LinkedHashMap<>();
+		JSONObject paths = (JSONObject) config.get("paths");
+		JSONObject articles = (JSONObject) config.get("articles");
+		this.articleManager = new ArticleManager(connection, "articles", paths, articles);
 	}
 	
 	/**
@@ -97,15 +99,15 @@ public class ValidatorController {
 		JSONObject config = (JSONObject) JSONSystem.loadJSON(configPath);
 		DBConnection.configureConnection((JSONObject) config.get("database"));
 		try (Connection connection = DBConnection.getConnection()) {
-			ValidatorController vc = new ValidatorController(connection);
+			ValidatorController vc = new ValidatorController(connection, config);
 			//ADD VALIDATORS HERE
 			vc.addValidator("Swoogle Semantic Analysis", SwoogleSemanticAnalysisValidator::new);
 			//vc.addValidator("SEMILAR Semantic Analysis", SIMILATSemanticAnalysisValidator::new);
-			vc.executeValidators(loadQueries(connection, config, queryIDs), loadArticles(connection, config, articleIDs));
+			vc.executeValidators(queryIDs, articleIDs);
 		}
 	}
 	
-	private static List<Query> loadQueries(Connection connection, JSONObject config, Collection<Integer> ids) throws SQLException, IOException {
+	private List<Query> loadQueries(Collection<Integer> ids) throws SQLException {
 		List<Query> queries = new ArrayList<>();
 		try (ResultSet rs = connection.prepareStatement("select * from queries").executeQuery()) {
 			int id = 0;
@@ -120,38 +122,6 @@ public class ValidatorController {
 		if (ids.size() > 0)
 			logger.warn("Did not find queries with ids matching " + ids.stream().reduce("", (a, b) -> a + ", " + b.toString(), (a, b) -> a + b).substring(2));
 		return queries;
-	}
-	
-	private static List<Article> loadArticles(Connection connection, JSONObject config, Collection<Integer> ids) throws SQLException, IOException, ClassNotFoundException {
-		Collection<Path> storage =
-				((JSONArray) ((JSONObject) config.get("paths")).get("articles")).stream().collect(LinkedHashSet::new, (s, p) -> s.add(Paths.get(p.toString())), LinkedHashSet::addAll);
-		List<Article> articles = new ArrayList<>();
-		try (ResultSet rs = connection.prepareStatement("select * from articles").executeQuery()) {
-			int id = 0;
-			while (rs.next()) {
-				id = rs.getInt("id");
-				if (ids.contains(id)) {
-					for (Path store : storage) {
-						if (!Files.exists(store))
-							continue;
-						String filename = rs.getString("filename");
-						Path serialized = ArticleManager.toSerializedPath(store.resolve(filename));
-						if (!Files.exists(serialized)) {
-							logger.warn("Unable to find the serialized data for " + rs.getString("title") + ".  Skipping.");
-							continue;
-						}
-						try (ObjectInputStream serialIn = new ObjectInputStream(new FileInputStream(serialized.toFile()))) {
-							Article article = (Article) serialIn.readObject();
-							articles.add(article);
-						}
-					}
-					ids.remove(id); //Prevents articles from being loaded more than once
-				}
-			}
-		}
-		if (ids.size() > 0)
-			logger.warn("Did not find articles with ids matching " + ids.stream().reduce("", (a, b) -> a + ", " + b.toString(), (a, b) -> a + b).substring(2));
-		return articles;
 	}
 	
 	/**
@@ -176,18 +146,21 @@ public class ValidatorController {
 	}
 	
 	/**
-	 * Executes the {@link Validator Validators} registered with the {@link ValidatorController} on the given {@link Query}
-	 * and {@link Collection} of {@link Article Articles} and writes the results to the database.
+	 * Executes the {@link Validator Validators} registered with the {@link ValidatorController} on the given
+	 * {@link Collection} of {@link Query} IDs and {@link Collection} of {@link Article} IDs after loading them from the
+	 * database and writes the results to the database.
 	 * 
-	 * @param queries
-	 *            the {@link Query Queries} to be validated
-	 * @param articles
-	 *            the {@link Article Articles} against which the {@link Query Queries} are to be validated
+	 * @param queryIDs
+	 *            the IDs of the {@link Query Queries} to be validated
+	 * @param articleIDs
+	 *            the IDs of the {@link Article Articles} against which the {@link Query Queries} are to be validated
 	 * @throws SQLException
 	 *             if an error occurs while reading from or writing to the database
 	 */
-	public void executeValidators(Collection<Query> queries, Collection<Article> articles) throws SQLException {
+	public void executeValidators(Collection<Integer> queryIDs, Collection<Integer> articleIDs) throws SQLException {
 		synchronized (connection) {
+			Collection<Query> queries = loadQueries(queryIDs);
+			Collection<Article> articles = articleManager.loadArticles(articleIDs);
 			List<Triple<Integer, Integer, Future<ValidationResult[]>>> results = new ArrayList<>();
 			try (PreparedStatement stmt = connection.prepareStatement("select * from validation_results as vr where vr.query = ? and vr.algorithm = ? and vr.article = ?")) {
 				for (Query query : queries) {
@@ -209,7 +182,6 @@ public class ValidatorController {
 				try {
 					ValidationResult[] ress = result.getZ().get();
 					for (ValidationResult res : ress) {
-						System.out.println(res);
 						String statement = "insert into validation_results as vr (query, algorithm, article, validates, invalidates) values (?, ?, ?, ?, ?) " +
 								"ON CONFLICT (query, algorithm, article) DO UPDATE set (validates, invalidates) = (EXCLUDED.validates, EXCLUDED.invalidates)"; //This is valid as of PostgreSQL 9.5
 						try (PreparedStatement stmt = connection.prepareStatement(statement)) {
@@ -222,7 +194,7 @@ public class ValidatorController {
 							else
 								stmt.setNull(5, Types.REAL);
 							stmt.executeUpdate();
-							System.out.println("(" + result.getX() + ", " + result.getY() + ", " + res.getArticleID() + ") -> (" + res.getValidates() + ", " +
+							logger.info("(" + result.getX() + ", " + result.getY() + ", " + res.getArticleID() + ") -> (" + res.getValidates() + ", " +
 									(res.getInvalidates() == null ? "null" : res.getInvalidates()) + ")");
 						}
 					}

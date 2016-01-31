@@ -15,10 +15,17 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import toberumono.json.JSONArray;
 import toberumono.json.JSONBoolean;
@@ -34,6 +41,8 @@ public class ArticleManager {
 	private final String table;
 	private final Collection<Path> storage;
 	private final boolean posTaggingEnabled;
+	private static final ReadWriteLock fsLock = new ReentrantReadWriteLock();
+	private final Logger logger;
 	
 	/**
 	 * Initializes an {@link ArticleManager} from JSON configuration data.
@@ -53,6 +62,7 @@ public class ArticleManager {
 		this.storage = ((JSONArray) paths.get("articles")).stream().collect(LinkedHashSet::new, (s, p) -> s.add(Paths.get(p.toString())), LinkedHashSet::addAll);
 		JSONObject posTagging = (JSONObject) articles.get("pos-tagging");
 		this.posTaggingEnabled = ((JSONBoolean) posTagging.get("enable-pos-tagging")).value();
+		this.logger = LoggerFactory.getLogger(getClass());
 	}
 	
 	/**
@@ -72,6 +82,7 @@ public class ArticleManager {
 		this.table = articleTable;
 		this.storage = articleStorage;
 		this.posTaggingEnabled = posTaggingEnabled;
+		this.logger = LoggerFactory.getLogger(getClass());
 	}
 	
 	/**
@@ -146,60 +157,144 @@ public class ArticleManager {
 	 *             disk
 	 */
 	public synchronized Article store(Article article) throws SQLException, IOException {
-		Path storagePath = storage.iterator().next(), serializedPath = storagePath.resolve("serialized");
-		if (!Files.exists(serializedPath))
-			Files.createDirectories(serializedPath);
-		String statement = "insert into " + table + " (title, url, source) values (?, ?, ?)";
-		try (PreparedStatement stmt = connection.prepareStatement(statement)) {
-			String untaggedTitle = article.getUntaggedTitle();
-			stmt.setString(1, untaggedTitle);
-			stmt.setString(2, article.getURL().toString());
-			stmt.setInt(3, article.getSource().getID());
-			stmt.executeUpdate();
-			String sql = "select * from " + table + " as arts group by arts.id having arts.id >= all (select a.id from " + table + " as a)";
-			try (PreparedStatement ps = connection.prepareStatement(sql)) {
-				ResultSet rs = ps.executeQuery();
-				if (!rs.next())
-					return null;
-				String filename = makeFilename(rs.getInt("id"), article.getSource(), untaggedTitle);
-				try (PreparedStatement stm = connection.prepareStatement("update " + table + " set filename = ? where id = ?")) {
-					stm.setString(1, filename);
-					stm.setLong(2, rs.getLong("id"));
-					stm.executeUpdate();
+		synchronized (fsLock.writeLock()) {
+			Path storagePath = storage.iterator().next(), serializedPath = storagePath.resolve("serialized");
+			if (!Files.exists(serializedPath))
+				Files.createDirectories(serializedPath);
+			String statement = "insert into " + table + " (title, url, source) values (?, ?, ?)";
+			try (PreparedStatement stmt = connection.prepareStatement(statement)) {
+				String untaggedTitle = article.getUntaggedTitle();
+				stmt.setString(1, untaggedTitle);
+				stmt.setString(2, article.getURL().toString());
+				stmt.setInt(3, article.getSource().getID());
+				stmt.executeUpdate();
+				String sql = "select * from " + table + " as arts group by arts.id having arts.id >= all (select a.id from " + table + " as a)";
+				try (PreparedStatement ps = connection.prepareStatement(sql)) {
+					ResultSet rs = ps.executeQuery();
+					if (!rs.next())
+						return null;
+					String filename = makeFilename(rs.getInt("id"), article.getSource(), untaggedTitle);
+					try (PreparedStatement stm = connection.prepareStatement("update " + table + " set filename = ? where id = ?")) {
+						stm.setString(1, filename);
+						stm.setLong(2, rs.getLong("id"));
+						stm.executeUpdate();
+					}
+					Path filePath = storagePath.resolve(filename), serialPath = serializedPath.resolve(toSerializedName(filename));
+					logger.info("Started Processing: " + article.getUntaggedTitle());
+					article = article.copyWithID(rs.getInt("id"));
+					try {
+						StringBuilder fileText = new StringBuilder(article.getTaggedTitle().length() + article.getTaggedText().length() + 14); //14 is the length of the section dividers
+						fileText.append("TITLE:\n").append(article.getTaggedTitle()).append("\nTEXT:\n").append(article.getTaggedText());
+						Files.write(filePath, fileText.toString().getBytes());
+						try (ObjectOutputStream serialOut = new ObjectOutputStream(new FileOutputStream(serialPath.toFile()))) {
+							article.process();
+							serialOut.writeObject(article);
+						}
+						catch (Throwable t) {
+							throw t;
+						}
+						try (ObjectInputStream serialIn = new ObjectInputStream(new FileInputStream(serialPath.toFile()))) {
+							serialIn.readObject(); //Test to be sure that the serialization worked
+						}
+						catch (Throwable t) {
+							throw new IOException("Serialization failed", t); //If anything goes wrong with reading the Article
+						}
+					}
+					catch (IOException e) {
+						try (Statement stm = DBConnection.getConnection().createStatement()) {
+							stm.executeUpdate("delete from " + table + " where id = " + rs.getLong("id"));
+						}
+						if (Files.exists(filePath))
+							Files.delete(filePath);
+						if (Files.exists(serialPath))
+							Files.delete(serialPath);
+						throw e;
+					}
+					return article;
 				}
-				Path filePath = storagePath.resolve(filename), serialPath = serializedPath.resolve(toSerializedName(filename));
-				System.out.println("Started Processing: " + article.getUntaggedTitle());
-				article = article.copyWithID(rs.getInt("id"));
-				try {
-					StringBuilder fileText = new StringBuilder(article.getTaggedTitle().length() + article.getTaggedText().length() + 14); //14 is the length of the section dividers
-					fileText.append("TITLE:\n").append(article.getTaggedTitle()).append("\nTEXT:\n").append(article.getTaggedText());
-					Files.write(filePath, fileText.toString().getBytes());
-					try (ObjectOutputStream serialOut = new ObjectOutputStream(new FileOutputStream(serialPath.toFile()))) {
-						article.process();
-						serialOut.writeObject(article);
-					}
-					catch (Throwable t) {
-						throw t;
-					}
-					try (ObjectInputStream serialIn = new ObjectInputStream(new FileInputStream(serialPath.toFile()))) {
-						serialIn.readObject(); //Test to be sure that the serialization worked
-					}
-					catch (Throwable t) {
-						throw new IOException("Serialization failed", t); //If anything goes wrong with reading the Article
-					}
-				}
-				catch (IOException e) {
-					try (Statement stm = DBConnection.getConnection().createStatement()) {
-						stm.executeUpdate("delete from " + table + " where id = " + rs.getLong("id"));
-					}
-					if (Files.exists(filePath))
-						Files.delete(filePath);
-					if (Files.exists(serialPath))
-						Files.delete(serialPath);
-					throw e;
-				}
-				return article;
 			}
+		}
+	}
+	
+	/**
+	 * Loads the {@link Article} with the given {@code id} from disk using the information in the SQL database
+	 * 
+	 * @param id
+	 *            the ID of the {@link Article} to load
+	 * @return the {@link Article} if one was found, otherwise null
+	 * @throws SQLException
+	 * @throws ClassNotFoundException
+	 * @throws IOException
+	 */
+	public Article load(int id) throws SQLException, ClassNotFoundException, IOException {
+		synchronized (fsLock.readLock()) {
+			try (PreparedStatement stmt = connection.prepareStatement("select * from articles where articles.id = ?")) {
+				stmt.setInt(1, id);
+				try (ResultSet rs = stmt.executeQuery()) {
+					if (!rs.next()) {
+						throw new IOException("Unable to locate an article with id = " + id + " in the SQL database.");
+					}
+					for (Path store : storage) {
+						if (!Files.exists(store))
+							continue;
+						String filename = rs.getString("filename");
+						Path serialized = ArticleManager.toSerializedPath(store.resolve(filename));
+						if (!Files.exists(serialized))
+							continue;
+						try (ObjectInputStream serialIn = new ObjectInputStream(new FileInputStream(serialized.toFile()))) {
+							Article article = (Article) serialIn.readObject();
+							return article;
+						}
+					}
+				}
+			}
+			throw new IOException("Unable to locate an article with id = " + id + " in the filesystem.");
+		}
+	}
+	
+	/**
+	 * Loads the {@link Article Articles} with the given {@code ids} from disk using the information in the SQL database.
+	 * 
+	 * @param ids
+	 *            the IDs of the {@link Article} to load as a {@link Collection}
+	 * @return the {@link Article} if one was found, otherwise null
+	 * @throws SQLException
+	 */
+	public List<Article> loadArticles(Collection<Integer> ids) throws SQLException {
+		synchronized (fsLock.readLock()) {
+			List<Article> articles = new ArrayList<>();
+			try (ResultSet rs = connection.prepareStatement("select * from articles").executeQuery()) {
+				int id = 0;
+				Article article = null;
+				while (rs.next()) {
+					id = rs.getInt("id");
+					if (ids.contains(id)) {
+						article = null;
+						for (Path store : storage) {
+							if (!Files.exists(store))
+								continue;
+							String filename = rs.getString("filename");
+							Path serialized = ArticleManager.toSerializedPath(store.resolve(filename));
+							if (!Files.exists(serialized))
+								continue;
+							try (ObjectInputStream serialIn = new ObjectInputStream(new FileInputStream(serialized.toFile()))) {
+								article = (Article) serialIn.readObject();
+								articles.add(article);
+							}
+							catch (ClassNotFoundException | IOException e) {
+								logger.debug("Error while deserializing data for " + rs.getString("title"), e);
+								article = null;
+							}
+						}
+						if (article == null)
+							logger.warn("Unable to find the serialized data for " + rs.getString("title") + ".  Skipping.");
+						ids.remove(id); //Prevents articles from being loaded more than once
+					}
+				}
+			}
+			if (ids.size() > 0)
+				logger.warn("Did not find articles with ids matching " + ids.stream().reduce("", (a, b) -> a + ", " + b.toString(), (a, b) -> a + b).substring(2));
+			return articles;
 		}
 	}
 	
