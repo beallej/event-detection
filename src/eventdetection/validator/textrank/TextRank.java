@@ -27,6 +27,14 @@ import eventdetection.common.POSTagger;
  */
 public class TextRank {
 	
+	/**
+	 * Testing hook
+	 * 
+	 * @param args
+	 *            command line arguments
+	 * @throws IOException
+	 *             if an I/O error occurs
+	 */
 	public static void main(String[] args) throws IOException {
 		Path p = Paths.get("./testing_text.txt");
 		StringBuilder sb = new StringBuilder();
