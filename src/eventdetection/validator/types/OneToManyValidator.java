@@ -7,25 +7,25 @@ import eventdetection.common.Query;
 import eventdetection.validator.ValidationResult;
 
 /**
- * Base class for implementations of validation algorithms that take multiple {@link Query Queries} and multiple
- * {@link Article Articles} that are callable by this library.
+ * Base class for implementations of validation algorithms that take one {@link Query} and multiple {@link Article Articles}
+ * that are callable by this library.
  * 
  * @author Joshua Lipstone
  */
-public abstract class ManyToManyValidator implements Validator {
-	protected final Collection<Query> queries;
+public abstract class OneToManyValidator implements Validator {
+	protected final Query query;
 	protected final Collection<Article> articles;
 	
 	/**
-	 * Constructs a new instance of the {@link Validator} for the given {@link Query Queries} and {@link Article Articles}
+	 * Constructs a new instance of the {@link Validator} for the given {@link Query} and {@link Article Articles}
 	 * 
-	 * @param queries
-	 *            the {@link Query Queries} to validate
+	 * @param query
+	 *            the {@link Query} to validate
 	 * @param articles
 	 *            the {@link Article Articles} against which the {@link Query Queries} are to be validated
 	 */
-	public ManyToManyValidator(Collection<Query> queries, Collection<Article> articles) {
-		this.queries = queries;
+	public OneToManyValidator(Query query, Collection<Article> articles) {
+		this.query = query;
 		this.articles = articles;
 	}
 	
