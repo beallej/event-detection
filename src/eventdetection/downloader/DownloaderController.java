@@ -69,6 +69,10 @@ public class DownloaderController {
 			fm.addFeed(connection, "feeds");
 			
 			dc.addDownloader(fm);
+
+			// use this to run the test downloader
+			// dc.addDownloader(new TestDownloader());
+
 			ArticleManager am = new ArticleManager(connection, "articles", paths, articles);
 			
 			Path active = Paths.get(System.getProperty("user.home"), ".event-detection-active");
