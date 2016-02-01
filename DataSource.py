@@ -28,7 +28,6 @@ class DataSource:
                              WHERE q.processed = false")
         return self.cursor.fetchall()
 
-
     def get_unprocessed_query_article_pairs(self):
         self.cursor.execute("SELECT qa.query, qa.article FROM query_articles qa\
                             WHERE qa.processed = false")
@@ -131,26 +130,25 @@ class DataSource:
         user_id = self.cursor.fetchone()[0]
         self.cursor.execute("SELECT phone FROM users WHERE id="+str(user_id))
         phone = str(self.cursor.fetchone()[0])
-        if phone != None:
+        if phone is not None:
             phone = re.sub(r'-', '', phone)
             phone = "+1" + phone
         self.cursor.execute("SELECT email FROM users WHERE id="+str(user_id))
         email = str(self.cursor.fetchone()[0])
         return phone, email
 
-
     def user_status(self, user_name, phone, email):
         """Takes in a username and returns 0 if username is already taken with different phone/email,
         1 if username is repeat, 2 if user is new"""
         self.cursor.execute("SELECT id FROM users WHERE user_name=%s", (user_name, ))
-        username_exists = (self.cursor.fetchone() != None)
+        username_exists = (self.cursor.fetchone() is not None)
         self.cursor.execute("SELECT id FROM users WHERE user_name=%s AND phone=%s AND email=%s", (user_name, phone, email))
-        identical_user_exists = (self.cursor.fetchone() != None)
+        identical_user_exists = (self.cursor.fetchone() is not None)
         if username_exists and not identical_user_exists: # Username already has different phone/email assigned
             return 0
-        elif username_exists: # Duplicate user
+        elif username_exists:  # Duplicate user
             return 1
-        else: # New user
+        else:  # New user
             return 2
 
     def get_unprocessed_articles(self):
@@ -159,7 +157,6 @@ class DataSource:
 
     def add_keywords_to_article(self, id, keyword_string):
         self.cursor.execute("UPDATE articles SET keywords = %s WHERE id = %s", (keyword_string, id))
-
 
     def set_all_unprocessed(self):
         self.cursor.execute("UPDATE articles SET keywords = NULL")
@@ -174,9 +171,60 @@ class DataSource:
         self.cursor.execute("SELECT keywords FROM articles WHERE id = %s;", (article_id, ))
         return self.cursor.fetchone()[0] is not None
 
+    def query_route(self, query_id):
+        """
+        Gets a query for web app with validating article counts
+        :param query_id: the id of the query
+        :return: the query
+        """
+        self.cursor.execute("SELECT a.title, s.source_name as source, a.url \
+                    FROM queries q \
+                    INNER JOIN query_articles qa on q.id = qa.query \
+                    INNER JOIN articles a on qa.article = a.id \
+                    INNER JOIN sources s on s.id = a.source \
+                    WHERE q.id = %s and qa.accuracy > .2;", (query_id,))
+        articles = self.cursor.fetchall()
 
-#def main():
-#    pass
+        self.cursor.execute("SELECT id, subject, verb, direct_obj, indirect_obj, loc FROM queries where id = %s;", (query_id,))
+        query = self.cursor.fetchone()
+        return articles, query
 
-# if __name__ == '__main__':
-#     main()
+    def queries_route(self):
+        """
+        Gets all queries for web app with validating article counts
+        :return: all queries
+        """
+        self.cursor.execute("SELECT q.id, q.subject, q.verb, q.direct_obj, q.indirect_obj, \
+                           q.loc, count(qa.article) as article_count \
+                    FROM queries q \
+                    LEFT JOIN query_articles qa on q.id = qa.query and qa.accuracy > .2 \
+                    GROUP BY(q.id);")
+        return self.cursor.fetchall()
+
+    def new_query(self, email, phone, subject, verb, direct_obj, indirect_obj, loc):
+        """
+        Add a query to the database for a user
+        :param email: the user's email
+        :param phone: the user's phone number
+        :param subject: the query subject
+        :param verb: the query verb
+        :param direct_obj: the query direct object
+        :param indirect_obj: the query indirect object
+        :param loc: the query location
+        :return: True if no error
+        """
+        self.cursor.execute("SELECT id from users where email = %s and phone = %s", (email, phone))
+        # use existing user if it exists
+        user_id = self.cursor.fetchone()
+        if user_id:
+            user_id = user_id[0]
+        else:
+            self.cursor.execute("INSERT INTO users (email, phone) VALUES (%s, %s) RETURNING id;", (email, phone))
+            user_id = self.cursor.fetchone()[0]
+
+        try:
+            self.cursor.execute("INSERT INTO queries (subject, verb, direct_obj, indirect_obj, loc, userid) \
+                            VALUES (%s, %s, %s, %s, %s, %s);", (subject, verb, direct_obj, indirect_obj, loc, user_id))
+        except psycopg2.IntegrityError:
+            return False
+        return True
