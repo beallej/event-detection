@@ -1,4 +1,4 @@
-package eventdetection.validator.textrank;
+package eventdetection.textrank;
 
 /**
  * A directed edge in a {@link TextRankGraph}

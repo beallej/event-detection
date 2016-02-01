@@ -1,4 +1,4 @@
-package eventdetection.validator.textrank;
+package eventdetection.textrank;
 
 import java.util.Arrays;
 import java.util.List;

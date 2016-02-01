@@ -1,4 +1,4 @@
-package eventdetection.validator.textrank;
+package eventdetection.textrank;
 
 import java.io.IOException;
 import java.nio.file.Files;
