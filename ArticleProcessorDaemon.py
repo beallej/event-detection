@@ -8,6 +8,7 @@ from Validator import Article
 import json
 import fcntl
 import os
+import Globals
 
 
 class ArticleProcessorDaemon:
@@ -21,6 +22,7 @@ class ArticleProcessorDaemon:
         """
         fd, fo = 0, 0
         try:
+            path = Globals.articles_path
             fo = open(os.getenv("HOME") + "/.event-detection-active", "wb")
             fd = fo.fileno()
             fcntl.lockf(fd, fcntl.LOCK_EX)
@@ -29,7 +31,7 @@ class ArticleProcessorDaemon:
             for article in unprocessed_articles:
                 try:
                     extractor = KeywordExtractor()
-                    body = open("articles/{0}".format(article[2])).read()
+                    body = open("{0}{1}".format(path, article[2])).read()
                     article_with_body = Article(article[1], body, article[3], article[4])
                     keywords = extractor.extract_keywords(article_with_body)
                     keyword_string = json.dumps(keywords)

@@ -6,12 +6,14 @@
 import psycopg2
 import sys
 import re
+import Globals
 
 class DataSource:
 
     def __init__(self):
+        db = Globals.database
         try:
-            conn = psycopg2.connect(user='root', database='event_detection')
+            conn = psycopg2.connect(user='root', database=db)
             conn.autocommit = True
         except:
             print("Error: cannot connect to event_detection database")

@@ -33,6 +33,12 @@ export PGDATA="$(brew --prefix)/var/postgres"
 export PGHOST=localhost
 [ "$(pg_ctl status | grep 'PID:' )" == "" ] && ( pg_ctl start > /dev/null )
 createdb event_detection
+createdb event_detection_test
+createdb event_detection_dev
+psql event_detection_test < setup.sql
+psql event_detection_dev < setup.sql
+psql event_detection_test < setup_test.sql
+psql event_detection_dev < setup_test.sql
 psql event_detection < setup.sql
 psql event_detection < seeds.sql
 echo '------------------Generating Eclipse User Libraries------------------'
