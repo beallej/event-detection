@@ -129,15 +129,25 @@ public class POSTagger {
 	 * 
 	 * @param sentences
 	 *            a {@link List} of {@link CoreMap CoreMaps} representing the text
-	 * @return the {@link StringBuilder} used (for chaining purposes)
+	 * @return the tagged text as a {@link String}
 	 */
 	public static String tag(List<CoreMap> sentences) {
 		return tag(sentences, new StringBuilder()).toString().trim();
 	}
 	
 	/**
-	 * Generates tagged text from the given {@link List} of {@link CoreMap CoreMaps} and places it in the given
-	 * {@link StringBuilder}.
+	 * Generates tagged text from the given {@link CoreMap}.
+	 * 
+	 * @param sentence
+	 *            a {@link CoreMap} representing the text
+	 * @return the tagged text as a {@link String}
+	 */
+	public static String tag(CoreMap sentence) {
+		return tag(sentence, new StringBuilder()).toString().trim();
+	}
+	
+	/**
+	 * Generates tagged text from the given {@link Annotation} and places it in the given {@link StringBuilder}.
 	 * 
 	 * @param document
 	 *            the {@link Annotation} to use to generate the tagged text. It <i>must</i> have already been run through
@@ -151,7 +161,8 @@ public class POSTagger {
 	}
 	
 	/**
-	 * Generates tagged text from the given {@link Annotation} and places it in the given {@link StringBuilder}.
+	 * Generates tagged text from the given {@link List} of {@link CoreMap CoreMaps} and places it in the given
+	 * {@link StringBuilder}.
 	 * 
 	 * @param sentences
 	 *            a {@link List} of {@link CoreMap CoreMaps} representing the text
@@ -167,6 +178,21 @@ public class POSTagger {
 			for (CoreLabel token : tokens)
 				sb.append(token.word()).append(delimiter).append(token.get(PartOfSpeechAnnotation.class)).append(" ");
 		}
+		return sb;
+	}
+	
+	/**
+	 * Generates tagged text from the given {@link CoreMap} and places it in the given {@link StringBuilder}.
+	 * 
+	 * @param sentence
+	 *            a {@link CoreMap} representing the text
+	 * @param sb
+	 *            the {@link StringBuilder} in which the tagged text should be placed
+	 * @return the {@link StringBuilder} used (for chaining purposes)
+	 */
+	public static StringBuilder tag(CoreMap sentence, StringBuilder sb) {
+		for (CoreLabel token : sentence.get(TokensAnnotation.class))
+			sb.append(token.word()).append(delimiter).append(token.get(PartOfSpeechAnnotation.class)).append(" ");
 		return sb;
 	}
 	
