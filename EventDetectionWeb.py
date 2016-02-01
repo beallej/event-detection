@@ -5,6 +5,7 @@ from DataSource import *
 app = Flask(__name__)
 dataSource = DataSource()
 
+
 def launch_preprocessors():
     process = subprocess.Popen(
         subprocess_helpers.python_path + " QueryProcessorDaemon.py && " + subprocess_helpers.python_path + " ArticleProcessorDaemon.py",
