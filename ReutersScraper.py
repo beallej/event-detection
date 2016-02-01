@@ -13,8 +13,9 @@ def read():
             json_text = json_text + line
     json_obj = json.loads(json_text)
     page = urllib.request.urlopen(json_obj["url"])
+    text_id = json_obj["textId"]
     soup = BeautifulSoup(page, "html.parser")
-    text = soup.find(id = "articleText")
+    text = soup.find(id=text_id)
     print("\n".join(text.strings))
 
 def main():

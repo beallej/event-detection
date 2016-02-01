@@ -56,6 +56,7 @@ public class PythonScraper extends Scraper {
 		String link = url.toString();
 		JSONObject variableParameters = new JSONObject();
 		variableParameters.put("url", new JSONString(link));
+		variableParameters.put("textId", new JSONString(parameters.get("textId").toString()));
 		String sectioned = callScript("sectioning", variableParameters);
 		return sectioned.trim();
 	}

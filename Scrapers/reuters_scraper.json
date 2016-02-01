@@ -6,7 +6,8 @@
     		"sectioning" : ["../ReutersScraper.py"]
     	},
     	"parameters" : {
-    		"sectioning" : {}
+    		"sectioning" : {},
+			"textId" : "articleText"
     	}
     },
 	"sectioning" : [["<span id=\"articleText\">(.*?)</span>", "$1\n"]],
