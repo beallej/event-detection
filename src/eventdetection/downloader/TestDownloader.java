@@ -41,38 +41,28 @@ public class TestDownloader extends Downloader {
         List<Article> articles = new ArrayList<Article>();
         Scanner scanner = new Scanner(new BufferedInputStream(System.in));
 
-        // TODO: make this better before merging
-        String title, text, url;
-        while (true) {
-            System.out.print("Enter article title: ");
-            title = scanner.nextLine();
+        System.out.print("Enter article title: ");
+        String title = scanner.nextLine();
 
-            System.out.print("Enter article text. When all text is entered, type 'COMPLETE': ");
-            StringBuilder textBuilder = new StringBuilder();
-            while (scanner.hasNextLine()) {
-                String textResult = scanner.nextLine();
-                if (textResult.equals("COMPLETE")) {
-                    break;
-                }
-                textBuilder.append(textResult);
-                textBuilder.append("\n");
-            }
-            text = textBuilder.toString();
+        System.out.print("Enter article url: ");
+        String url = scanner.nextLine();
 
-            System.out.print("Enter article url: ");
-            url = scanner.nextLine();
+        System.out.print("Enter article text: ");
+        StringBuilder textBuilder = new StringBuilder();
 
-            try {
-                articles.add(new Article(title, text, url, testSource));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        do {
+            String textResult = scanner.nextLine();
+            textBuilder.append(textResult);
+            textBuilder.append("\n");
 
-            System.out.println("Do you want to enter another article? [Y] to continue.");
-            String response = scanner.next();
-            if (!response.equals("Y")) {
-                break;
-            }
+        } while (scanner.hasNextLine());
+        String text = textBuilder.toString();
+
+
+        try {
+            articles.add(new Article(title, text, url, testSource));
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
         scanner.close();
