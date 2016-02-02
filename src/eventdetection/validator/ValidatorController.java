@@ -150,13 +150,19 @@ public class ValidatorController {
 	private List<Query> loadQueries(Collection<Integer> ids) throws SQLException {
 		List<Query> queries = new ArrayList<>();
 		try (ResultSet rs = connection.prepareStatement("select * from queries").executeQuery()) {
-			int id = 0;
-			while (rs.next()) {
-				id = rs.getInt("id");
-				if (ids.contains(id)) {
-					ids.remove(id); //Prevents queries from being loaded more than once
-					queries.add(new Query(rs));
+			if (ids.size() > 0) {
+				int id = 0;
+				while (ids.size() > 0 && rs.next()) {
+					id = rs.getInt("id");
+					if (ids.contains(id)) {
+						ids.remove(id); //Prevents queries from being loaded more than once
+						queries.add(new Query(rs));
+					}
 				}
+			}
+			else {
+				while (rs.next())
+					queries.add(new Query(rs));
 			}
 		}
 		if (ids.size() > 0)

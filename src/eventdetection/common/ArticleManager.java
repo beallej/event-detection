@@ -264,31 +264,25 @@ public class ArticleManager {
 		synchronized (fsLock.readLock()) {
 			List<Article> articles = new ArrayList<>();
 			try (ResultSet rs = connection.prepareStatement("select * from articles").executeQuery()) {
-				int id = 0;
 				Article article = null;
-				while (rs.next()) {
-					id = rs.getInt("id");
-					if (ids.contains(id)) {
-						article = null;
-						for (Path store : storage) {
-							if (!Files.exists(store))
-								continue;
-							String filename = rs.getString("filename");
-							Path serialized = ArticleManager.toSerializedPath(store.resolve(filename));
-							if (!Files.exists(serialized))
-								continue;
-							try (ObjectInputStream serialIn = new ObjectInputStream(new FileInputStream(serialized.toFile()))) {
-								article = (Article) serialIn.readObject();
+				if (ids.size() > 0) {
+					int id = 0;
+					while (rs.next()) {
+						id = rs.getInt("id");
+						if (ids.contains(id)) {
+							article = loadArticle(rs);
+							if (article != null) {
 								articles.add(article);
-							}
-							catch (ClassNotFoundException | IOException e) {
-								logger.debug("Error while deserializing data for " + rs.getString("title"), e);
-								article = null;
+								ids.remove(id); //Prevents articles from being loaded more than once
 							}
 						}
-						if (article == null)
-							logger.warn("Unable to find the serialized data for " + rs.getString("title") + ".  Skipping.");
-						ids.remove(id); //Prevents articles from being loaded more than once
+					}
+				}
+				else {
+					while (rs.next()) {
+						article = loadArticle(rs);
+						if (article != null)
+							articles.add(article);
 					}
 				}
 			}
@@ -296,6 +290,28 @@ public class ArticleManager {
 				logger.warn("Did not find articles with ids matching " + ids.stream().reduce("", (a, b) -> a + ", " + b.toString(), (a, b) -> a + b).substring(2));
 			return articles;
 		}
+	}
+	
+	private Article loadArticle(ResultSet rs) throws SQLException {
+		Article article = null;
+		for (Path store : storage) {
+			if (!Files.exists(store))
+				continue;
+			String filename = rs.getString("filename");
+			Path serialized = ArticleManager.toSerializedPath(store.resolve(filename));
+			if (!Files.exists(serialized))
+				continue;
+			try (ObjectInputStream serialIn = new ObjectInputStream(new FileInputStream(serialized.toFile()))) {
+				article = (Article) serialIn.readObject();
+			}
+			catch (ClassNotFoundException | IOException e) {
+				logger.debug("Error while deserializing data for " + rs.getString("title"), e);
+				article = null;
+			}
+		}
+		if (article == null)
+			logger.warn("Unable to find the serialized data for " + rs.getString("title") + ".  Skipping.");
+		return article;
 	}
 	
 	/**
