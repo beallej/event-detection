@@ -3,6 +3,7 @@ package eventdetection.common;
 import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Arrays;
 
 import edu.stanford.nlp.pipeline.Annotation;
 
@@ -21,6 +22,7 @@ public class Article implements IDAble<Integer>, Serializable {
 	private final URL url;
 	private final Source source;
 	private final Integer id;
+	private Integer hashCode;
 	
 	/**
 	 * Initializes an {@link Article}
@@ -64,6 +66,7 @@ public class Article implements IDAble<Integer>, Serializable {
 		this.url = url;
 		this.source = source;
 		this.id = id;
+		hashCode = null;
 	}
 	
 	/**
@@ -166,5 +169,34 @@ public class Article implements IDAble<Integer>, Serializable {
 		out += "\nURL: " + getURL();
 		out += "\n" + getUntaggedText();
 		return out;
+	}
+	
+	@Override
+	public boolean equals(Object o) {
+		if (!(o instanceof Article))
+			return false;
+		Article other = (Article) o;
+		return (id != other.id || !source.equals(other.source) || !url.equals(other.url) || !titles[0].equals(other.titles[0]) || !texts[0].equals(other.texts[0]) ||
+				(titles[1] == null ? other.titles[1] != null : !titles[1].equals(other.titles[1])) ||
+				(texts[1] == null ? other.texts[1] != null : !texts[1].equals(other.texts[1])) ||
+				(title == null ? other.title != null : !title.equals(other.title)) ||
+				(text == null ? other.text != null : !Arrays.equals(text, other.text)));
+	}
+	
+	@Override
+	public int hashCode() {
+		if (hashCode == null) {
+			if (id == null) {
+				int hash = 17;
+				hash = hash * 31 + titles[0].hashCode();
+				hash = hash * 31 + texts[0].hashCode();
+				hash = hash * 31 + url.hashCode();
+				hash = hash * 31 + source.hashCode();
+				hashCode = hash;
+			}
+			else
+				hashCode = id.hashCode();
+		}
+		return hashCode;
 	}
 }
