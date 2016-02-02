@@ -2,6 +2,7 @@ package eventdetection.validator;
 
 import eventdetection.common.Article;
 import eventdetection.common.Query;
+import eventdetection.validator.types.Validator;
 
 /**
  * Container for the result of a {@link Validator Validator's} algorithm.
@@ -9,7 +10,6 @@ import eventdetection.common.Query;
  * @author Joshua Lipstone
  */
 public class ValidationResult {
-	private final Integer algorithmID;
 	private final Integer articleID;
 	private final Double validates, invalidates;
 	
@@ -17,22 +17,18 @@ public class ValidationResult {
 	 * Constructs a {@link ValidationResult} for the given {@link Validator algorithm} and {@link Article} with a
 	 * {@code null} {@code invalidates} value.
 	 * 
-	 * @param algorithm
-	 *            the {@link Validator} that was used
 	 * @param article
 	 *            the {@link Article} on which the algorithm was run
 	 * @param validates
 	 *            the probability from [0.0, 1.0] that the {@link Article} validates the query
 	 */
-	public ValidationResult(Validator algorithm, Article article, Double validates) {
-		this(algorithm, article, validates, null);
+	public ValidationResult(Article article, Double validates) {
+		this(article, validates, null);
 	}
 	
 	/**
 	 * Constructs a {@link ValidationResult} for the given {@link Validator algorithm} and {@link Article}.
 	 * 
-	 * @param algorithm
-	 *            the {@link Validator} that was used
 	 * @param article
 	 *            the {@link Article} on which the algorithm was run
 	 * @param validates
@@ -41,30 +37,26 @@ public class ValidationResult {
 	 *            the probability from [0.0, 1.0] that the {@link Article} invalidates the query
 	 *            ({@code validates + invalidates} need not equal 1)
 	 */
-	public ValidationResult(Validator algorithm, Article article, Double validates, Double invalidates) {
-		this(algorithm.getID(), article.getID(), validates, invalidates);
+	public ValidationResult(Article article, Double validates, Double invalidates) {
+		this(article.getID(), validates, invalidates);
 	}
 	
 	/**
 	 * Constructs a {@link ValidationResult} for the given {@link Validator algorithm} and {@link Article} with a
 	 * {@code null} {@code invalidates} value.
 	 * 
-	 * @param algorithmID
-	 *            the ID of the {@link Validator} that was used as it appears in the database
 	 * @param articleID
 	 *            the ID {@link Article} on which the algorithm was run as it appears in the database
 	 * @param validates
 	 *            the probability from [0.0, 1.0] that the {@link Article} validates the query
 	 */
-	public ValidationResult(Integer algorithmID, Integer articleID, Double validates) {
-		this(algorithmID, articleID, validates, null);
+	public ValidationResult(Integer articleID, Double validates) {
+		this(articleID, validates, null);
 	}
 	
 	/**
 	 * Constructs a {@link ValidationResult} for the given {@link Validator algorithm} and {@link Article}.
 	 * 
-	 * @param algorithmID
-	 *            the ID of the {@link Validator} that was used as it appears in the database
 	 * @param articleID
 	 *            the ID {@link Article} on which the algorithm was run as it appears in the database
 	 * @param validates
@@ -73,18 +65,10 @@ public class ValidationResult {
 	 *            the probability from [0.0, 1.0] that the {@link Article} invalidates the query
 	 *            ({@code validates + invalidates} need not equal 1)
 	 */
-	public ValidationResult(Integer algorithmID, Integer articleID, Double validates, Double invalidates) {
-		this.algorithmID = algorithmID;
+	public ValidationResult(Integer articleID, Double validates, Double invalidates) {
 		this.articleID = articleID;
 		this.validates = validates;
 		this.invalidates = invalidates;
-	}
-	
-	/**
-	 * @return the {@code ID} of the algorithm that produced the {@link ValidationResult} as it appears in the database
-	 */
-	public Integer getAlgorithmID() {
-		return algorithmID;
 	}
 	
 	/**
@@ -111,6 +95,6 @@ public class ValidationResult {
 	
 	@Override
 	public String toString() {
-		return "(" + getAlgorithmID() + ", " + getArticleID() + ", " + getValidates() + ", " + (getInvalidates() == null ? "null" : getInvalidates()) + ")";
+		return "(" + getArticleID() + ", " + getValidates() + ", " + (getInvalidates() == null ? "null" : getInvalidates()) + ")";
 	}
 }

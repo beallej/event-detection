@@ -1,4 +1,4 @@
-package eventdetection.downloader;
+package eventdetection.common;
 
 import java.util.List;
 import java.util.Properties;
@@ -19,16 +19,24 @@ import edu.stanford.nlp.util.CoreMap;
  */
 public class POSTagger {
 	private static final String delimiter = "_";
-	private static final StanfordCoreNLP pipeline;
+	private static StanfordCoreNLP pipeline = null;
 	private static final Pattern newline = Pattern.compile("\n", Pattern.LITERAL);
 	private static final Pattern untagger = Pattern.compile("([^_\\s]+)_([^_\\s]+)");
 	
-	static {
-		// creates a StanfordCoreNLP object, with POS tagging, lemmatization,
-		// NER, parsing, and coreference resolution
-		Properties props = new Properties();
-		props.setProperty("annotators", "tokenize, ssplit, pos, lemma, ner, parse, dcoref, depparse");
-		pipeline = System.getProperty("enable.pos", "true").toLowerCase().charAt(0) == 't' ? new StanfordCoreNLP(props) : null;
+	/**
+	 * Initializes the pipline if it is {@code null}
+	 * 
+	 * @return the {@link StanfordCoreNLP} pipeline to use
+	 */
+	public static synchronized StanfordCoreNLP getPipeline() {
+		if (pipeline == null) {
+			// creates a StanfordCoreNLP object, with POS tagging, lemmatization,
+			// NER, parsing, and coreference resolution
+			Properties props = new Properties();
+			props.setProperty("annotators", "tokenize, ssplit, pos, lemma, ner, parse, dcoref");
+			pipeline = System.getProperty("enable.pos", "true").toLowerCase().charAt(0) == 't' ? new StanfordCoreNLP(props) : null;
+		}
+		return pipeline;
 	}
 	
 	/**
@@ -38,7 +46,7 @@ public class POSTagger {
 	 *            the {@link Annotation} to run through the {@link StanfordCoreNLP pipeline}
 	 */
 	public static void annotate(Annotation document) {
-		pipeline.annotate(document);
+		getPipeline().annotate(document);
 	}
 	
 	/**
@@ -96,8 +104,6 @@ public class POSTagger {
 	 * @return the tagged text
 	 */
 	public static String tag(String text) {
-		if (pipeline == null)
-			return text;
 		StringBuilder sb = new StringBuilder((int) (text.length() * 1.5));
 		for (String paragraph : newline.split(text)) { //This allows the annotated text to retain paragraph breaks.
 			Annotation document = annotate(paragraph);
@@ -119,6 +125,28 @@ public class POSTagger {
 	}
 	
 	/**
+	 * Generates tagged text from the given {@link List} of {@link CoreMap CoreMaps}.
+	 * 
+	 * @param sentences
+	 *            a {@link List} of {@link CoreMap CoreMaps} representing the text
+	 * @return the tagged text as a {@link String}
+	 */
+	public static String tag(List<CoreMap> sentences) {
+		return tag(sentences, new StringBuilder()).toString().trim();
+	}
+	
+	/**
+	 * Generates tagged text from the given {@link CoreMap}.
+	 * 
+	 * @param sentence
+	 *            a {@link CoreMap} representing the text
+	 * @return the tagged text as a {@link String}
+	 */
+	public static String tag(CoreMap sentence) {
+		return tag(sentence, new StringBuilder()).toString().trim();
+	}
+	
+	/**
 	 * Generates tagged text from the given {@link Annotation} and places it in the given {@link StringBuilder}.
 	 * 
 	 * @param document
@@ -129,11 +157,20 @@ public class POSTagger {
 	 * @return the {@link StringBuilder} used (for chaining purposes)
 	 */
 	public static StringBuilder tag(Annotation document, StringBuilder sb) {
-		// these are all the sentences in this document
-		// a CoreMap is essentially a Map that uses class objects as keys and
-		// has values with custom types
-		List<CoreMap> sentences = document.get(SentencesAnnotation.class);
-		
+		return tag(document.get(SentencesAnnotation.class), sb);
+	}
+	
+	/**
+	 * Generates tagged text from the given {@link List} of {@link CoreMap CoreMaps} and places it in the given
+	 * {@link StringBuilder}.
+	 * 
+	 * @param sentences
+	 *            a {@link List} of {@link CoreMap CoreMaps} representing the text
+	 * @param sb
+	 *            the {@link StringBuilder} in which the tagged text should be placed
+	 * @return the {@link StringBuilder} used (for chaining purposes)
+	 */
+	public static StringBuilder tag(List<CoreMap> sentences, StringBuilder sb) {
 		for (CoreMap sentence : sentences) {
 			// traversing the words in the current sentence
 			// a CoreLabel is a CoreMap with additional token-specific methods
@@ -141,6 +178,21 @@ public class POSTagger {
 			for (CoreLabel token : tokens)
 				sb.append(token.word()).append(delimiter).append(token.get(PartOfSpeechAnnotation.class)).append(" ");
 		}
+		return sb;
+	}
+	
+	/**
+	 * Generates tagged text from the given {@link CoreMap} and places it in the given {@link StringBuilder}.
+	 * 
+	 * @param sentence
+	 *            a {@link CoreMap} representing the text
+	 * @param sb
+	 *            the {@link StringBuilder} in which the tagged text should be placed
+	 * @return the {@link StringBuilder} used (for chaining purposes)
+	 */
+	public static StringBuilder tag(CoreMap sentence, StringBuilder sb) {
+		for (CoreLabel token : sentence.get(TokensAnnotation.class))
+			sb.append(token.word()).append(delimiter).append(token.get(PartOfSpeechAnnotation.class)).append(" ");
 		return sb;
 	}
 	

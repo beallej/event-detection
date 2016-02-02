@@ -57,7 +57,8 @@ public class DownloaderController {
 			Connection connection = DBConnection.getConnection();
 			JSONObject paths = (JSONObject) config.get("paths");
 			JSONObject articles = (JSONObject) config.get("articles");
-			Downloader.loadSource(connection, "sources");
+			JSONObject tables = (JSONObject) config.get("tables");
+			Downloader.loadSource(connection, tables.get("sources").value().toString());
 			for (JSONData<?> str : ((JSONArray) paths.get("sources")).value())
 				Downloader.loadSource(Paths.get(str.toString()));
 				
@@ -66,10 +67,10 @@ public class DownloaderController {
 				fm.addScraper(Paths.get(str.toString()));
 			for (JSONData<?> str : ((JSONArray) paths.get("feeds")).value())
 				fm.addFeed(Paths.get(str.toString()));
-			fm.addFeed(connection, "feeds");
+			fm.addFeed(connection, tables.get("feeds").value().toString());
 			
 			dc.addDownloader(fm);
-			ArticleManager am = new ArticleManager(connection, "articles", paths, articles);
+			ArticleManager am = new ArticleManager(connection, tables.get("articles").value().toString(), paths, articles);
 			
 			Path active = Paths.get(System.getProperty("user.home"), ".event-detection-active");
 			if (!Files.exists(active)) {

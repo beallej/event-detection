@@ -1,0 +1,9 @@
+{
+	"id" : "SEMILAR Semantic Analysis",
+	"class" : "eventdetection.validator.implementations.SIMILATSemanticAnalysisValidator",
+	"type" : "OneToOne",
+	"properties" : {
+		"max-sentences" : 5
+	},
+	"enabled" : false
+}

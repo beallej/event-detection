@@ -31,11 +31,12 @@ import eventdetection.common.POSUtils;
 import eventdetection.common.Query;
 import eventdetection.common.Source;
 import eventdetection.validator.ValidationResult;
-import eventdetection.validator.Validator;
 import eventdetection.validator.ValidatorController;
+import eventdetection.validator.types.OneToOneValidator;
+import eventdetection.validator.types.Validator;
 import eventdetection.common.ArticleManager;
 import eventdetection.common.DBConnection;
-import eventdetection.downloader.POSTagger;
+import eventdetection.common.POSTagger;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -65,9 +66,9 @@ import toberumono.structures.SortingMethods;
  *
  * @author Anmol and Phuong
  */
-public class SIMILATSemanticAnalysisValidator extends Validator {
+public class SIMILATSemanticAnalysisValidator extends OneToOneValidator {
 
-    private static final int MAX_SENTENCES = 5;
+    private static int MAX_SENTENCES = 5;
 
     OptimumComparer optimumComparerWNLin;
     OptimumComparer optimumComparerLSATasa;
@@ -77,16 +78,13 @@ public class SIMILATSemanticAnalysisValidator extends Validator {
 	/**
 	 * Constructs a new instance of the {@link Validator} for the given {@code ID}, {@link Query}, and {@link Article}
 	 * 
-	 * @param algorithmID
-	 *            the {@code ID} of the implemented algorithm as determined by the {@link ValidatorController}
 	 * @param query
 	 *            the {@link Query} to validate
 	 * @param article
 	 *            the {@link Article} against which the {@link Query} is to be validated
 	 */
-    public SIMILATSemanticAnalysisValidator(Integer algorithmID, Query query, Article article) {
-        
-		super(algorithmID, query, article);
+    public SIMILATSemanticAnalysisValidator(Query query, Article article) {
+		super(query, article);
 	//}
 //    public articleSentenceSentenceSimilarityTest() {
 
@@ -161,7 +159,7 @@ public class SIMILATSemanticAnalysisValidator extends Validator {
         }
         System.out.println("Annotated title: "+ article.getAnnotatedTitle());
         System.out.println("ARTICLE  ID " + article.getID() + " average: "+average + " title: "+tempTitle);
-        return new ValidationResult[]{new ValidationResult(this.getID(), article.getID(), validation)};
+        return new ValidationResult[]{new ValidationResult(article.getID(), validation)};
     }
     
     public double postProcess(SortedList<Pair<Double, CoreMap>> topN, Query query, String rawQuery){
@@ -224,5 +222,15 @@ public class SIMILATSemanticAnalysisValidator extends Validator {
         } 
         return 0.0;
 
-    }   
+    }
+
+	/**
+	 * Hook for loading properties from the Validator's JSON data
+	 * 
+	 * @param properties
+	 *            a {@link JSONObject} holding the validator's static properties
+	 */
+	public static void loadStaticProperties(JSONObject properties) {
+		MAX_SENTENCES = (Integer) properties.get("max-sentences").value();
+	}
 }
