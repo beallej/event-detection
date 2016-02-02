@@ -264,6 +264,7 @@ public class ArticleManager {
 		synchronized (fsLock.readLock()) {
 			List<Article> articles = new ArrayList<>();
 			try (ResultSet rs = connection.prepareStatement("select * from articles").executeQuery()) {
+				logger.info("Starting to deserialize articles");
 				Article article = null;
 				if (ids.size() > 0) {
 					int id = 0;
@@ -285,6 +286,7 @@ public class ArticleManager {
 							articles.add(article);
 					}
 				}
+				logger.info("Done deserializing articles");
 			}
 			if (ids.size() > 0)
 				logger.warn("Did not find articles with ids matching " + ids.stream().reduce("", (a, b) -> a + ", " + b.toString(), (a, b) -> a + b).substring(2));

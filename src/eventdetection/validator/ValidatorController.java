@@ -17,6 +17,7 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -55,8 +56,8 @@ public class ValidatorController {
 	public static final ExecutorService pool = Executors.newWorkStealingPool();
 	
 	private final Connection connection;
-	private final Map<String, ValidatorWrapper> validators;
-	private static final Logger logger = LoggerFactory.getLogger(ValidatorController.class);
+	private final Map<ValidatorType, Map<String, ValidatorWrapper>> validators;
+	private static final Logger logger = LoggerFactory.getLogger("ValidatorController");
 	private final ArticleManager articleManager;
 	
 	/**
@@ -69,7 +70,9 @@ public class ValidatorController {
 	 */
 	public ValidatorController(Connection connection, JSONObject config) {
 		this.connection = connection;
-		this.validators = new LinkedHashMap<>();
+		this.validators = new EnumMap<>(ValidatorType.class);
+		for (ValidatorType vt : ValidatorType.values())
+			validators.put(vt, new LinkedHashMap<>());
 		JSONObject paths = (JSONObject) config.get("paths");
 		JSONObject articles = (JSONObject) config.get("articles");
 		this.articleManager = new ArticleManager(connection, ((JSONObject) config.get("tables")).get("articles").value().toString(), paths, articles);
@@ -89,7 +92,7 @@ public class ValidatorController {
 				JSONObject json = (JSONObject) JSONSystem.loadJSON(path);
 				if (!json.containsKey("enabled") || ((JSONBoolean) json.get("enabled")).value()) {
 					ValidatorWrapper vw = new ValidatorWrapper(connection, table, getClass().getClassLoader(), json);
-					validators.put(vw.getName(), vw);
+					validators.get(vw.getType()).put(vw.getName(), vw);
 				}
 			}
 		}
@@ -100,7 +103,7 @@ public class ValidatorController {
 					JSONObject json = (JSONObject) JSONSystem.loadJSON(p);
 					if (!json.containsKey("enabled") || ((JSONBoolean) json.get("enabled")).value()) {
 						ValidatorWrapper vw = new ValidatorWrapper(connection, table, classloader, json);
-						validators.put(vw.getName(), vw);
+						validators.get(vw.getType()).put(vw.getName(), vw);
 					}
 				}
 			}
@@ -187,12 +190,40 @@ public class ValidatorController {
 			Collection<Query> queries = loadQueries(queryIDs);
 			Collection<Article> articles = articleManager.loadArticles(articleIDs);
 			List<Triple<Integer, Integer, Future<ValidationResult[]>>> results = new ArrayList<>();
+			for (ValidatorWrapper vw : validators.get(ValidatorType.ManyToMany).values()) {
+				try {
+					results.add(new Triple<>(null, vw.getID(), pool.submit(vw.construct(queries.toArray(new Query[0]), articles.toArray(new Article[0])))));
+				}
+				catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+					logger.error("Unable to initialize the validator, " + vw.getName() + ", for queries " + queryIDs.toString() + " and articles " + articleIDs.toString(), e);
+				}
+			}
+			for (ValidatorWrapper vw : validators.get(ValidatorType.OneToMany).values()) {
+				for (Query query : queries) {
+					try {
+						results.add(new Triple<>(query.getId(), vw.getID(), pool.submit(vw.construct(query, articles.toArray(new Article[0])))));
+					}
+					catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+						logger.error("Unable to initialize the validator, " + vw.getName() + ", for query " + query.getId() + " and articles " + articleIDs.toString(), e);
+					}
+				}
+			}
+			for (ValidatorWrapper vw : validators.get(ValidatorType.ManyToOne).values()) {
+				for (Article article : articles) {
+					try {
+						results.add(new Triple<>(null, vw.getID(), pool.submit(vw.construct(queries.toArray(new Query[0]), article))));
+					}
+					catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+						logger.error("Unable to initialize the validator, " + vw.getName() + ", for queries " + queryIDs.toString() + " and article " + article.getID(), e);
+					}
+				}
+			}
 			try (PreparedStatement stmt = connection.prepareStatement("select * from validation_results as vr where vr.query = ? and vr.algorithm = ? and vr.article = ?")) {
 				for (Query query : queries) {
 					stmt.setInt(1, query.getId());
 					for (Article article : articles) {
 						stmt.setInt(3, article.getID());
-						for (ValidatorWrapper vw : validators.values()) {
+						for (ValidatorWrapper vw : validators.get(ValidatorType.OneToOne).values()) {
 							stmt.setInt(2, vw.getID());
 							try (ResultSet rs = stmt.executeQuery()) {
 								if (rs.next()) //If we've already processed the current article with the current validator for the current query 
@@ -202,20 +233,26 @@ public class ValidatorController {
 								results.add(new Triple<>(query.getId(), vw.getID(), pool.submit(vw.construct(query, article))));
 							}
 							catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-								logger.error("Unable to initialize the " + vw.getName() + " for query " + query.getId() + " and article " + article.getID(), e);
+								logger.error("Unable to initialize the validator, " + vw.getName() + ", for query " + query.getId() + " and article " + article.getID(), e);
 							}
 						}
 					}
 				}
 			}
-			for (Triple<Integer, Integer, Future<ValidationResult[]>> result : results) {
-				try {
-					ValidationResult[] ress = result.getZ().get();
-					for (ValidationResult res : ress) {
-						String statement = "insert into validation_results as vr (query, algorithm, article, validates, invalidates) values (?, ?, ?, ?, ?) " +
-								"ON CONFLICT (query, algorithm, article) DO UPDATE set (validates, invalidates) = (EXCLUDED.validates, EXCLUDED.invalidates)"; //This is valid as of PostgreSQL 9.5
-						try (PreparedStatement stmt = connection.prepareStatement(statement)) {
-							stmt.setInt(1, result.getX());
+			String statement = "insert into validation_results as vr (query, algorithm, article, validates, invalidates) values (?, ?, ?, ?, ?) " +
+					"ON CONFLICT (query, algorithm, article) DO UPDATE set (validates, invalidates) = (EXCLUDED.validates, EXCLUDED.invalidates)"; //This is valid as of PostgreSQL 9.5
+			try (PreparedStatement stmt = connection.prepareStatement(statement)) {
+				for (Triple<Integer, Integer, Future<ValidationResult[]>> result : results) {
+					try {
+						ValidationResult[] ress = result.getZ().get();
+						for (ValidationResult res : ress) {
+							String stringVer = "(" + result.getX() + ", " + result.getY() + ", " + res.getArticleID() + ") -> (" + res.getValidates() + ", " +
+									(res.getInvalidates() == null ? "null" : res.getInvalidates()) + ")";
+							if (res.getValidates().isNaN() || (res.getInvalidates() != null && res.getInvalidates().isNaN())) {
+								logger.error("Cannot add " + stringVer + " to the database because it has NaN values.");
+								continue;
+							}
+							stmt.setInt(1, res.getQueryID() == null ? result.getX() : res.getQueryID());
 							stmt.setInt(2, result.getY());
 							stmt.setInt(3, res.getArticleID());
 							stmt.setFloat(4, res.getValidates().floatValue());
@@ -224,13 +261,12 @@ public class ValidatorController {
 							else
 								stmt.setNull(5, Types.REAL);
 							stmt.executeUpdate();
-							logger.info("(" + result.getX() + ", " + result.getY() + ", " + res.getArticleID() + ") -> (" + res.getValidates() + ", " +
-									(res.getInvalidates() == null ? "null" : res.getInvalidates()) + ")");
+							logger.info("Added " + stringVer + " to the database.");
 						}
 					}
-				}
-				catch (InterruptedException | ExecutionException e) {
-					e.printStackTrace();
+					catch (InterruptedException | ExecutionException e) {
+						e.printStackTrace();
+					}
 				}
 			}
 		}
