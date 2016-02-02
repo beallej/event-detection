@@ -1,3 +1,1 @@
-ALTER TABLE IF EXISTS query_articles (
-	ADD validates boolean default false
-);
+ALTER TABLE IF EXISTS query_articles ADD COLUMN validates boolean default false;
