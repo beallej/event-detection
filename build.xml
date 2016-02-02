@@ -127,6 +127,14 @@
 				self.addMappedName(source.replace(/ /g, "%20"));
 			</scriptmapper>
 		</pathconvert>
+		<pathconvert property="jar.classpath" pathsep=" ">
+			<path>
+				<pathelement location="${jar}" />
+			</path>
+			<scriptmapper language="javascript">
+				self.addMappedName(source.replace(/ /g, "%20"));
+			</scriptmapper>
+		</pathconvert>
 	</target>
 
 	<target name="create_jar" depends="construct.classpath,clean,javadoc,build">
@@ -157,14 +165,14 @@
 		<jar destfile="${validator-jar}" filesetmanifest="mergewithoutmain">
 			<manifest>
 				<attribute name="Main-Class" value="eventdetection.validator.ValidatorController" />
-				<attribute name="Class-Path" value="${jar}" />
+				<attribute name="Class-Path" value="${jar.classpath}" />
 			</manifest>
 		</jar>
 		<property name="text-rank-jar" location="${prefix}text-rank.jar" />
 		<jar destfile="${text-rank-jar}" filesetmanifest="mergewithoutmain">
 			<manifest>
 				<attribute name="Main-Class" value="eventdetection.textrank.TextRank" />
-				<attribute name="Class-Path" value="${jar}" />
+				<attribute name="Class-Path" value="${jar.classpath}" />
 			</manifest>
 		</jar>
 	</target>
