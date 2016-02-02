@@ -36,7 +36,7 @@ public class Article implements IDAble<Integer>, Serializable {
 	 * @param source
 	 *            the {@link Source} that the article is from
 	 * @throws MalformedURLException
-	 *             if the given <tt>url</tt> is incorrectly formatted
+	 *             if the given {@code url} is incorrectly formatted
 	 */
 	public Article(String title, String text, String url, Source source) throws MalformedURLException {
 		this(title, text, new URL(url), source);
@@ -56,6 +56,44 @@ public class Article implements IDAble<Integer>, Serializable {
 	 */
 	public Article(String title, String text, URL url, Source source) {
 		this(new String[]{title, null}, new String[]{text, null}, null, null, url, source, null);
+	}
+	
+	/**
+	 * Initializes an {@link Article}
+	 * 
+	 * @param title
+	 *            the title of the article as untagged text
+	 * @param text
+	 *            the text of the article as untagged text
+	 * @param url
+	 *            the URL of the full article as a {@link String}
+	 * @param source
+	 *            the {@link Source} that the article is from
+	 * @param id
+	 *            the {@code ID} of the {@link Article} as an {@link Integer}
+	 * @throws MalformedURLException
+	 *             if the given {@code url} is incorrectly formatted
+	 */
+	public Article(String title, String text, String url, Source source, Integer id) throws MalformedURLException {
+		this(title, text, new URL(url), source, id);
+	}
+	
+	/**
+	 * Initializes an {@link Article}
+	 * 
+	 * @param title
+	 *            the title of the article as untagged text
+	 * @param text
+	 *            the text of the article as untagged text
+	 * @param url
+	 *            the {@link URL} of the full article
+	 * @param source
+	 *            the {@link Source} that the article is from
+	 * @param id
+	 *            the {@code ID} of the {@link Article} as an {@link Integer}
+	 */
+	public Article(String title, String text, URL url, Source source, Integer id) {
+		this(new String[]{title, null}, new String[]{text, null}, null, null, url, source, id);
 	}
 	
 	private Article(String[] titles, String[] texts, Annotation title, Annotation[] text, URL url, Source source, Integer id) {
@@ -176,7 +214,8 @@ public class Article implements IDAble<Integer>, Serializable {
 		if (!(o instanceof Article))
 			return false;
 		Article other = (Article) o;
-		return (id != other.id || !source.equals(other.source) || !url.equals(other.url) || !titles[0].equals(other.titles[0]) || !texts[0].equals(other.texts[0]) ||
+		return (id != other.id || !source.equals(other.source) || (url == null ? other.url != null : !url.equals(other.url)) ||
+				(titles[0] == null ? other.titles[0] != null : !titles[0].equals(other.titles[0])) || !texts[0].equals(other.texts[0]) ||
 				(titles[1] == null ? other.titles[1] != null : !titles[1].equals(other.titles[1])) ||
 				(texts[1] == null ? other.texts[1] != null : !texts[1].equals(other.texts[1])) ||
 				(title == null ? other.title != null : !title.equals(other.title)) ||
@@ -188,10 +227,14 @@ public class Article implements IDAble<Integer>, Serializable {
 		if (hashCode == null) {
 			if (id == null) {
 				hashCode = 17;
-				hashCode = hashCode * 31 + titles[0].hashCode();
-				hashCode = hashCode * 31 + texts[0].hashCode();
-				hashCode = hashCode * 31 + url.hashCode();
-				hashCode = hashCode * 31 + source.hashCode();
+				if (titles[0] != null)
+					hashCode = hashCode * 31 + titles[0].hashCode();
+				if (texts[0] != null)
+					hashCode = hashCode * 31 + texts[0].hashCode();
+				if (url != null)
+					hashCode = hashCode * 31 + url.hashCode();
+				if (source != null)
+					hashCode = hashCode * 31 + source.hashCode();
 			}
 			else
 				hashCode = id.hashCode();
