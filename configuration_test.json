@@ -1,1 +1,38 @@
-{"database": {"name": "event_detection_test", "user": "root", "server": "localhost", "pass": null, "type": "PostgreSQL", "port": null}, "tables": {"feeds": "feeds", "scrapers": null, "sources": "sources", "articles": "articles"}, "paths": {"feeds": [], "scrapers": ["./scrapers"], "sources": [], "articles": ["./articles_test"]}, "articles": {"deletion-delay": {"seconds": 0, "days": 0, "years": 0, "hours": 0, "months": 0, "minutes": 0, "weeks": 1}, "pos-tagging": {"enable-tag-simplification": false, "enable-pos-tagging": true}}}
+{
+  "articles" : {
+    "deletion-delay" : {
+      "years" : 1,
+      "months" : 0,
+      "weeks" : 0,
+      "days" : 0,
+      "hours" : 0,
+      "minutes" : 0,
+      "seconds" : 0
+    },
+    "pos-tagging" : {
+      "enable-pos-tagging" : true,
+      "enable-tag-simplification" : false
+    }
+  },
+  "database" : {
+    "server" : "localhost",
+    "port" : null,
+    "type" : "PostgreSQL",
+    "name" : "event_detection_test",
+    "user" : "root",
+    "pass" : null
+  },
+  "paths" : {
+    "sources" : [ ],
+    "feeds" : [ ],
+    "scrapers" : [ "./scrapers" ],
+    "articles" : [ "./articles_test" ]
+  },
+  "tables" : {
+    "sources" : "sources",
+    "feeds" : "feeds",
+    "scrapers" : null,
+    "articles" : "articles"
+  },
+  "test-downloader" : true
+}
