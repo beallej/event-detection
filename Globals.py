@@ -15,7 +15,6 @@ file.close()
 def main():
     """
     supply arg "test" for test setup
-    supply arg "dev" for development setup
     default reuglar setup
     :return: None
     """
@@ -28,9 +27,6 @@ def main():
     elif sys.argv[1] == "test":
         json_object["articles"] = "articles_test/"
         json_object["db"] = "event_detection_test"
-    elif sys.argv[1] == "dev":
-        json_object["articles"] = "articles_dev/"
-        json_object["db"] = "event_detection_dev"
     myfile = open("version.json", 'w')
     json.dump(json_object, myfile)
     myfile.close()

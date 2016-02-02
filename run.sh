@@ -6,10 +6,7 @@ if [ "$python_path" == "" ]; then
 	>&2 echo "Error:  Unable to find the executable for python 3."
 	exit 1
 fi
-if [[ $* == *dev* ]]; then
-	python3 Globals.py dev
-	$java_path -jar "$(pwd)/event-detection.jar" "$(pwd)/configuration_dev.json" && $python_path "$(pwd)/ArticleProcessorDaemon.py" && $python_path "$(pwd)/ValidatorDaemon.py"
-elif [[ $* == *test* ]]; then
+if [[ $* == *test* ]]; then
 	python3 Globals.py test
 	$java_path -jar "$(pwd)/event-detection.jar" "$(pwd)/configuration_test.json" && $python_path "$(pwd)/ArticleProcessorDaemon.py" && $python_path "$(pwd)/ValidatorDaemon.py"
 else
