@@ -67,11 +67,13 @@ public class DownloaderController {
 			for (JSONData<?> str : ((JSONArray) paths.get("feeds")).value())
 				fm.addFeed(Paths.get(str.toString()));
 			fm.addFeed(connection, "feeds");
-			
-			dc.addDownloader(fm);
 
-			// use this to run the test downloader
-			// dc.addDownloader(new TestDownloader());
+			if (((JSONBoolean) config.get("test-downloader")).value()) {
+				dc.addDownloader(new TestDownloader(connection));
+
+			} else {
+				dc.addDownloader(fm);
+			}
 
 			ArticleManager am = new ArticleManager(connection, "articles", paths, articles);
 			

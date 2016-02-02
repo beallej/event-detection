@@ -4,6 +4,11 @@ import eventdetection.common.Article;
 import eventdetection.common.Source;
 
 import java.io.IOException;
+import java.io.BufferedInputStream;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.PreparedStatement;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Scanner;
@@ -13,26 +18,52 @@ import java.util.Scanner;
  */
 public class TestDownloader extends Downloader {
 
+    private Source testSource;
+
+    public TestDownloader(Connection connection) {
+        String statement = "SELECT * FROM sources WHERE source_name = 'TEST_SOURCE'";
+        try {
+            PreparedStatement stmt = connection.prepareStatement(statement);
+            ResultSet rs = stmt.executeQuery();
+            rs.next();
+            int sourceId = rs.getInt("id");
+            double sourceReliability = rs.getDouble("reliability");
+            this.testSource = new Source(sourceId, "TEST_SOURCE", sourceReliability);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+    }
+
     @Override
     public List<Article> get() {
         List<Article> articles = new ArrayList<Article>();
-        Scanner scanner = new Scanner(System.in);
+        Scanner scanner = new Scanner(new BufferedInputStream(System.in));
 
         // TODO: make this better before merging
-        Source source = new Source(3, "TEST_SOURCE", 1);
         String title, text, url;
         while (true) {
             System.out.print("Enter article title: ");
-            title = scanner.next();
+            title = scanner.nextLine();
 
-            System.out.print("Enter article text: ");
-            text = scanner.next();
+            System.out.print("Enter article text. When all text is entered, type 'COMPLETE': ");
+            StringBuilder textBuilder = new StringBuilder();
+            while (scanner.hasNextLine()) {
+                String textResult = scanner.nextLine();
+                if (textResult.equals("COMPLETE")) {
+                    break;
+                }
+                textBuilder.append(textResult);
+                textBuilder.append("\n");
+            }
+            text = textBuilder.toString();
 
             System.out.print("Enter article url: ");
-            url = scanner.next();
+            url = scanner.nextLine();
 
             try {
-                articles.add(new Article(title, text, url, source));
+                articles.add(new Article(title, text, url, testSource));
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -43,6 +74,8 @@ public class TestDownloader extends Downloader {
                 break;
             }
         }
+
+        scanner.close();
 
         return articles;
     }
