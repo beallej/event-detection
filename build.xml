@@ -96,7 +96,6 @@
 		<!--Copy css files to their appropriate locations in the bin directory (for JavaFx)-->
 		<copy todir="${bin}">
 			<fileset dir="${src}" includes="**/*.css" />
-			<fileset dir="${libs}" includes="**/stop-words.txt" />
 		</copy>
 	</target>
 
@@ -122,6 +121,14 @@
 					<basedir file="${libs}" />
 					<patternset refid="libraries" />
 				</multirootfileset>
+			</path>
+			<scriptmapper language="javascript">
+				self.addMappedName(source.replace(/ /g, "%20"));
+			</scriptmapper>
+		</pathconvert>
+		<pathconvert property="jar.classpath" pathsep=" ">
+			<path>
+				<pathelement location="${jar}" />
 			</path>
 			<scriptmapper language="javascript">
 				self.addMappedName(source.replace(/ /g, "%20"));
@@ -157,14 +164,14 @@
 		<jar destfile="${validator-jar}" filesetmanifest="mergewithoutmain">
 			<manifest>
 				<attribute name="Main-Class" value="eventdetection.validator.ValidatorController" />
-				<attribute name="Class-Path" value="${jar}" />
+				<attribute name="Class-Path" value="${jar.classpath}" />
 			</manifest>
 		</jar>
 		<property name="text-rank-jar" location="${prefix}text-rank.jar" />
 		<jar destfile="${text-rank-jar}" filesetmanifest="mergewithoutmain">
 			<manifest>
 				<attribute name="Main-Class" value="eventdetection.textrank.TextRank" />
-				<attribute name="Class-Path" value="${jar}" />
+				<attribute name="Class-Path" value="${jar.classpath}" />
 			</manifest>
 		</jar>
 	</target>

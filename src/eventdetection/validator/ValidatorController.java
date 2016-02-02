@@ -127,9 +127,9 @@ public class ValidatorController {
 		for (String arg : args) {
 			if (arg.equalsIgnoreCase("-c"))
 				action = 0;
-			else if (arg.equalsIgnoreCase("-q"))
-				action = 1;
 			else if (arg.equalsIgnoreCase("-a"))
+				action = 1;
+			else if (arg.equalsIgnoreCase("-q"))
 				action = 2;
 			else if (action == 0)
 				configPath = Paths.get(arg);
