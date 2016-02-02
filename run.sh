@@ -8,9 +8,11 @@ if [ "$python_path" == "" ]; then
 fi
 if [[ $* == *dev* ]]; then
 	python3 Globals.py dev
+	$java_path -jar "$(pwd)/event-detection.jar" "$(pwd)/configuration_dev.json" && $python_path "$(pwd)/ArticleProcessorDaemon.py" && $python_path "$(pwd)/ValidatorDaemon.py"
 elif [[ $* == *test* ]]; then
 	python3 Globals.py test
+	$java_path -jar "$(pwd)/event-detection.jar" "$(pwd)/configuration_test.json" && $python_path "$(pwd)/ArticleProcessorDaemon.py" && $python_path "$(pwd)/ValidatorDaemon.py"
 else
 	python3 Globals.py
+	$java_path -jar "$(pwd)/event-detection.jar" "$(pwd)/configuration.json" && $python_path "$(pwd)/ArticleProcessorDaemon.py" && $python_path "$(pwd)/ValidatorDaemon.py"
 fi
-$java_path -jar "$(pwd)/event-detection.jar" "$(pwd)/configuration.json" && $python_path "$(pwd)/ArticleProcessorDaemon.py" && $python_path "$(pwd)/ValidatorDaemon.py"
