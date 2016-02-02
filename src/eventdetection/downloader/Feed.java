@@ -157,7 +157,7 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 		for (SyndEntry entry : entries) {
 			futures.add(DownloaderController.pool.submit(() -> {
 				String text = s.scrape(new URL(entry.getLink()));
-				if (text == null || text.length() < 1)
+				if (text == null || (text = text.trim()).length() < 1)
 					return null;
 				return new Article(entry.getTitle(), text, entry.getLink(), getSource());
 			}));
