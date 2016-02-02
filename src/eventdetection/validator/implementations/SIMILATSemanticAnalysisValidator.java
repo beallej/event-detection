@@ -174,15 +174,10 @@ public class SIMILATSemanticAnalysisValidator extends OneToOneValidator {
         //     phrase1.append(" ").append(query.getLocation()); 
         // if (query.getLocation() != null && query.getLocation().length() > 0)
         //     query.getLocation();  
-        ArrayList<String> keywordNouns = new ArrayList<String>();
+        ArrayList<String> keywordNouns = new ArrayList<>();
         //Annotation taggedQuery = POSTagger.annotate(rawQuery);
         // Annotation taggedQuery = POSTagger.tag(annotatedQuery);
-        StanfordCoreNLP pipeline;
-        Properties props = new Properties();
-        props.setProperty("annotators", "tokenize, ssplit, pos, lemma, ner, parse, dcoref, depparse");
-        pipeline = System.getProperty("enable.pos", "true").toLowerCase().charAt(0) == 't' ? new StanfordCoreNLP(props) : null;
-        Annotation taggedQuery = new Annotation(rawQuery);
-        pipeline.annotate(taggedQuery);
+        Annotation taggedQuery = POSTagger.annotate(rawQuery);
 
         for (CoreLabel token: taggedQuery.get(TokensAnnotation.class)){
                 String pos = token.get(PartOfSpeechAnnotation.class);
