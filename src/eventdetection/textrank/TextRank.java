@@ -2,6 +2,7 @@ package eventdetection.textrank;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.net.URL;
 import java.nio.file.Files;
@@ -207,14 +208,13 @@ public class TextRank {
 		DBConnection.configureConnection((JSONObject) config.get("database"));
 		ArticleManager am = new ArticleManager(DBConnection.getConnection(), ((JSONObject) config.get("tables")).get("articles").value().toString(), (JSONObject) config.get("paths"),
 				(JSONObject) config.get("articles"));
-		String input = "";
-		try (Scanner scanner = new Scanner(System.in); Scanner sc = scanner.useDelimiter("\\A")) {
-			input = sc.next();
-		}
-		
-		Collection<Article> articles = inputType.getArticles(input, am);
+				
+		Collection<Article> articles = inputType.getArticles(System.in, am);
 		Map<Article, List<Pair<CoreMap, Double>>> ranked = new LinkedHashMap<>();
-		Function<List<CoreMap>, List<Pair<CoreMap, Double>>> ranker = sorting ? TextRank::getSortedRankedSentences : TextRank::getRankedSentences;
+		final int iters = iterations;
+		final double thresh = threshold, damping = dampingFactor;
+		Function<List<CoreMap>, List<Pair<CoreMap, Double>>> ranker =
+				sorting ? sentences -> TextRank.getSortedRankedSentences(sentences, iters, thresh, damping) : sentences -> TextRank.getRankedSentences(sentences, iters, thresh, damping);
 		for (Article article : articles) {
 			List<CoreMap> sentences = new ArrayList<>();
 			for (Annotation paragraph : article.getAnnotatedText())
@@ -228,16 +228,16 @@ public class TextRank {
 		return generateGraph(document, DEFAULT_ITERATIONS, DEFAULT_THRESHOLD, DEFAULT_DAMPING_FACTOR);
 	}
 	
-	private static TextRankGraph<CoreMap> generateGraph(Annotation document, int iterations, double threshold, double damping) {
-		return generateGraph(document.get(SentencesAnnotation.class), iterations, threshold, damping);
+	private static TextRankGraph<CoreMap> generateGraph(Annotation document, int iterations, double threshold, double dampingFactor) {
+		return generateGraph(document.get(SentencesAnnotation.class), iterations, threshold, dampingFactor);
 	}
 	
 	private static TextRankGraph<CoreMap> generateGraph(List<CoreMap> sentences) {
 		return generateGraph(sentences, DEFAULT_ITERATIONS, DEFAULT_THRESHOLD, DEFAULT_DAMPING_FACTOR);
 	}
 	
-	private static TextRankGraph<CoreMap> generateGraph(List<CoreMap> sentences, int iterations, double threshold, double damping) {
-		TextRankGraph<CoreMap> g = new TextRankGraph<>(sentences.size(), iterations, threshold, damping);
+	private static TextRankGraph<CoreMap> generateGraph(List<CoreMap> sentences, int iterations, double threshold, double dampingFactor) {
+		TextRankGraph<CoreMap> g = new TextRankGraph<>(sentences.size(), iterations, threshold, dampingFactor);
 		for (CoreMap sentence : sentences)
 			g.addNode(new TextRankNode<>(1.0, sentence));
 		String[][] words = new String[sentences.size()][0];
@@ -341,6 +341,142 @@ public class TextRank {
 		return getSortedRankedSentencesStream(sentences).collect(Collectors.toList());
 	}
 	
+	/**
+	 * This method runs the TextRank algorithm before returning
+	 * 
+	 * @param document
+	 *            a container holding the text to be ranked
+	 * @param iterations
+	 *            the number of iterations for which the algorithm should run
+	 * @param threshold
+	 *            the stop threshold for the algorithm
+	 * @param dampingFactor
+	 *            the damping factor for the algorithm
+	 * @return a {@link Stream} containing {@link Pair Pairs} of objects and their ranks
+	 */
+	public static Stream<Pair<CoreMap, Double>> getRankedSentencesStream(Annotation document, int iterations, double threshold, double dampingFactor) {
+		return generateGraph(document).getRankedObjectsStream();
+	}
+	
+	/**
+	 * This method runs the TextRank algorithm before returning
+	 * 
+	 * @param document
+	 *            a container holding the text to be ranked
+	 * @param iterations
+	 *            the number of iterations for which the algorithm should run
+	 * @param threshold
+	 *            the stop threshold for the algorithm
+	 * @param dampingFactor
+	 *            the damping factor for the algorithm
+	 * @return a {@link Stream} containing {@link Pair Pairs} of objects and their ranks sorted in <i>descending</i> order
+	 */
+	public static Stream<Pair<CoreMap, Double>> getSortedRankedSentencesStream(Annotation document, int iterations, double threshold, double dampingFactor) {
+		return generateGraph(document).getSortedRankedObjectsStream();
+	}
+	
+	/**
+	 * This method runs the TextRank algorithm before returning
+	 * 
+	 * @param document
+	 *            a container holding the text to be ranked
+	 * @param iterations
+	 *            the number of iterations for which the algorithm should run
+	 * @param threshold
+	 *            the stop threshold for the algorithm
+	 * @param dampingFactor
+	 *            the damping factor for the algorithm
+	 * @return a {@link List} of {@link Pair Pairs} of values and their ranks from the graph
+	 */
+	public static List<Pair<CoreMap, Double>> getRankedSentences(Annotation document, int iterations, double threshold, double dampingFactor) {
+		return getRankedSentencesStream(document).collect(Collectors.toList());
+	}
+	
+	/**
+	 * This method runs the TextRank algorithm before returning
+	 * 
+	 * @param document
+	 *            a container holding the text to be ranked
+	 * @param iterations
+	 *            the number of iterations for which the algorithm should run
+	 * @param threshold
+	 *            the stop threshold for the algorithm
+	 * @param dampingFactor
+	 *            the damping factor for the algorithm
+	 * @return a {@link List} of ranked objects sorted in <i>descending</i> order
+	 */
+	public static List<Pair<CoreMap, Double>> getSortedRankedSentences(Annotation document, int iterations, double threshold, double dampingFactor) {
+		return getSortedRankedSentencesStream(document).collect(Collectors.toList());
+	}
+	
+	/**
+	 * This method runs the TextRank algorithm before returning
+	 * 
+	 * @param sentences
+	 *            a {@link List} holding the {@link CoreMap CoreMaps} representing the sentences to be ranked
+	 * @param iterations
+	 *            the number of iterations for which the algorithm should run
+	 * @param threshold
+	 *            the stop threshold for the algorithm
+	 * @param dampingFactor
+	 *            the damping factor for the algorithm
+	 * @return a {@link Stream} containing {@link Pair Pairs} of objects and their ranks
+	 */
+	public static Stream<Pair<CoreMap, Double>> getRankedSentencesStream(List<CoreMap> sentences, int iterations, double threshold, double dampingFactor) {
+		return generateGraph(sentences).getRankedObjectsStream();
+	}
+	
+	/**
+	 * This method runs the TextRank algorithm before returning
+	 * 
+	 * @param sentences
+	 *            a {@link List} holding the {@link CoreMap CoreMaps} representing the sentences to be ranked
+	 * @param iterations
+	 *            the number of iterations for which the algorithm should run
+	 * @param threshold
+	 *            the stop threshold for the algorithm
+	 * @param dampingFactor
+	 *            the damping factor for the algorithm
+	 * @return a {@link Stream} containing {@link Pair Pairs} of objects and their ranks sorted in <i>descending</i> order
+	 */
+	public static Stream<Pair<CoreMap, Double>> getSortedRankedSentencesStream(List<CoreMap> sentences, int iterations, double threshold, double dampingFactor) {
+		return generateGraph(sentences).getSortedRankedObjectsStream();
+	}
+	
+	/**
+	 * This method runs the TextRank algorithm before returning
+	 * 
+	 * @param sentences
+	 *            a {@link List} holding the {@link CoreMap CoreMaps} representing the sentences to be ranked
+	 * @param iterations
+	 *            the number of iterations for which the algorithm should run
+	 * @param threshold
+	 *            the stop threshold for the algorithm
+	 * @param dampingFactor
+	 *            the damping factor for the algorithm
+	 * @return a {@link List} of {@link Pair Pairs} of values and their ranks from the graph
+	 */
+	public static List<Pair<CoreMap, Double>> getRankedSentences(List<CoreMap> sentences, int iterations, double threshold, double dampingFactor) {
+		return getRankedSentencesStream(sentences).collect(Collectors.toList());
+	}
+	
+	/**
+	 * This method runs the TextRank algorithm before returning
+	 * 
+	 * @param sentences
+	 *            a {@link List} holding the {@link CoreMap CoreMaps} representing the sentences to be ranked
+	 * @param iterations
+	 *            the number of iterations for which the algorithm should run
+	 * @param threshold
+	 *            the stop threshold for the algorithm
+	 * @param dampingFactor
+	 *            the damping factor for the algorithm
+	 * @return a {@link List} of ranked objects sorted in <i>descending</i> order
+	 */
+	public static List<Pair<CoreMap, Double>> getSortedRankedSentences(List<CoreMap> sentences, int iterations, double threshold, double dampingFactor) {
+		return getSortedRankedSentencesStream(sentences).collect(Collectors.toList());
+	}
+	
 	private static String[] getWords(CoreMap sentence) {
 		List<CoreLabel> tokens = sentence.get(TokensAnnotation.class);
 		Set<String> out = new LinkedHashSet<>();
@@ -422,9 +558,13 @@ enum OutputType {
 enum InputType {
 	ID {
 		@Override
-		public Collection<Article> getArticles(String input, ArticleManager am) {
+		public Collection<Article> getArticles(InputStream input, ArticleManager am) {
+			String inp = "";
+			try (Scanner scanner = new Scanner(input)) {
+				inp = scanner.nextLine();
+			}
 			Collection<Article> out = new LinkedHashSet<>();
-			for (String id : input.split("(,\\s*|\\s+)")) {
+			for (String id : inp.split("(,\\s*|\\s+)")) {
 				try {
 					out.add(am.load(Integer.parseInt(id)));
 				}
@@ -437,13 +577,17 @@ enum InputType {
 	},
 	TEXT {
 		@Override
-		public Collection<Article> getArticles(String input, ArticleManager am) {
+		public Collection<Article> getArticles(InputStream input, ArticleManager am) {
 			Collection<Article> out = new LinkedHashSet<>();
 			Pattern articleSplit = Pattern.compile("[\\-]{5,}(\\d+)?.*");
 			String title = null;
 			StringBuilder text = new StringBuilder();
 			Integer id = null;
-			for (String line : input.split(System.lineSeparator())) {
+			String inp = "";
+			try (Scanner scanner = new Scanner(input); Scanner sc = scanner.useDelimiter("\\A")) {
+				inp = sc.next();
+			}
+			for (String line : inp.split(System.lineSeparator())) {
 				Matcher m = articleSplit.matcher(line);
 				if (m.matches()) {
 					if (text.length() > 0)
@@ -465,5 +609,5 @@ enum InputType {
 		}
 	};
 	
-	public abstract Collection<Article> getArticles(String input, ArticleManager am);
+	public abstract Collection<Article> getArticles(InputStream input, ArticleManager am);
 }
