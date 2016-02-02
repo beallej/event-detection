@@ -66,7 +66,7 @@ public class Article implements IDAble<Integer>, Serializable {
 		this.url = url;
 		this.source = source;
 		this.id = id;
-		hashCode = null;
+		hashCode = this.id == null ? null : id.hashCode();
 	}
 	
 	/**
@@ -187,12 +187,11 @@ public class Article implements IDAble<Integer>, Serializable {
 	public int hashCode() {
 		if (hashCode == null) {
 			if (id == null) {
-				int hash = 17;
-				hash = hash * 31 + titles[0].hashCode();
-				hash = hash * 31 + texts[0].hashCode();
-				hash = hash * 31 + url.hashCode();
-				hash = hash * 31 + source.hashCode();
-				hashCode = hash;
+				hashCode = 17;
+				hashCode = hashCode * 31 + titles[0].hashCode();
+				hashCode = hashCode * 31 + texts[0].hashCode();
+				hashCode = hashCode * 31 + url.hashCode();
+				hashCode = hashCode * 31 + source.hashCode();
 			}
 			else
 				hashCode = id.hashCode();
