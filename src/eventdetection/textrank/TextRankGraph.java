@@ -120,7 +120,7 @@ public class TextRankGraph<T> {
 	 */
 	public Stream<Pair<T, Double>> getRankedObjectsStream() {
 		rankNodes();
-		return Arrays.stream(nodes).map(a -> new Pair<>(a.getValue(), a.getRank()));
+		return Arrays.stream(nodes, 0, position).map(a -> new Pair<>(a.getValue(), a.getRank()));
 	}
 	
 	/**
