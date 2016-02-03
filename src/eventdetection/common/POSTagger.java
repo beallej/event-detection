@@ -34,7 +34,7 @@ public class POSTagger {
 			// NER, parsing, and coreference resolution
 			Properties props = new Properties();
 			props.setProperty("annotators", "tokenize, ssplit, pos, lemma, ner, parse, dcoref");
-			pipeline = System.getProperty("enable.pos", "true").toLowerCase().charAt(0) == 't' ? new StanfordCoreNLP(props) : null;
+			pipeline = new StanfordCoreNLP(props);
 		}
 		return pipeline;
 	}
