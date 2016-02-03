@@ -12,8 +12,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import toberumono.json.JSONArray;
 import toberumono.json.JSONBoolean;
@@ -31,10 +29,6 @@ import eventdetection.common.DBConnection;
  * @author Joshua Lipstone
  */
 public class DownloaderController {
-	/**
-	 * A work stealing pool for use by all classes in this program.
-	 */
-	public static final ExecutorService pool = Executors.newWorkStealingPool();
 	
 	/**
 	 * The main method.

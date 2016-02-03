@@ -32,6 +32,8 @@ import eventdetection.common.DBConnection;
 import eventdetection.common.IDAble;
 import eventdetection.common.Source;
 
+import static eventdetection.common.ThreadingUtils.pool;
+
 /**
  * Represents an RSS feed and provides methods for getting the articles from it.
  * 
@@ -155,7 +157,7 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 		}
 		List<Future<Article>> futures = new ArrayList<>();
 		for (SyndEntry entry : entries) {
-			futures.add(DownloaderController.pool.submit(() -> {
+			futures.add(pool.submit(() -> {
 				String text = s.scrape(new URL(entry.getLink()));
 				if (text == null || (text = text.trim()).length() < 1)
 					return null;

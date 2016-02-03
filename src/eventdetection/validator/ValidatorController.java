@@ -23,8 +23,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
@@ -36,6 +34,8 @@ import toberumono.json.JSONObject;
 import toberumono.json.JSONString;
 import toberumono.json.JSONSystem;
 import toberumono.structures.tuples.Triple;
+
+import static eventdetection.common.ThreadingUtils.pool;
 
 import eventdetection.common.Article;
 import eventdetection.common.ArticleManager;
@@ -50,11 +50,6 @@ import eventdetection.validator.types.ValidatorType;
  * @author Joshua Lipstone
  */
 public class ValidatorController {
-	/**
-	 * A work stealing pool for use by all classes in this program.
-	 */
-	public static final ExecutorService pool = Executors.newWorkStealingPool();
-	
 	private final Connection connection;
 	private final Map<ValidatorType, Map<String, ValidatorWrapper>> validators;
 	private static final Logger logger = LoggerFactory.getLogger("ValidatorController");
@@ -218,6 +213,7 @@ public class ValidatorController {
 					}
 				}
 			}
+			//Unfortunately, we can only perform existence checks for one-to-one validation algorithms
 			try (PreparedStatement stmt = connection.prepareStatement("select * from validation_results as vr where vr.query = ? and vr.algorithm = ? and vr.article = ?")) {
 				for (Query query : queries) {
 					stmt.setInt(1, query.getId());
