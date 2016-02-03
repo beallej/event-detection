@@ -36,9 +36,6 @@ import toberumono.json.exceptions.JSONException;
 import toberumono.structures.tuples.Pair;
 
 import edu.stanford.nlp.ling.CoreAnnotations.SentencesAnnotation;
-import edu.stanford.nlp.ling.CoreAnnotations.TextAnnotation;
-import edu.stanford.nlp.ling.CoreAnnotations.TokensAnnotation;
-import edu.stanford.nlp.ling.CoreLabel;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.util.CoreMap;
 import eventdetection.common.Article;
@@ -223,33 +220,58 @@ public class TextRank {
 		outputType.printOutput(new BufferedWriter(new OutputStreamWriter(System.out)), ranked, pos);
 	}
 	
-	private static TextRankGraph<CoreMap> generateGraph(Annotation document) {
-		return generateGraph(document, DEFAULT_ITERATIONS, DEFAULT_THRESHOLD, DEFAULT_DAMPING_FACTOR);
+	private static TextRankGraph<CoreMap> generateGraph(Annotation... document) {
+		return generateGraph(DEFAULT_ITERATIONS, DEFAULT_THRESHOLD, DEFAULT_DAMPING_FACTOR, document);
 	}
 	
-	private static TextRankGraph<CoreMap> generateGraph(Annotation document, int iterations, double threshold, double dampingFactor) {
-		return generateGraph(document.get(SentencesAnnotation.class), iterations, threshold, dampingFactor);
+	private static TextRankGraph<CoreMap> generateGraph(int iterations, double threshold, double dampingFactor, Annotation... document) {
+		List<CoreMap> sentences = new ArrayList<>();
+		for (Annotation doc : document) {
+			sentences.addAll(doc.get(SentencesAnnotation.class));
+		}
+		return generateGraph(iterations, threshold, dampingFactor, sentences);
 	}
 	
 	private static TextRankGraph<CoreMap> generateGraph(List<CoreMap> sentences) {
-		return generateGraph(sentences, DEFAULT_ITERATIONS, DEFAULT_THRESHOLD, DEFAULT_DAMPING_FACTOR);
+		return generateGraph(DEFAULT_ITERATIONS, DEFAULT_THRESHOLD, DEFAULT_DAMPING_FACTOR, sentences);
 	}
 	
-	private static TextRankGraph<CoreMap> generateGraph(List<CoreMap> sentences, int iterations, double threshold, double dampingFactor) {
+	private static TextRankGraph<CoreMap> generateGraph(int iterations, double threshold, double dampingFactor, List<CoreMap> sentences) {
 		TextRankGraph<CoreMap> g = new TextRankGraph<>(sentences.size(), iterations, threshold, dampingFactor);
 		for (CoreMap sentence : sentences)
 			g.addNode(new TextRankNode<>(1.0, sentence));
 		String[][] words = new String[sentences.size()][0];
+		double sim = 0;
 		for (int i = 0; i < sentences.size(); i++) {
 			if (words[i].length == 0)
 				words[i] = getWords(sentences.get(i));
 			for (int j = i + 1; j < sentences.size(); j++) {
 				if (words[j].length == 0)
 					words[j] = getWords(sentences.get(j));
-				g.addEdge(i, similarity(words[i], words[j]), j);
+				sim = similarity(words[i], words[j]);
+				g.addEdge(i, sim, j);
+				g.addEdge(j, sim, i);
 			}
 		}
 		return g;
+	}
+	
+	private static String[] getWords(CoreMap sentence) {
+		Set<String> out = new LinkedHashSet<>();
+		for (String word : POSTagger.reconstructSentence(sentence).split("([\\Q.,\";:?!\\E]\\s*|\\s+)"))
+			out.add(word);
+		return out.toArray(new String[out.size()]);
+	}
+	
+	private static double similarity(String[] s1, String[] s2) {
+		double overlap = 0;
+		for (int i = 0; i < s1.length; i++)
+			for (int j = 0; j < s2.length; j++)
+				if (s1[i].equals(s2[j])) {
+					overlap++;
+					break;
+				}
+		return overlap / (Math.log(s1.length) + Math.log(s2.length) + 1);
 	}
 	
 	/**
@@ -259,7 +281,7 @@ public class TextRank {
 	 *            a container holding the text to be ranked
 	 * @return a {@link Stream} containing {@link Pair Pairs} of objects and their ranks
 	 */
-	public static Stream<Pair<CoreMap, Double>> getRankedSentencesStream(Annotation document) {
+	public static Stream<Pair<CoreMap, Double>> getRankedSentencesStream(Annotation... document) {
 		return generateGraph(document).getRankedObjectsStream();
 	}
 	
@@ -270,7 +292,7 @@ public class TextRank {
 	 *            a container holding the text to be ranked
 	 * @return a {@link Stream} containing {@link Pair Pairs} of objects and their ranks sorted in <i>descending</i> order
 	 */
-	public static Stream<Pair<CoreMap, Double>> getSortedRankedSentencesStream(Annotation document) {
+	public static Stream<Pair<CoreMap, Double>> getSortedRankedSentencesStream(Annotation... document) {
 		return generateGraph(document).getSortedRankedObjectsStream();
 	}
 	
@@ -281,7 +303,7 @@ public class TextRank {
 	 *            a container holding the text to be ranked
 	 * @return a {@link List} of {@link Pair Pairs} of values and their ranks from the graph
 	 */
-	public static List<Pair<CoreMap, Double>> getRankedSentences(Annotation document) {
+	public static List<Pair<CoreMap, Double>> getRankedSentences(Annotation... document) {
 		return getRankedSentencesStream(document).collect(Collectors.toList());
 	}
 	
@@ -292,7 +314,7 @@ public class TextRank {
 	 *            a container holding the text to be ranked
 	 * @return a {@link List} of ranked objects sorted in <i>descending</i> order
 	 */
-	public static List<Pair<CoreMap, Double>> getSortedRankedSentences(Annotation document) {
+	public static List<Pair<CoreMap, Double>> getSortedRankedSentences(Annotation... document) {
 		return getSortedRankedSentencesStream(document).collect(Collectors.toList());
 	}
 	
@@ -474,25 +496,6 @@ public class TextRank {
 	 */
 	public static List<Pair<CoreMap, Double>> getSortedRankedSentences(List<CoreMap> sentences, int iterations, double threshold, double dampingFactor) {
 		return getSortedRankedSentencesStream(sentences).collect(Collectors.toList());
-	}
-	
-	private static String[] getWords(CoreMap sentence) {
-		List<CoreLabel> tokens = sentence.get(TokensAnnotation.class);
-		Set<String> out = new LinkedHashSet<>();
-		for (int i = 0; i < tokens.size(); i++)
-			out.add(tokens.get(i).get(TextAnnotation.class).toLowerCase());
-		return out.toArray(new String[out.size()]);
-	}
-	
-	private static double similarity(String[] s1, String[] s2) {
-		double overlap = 0;
-		for (int i = 0; i < s1.length; i++)
-			for (int j = 0; j < s2.length; j++)
-				if (s1[i].equals(s2[j])) {
-					overlap++;
-					break;
-				}
-		return overlap / (Math.log(s1.length) + Math.log(s2.length));
 	}
 }
 
