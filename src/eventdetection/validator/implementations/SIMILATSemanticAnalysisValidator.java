@@ -26,6 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.text.*;
 
+import toberumono.json.JSONObject;
 import toberumono.structures.collections.lists.SortedList;
 import toberumono.structures.tuples.Pair;
 import toberumono.structures.SortingMethods;
@@ -34,7 +35,7 @@ import edu.stanford.nlp.ling.CoreAnnotations.SentencesAnnotation;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.util.CoreMap;
 import eventdetection.common.Article;
-import eventdetection.common.POSUtils;
+import eventdetection.common.POSTagger;
 import eventdetection.common.Query;
 import eventdetection.common.Source;
 import eventdetection.validator.ValidationResult;
@@ -198,7 +199,7 @@ public class SIMILATSemanticAnalysisValidator extends OneToOneValidator {
         for (Annotation paragraph : article.getAnnotatedText()) {
 			List<CoreMap> sentences = paragraph.get(SentencesAnnotation.class);
 			for (CoreMap sentence : sentences) {
-                String sen = POSUtils.reconstructSentence(sentence);
+                String sen = POSTagger.reconstructSentence(sentence);
                 articleSentence = preprocessor.preprocessSentence(sen);
                 temp = (double) lsaComparer.computeSimilarity(querySentence, articleSentence);
                 if (temp.equals(Double.NaN))

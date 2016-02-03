@@ -17,7 +17,7 @@ import edu.stanford.nlp.ling.CoreAnnotations.SentencesAnnotation;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.util.CoreMap;
 import eventdetection.common.Article;
-import eventdetection.common.POSUtils;
+import eventdetection.common.POSTagger;
 import eventdetection.common.Query;
 import eventdetection.validator.ValidationResult;
 import eventdetection.validator.types.OneToOneValidator;
@@ -58,7 +58,7 @@ public class SwoogleSemanticAnalysisValidator extends OneToOneValidator {
 		for (Annotation paragraph : article.getAnnotatedText()) {
 			List<CoreMap> sentences = paragraph.get(SentencesAnnotation.class);
 			for (CoreMap sentence : sentences) {
-				String sen = POSUtils.reconstructSentence(sentence);
+				String sen = POSTagger.reconstructSentence(sentence);
 				String url = String.format("%s&phrase1=%s&phrase2=%s", URL_PREFIX, URLEncoder.encode(phrase1.toString(), StandardCharsets.UTF_8.name()),
 						URLEncoder.encode(sen, StandardCharsets.UTF_8.name()));
 				URLConnection connection = new URL(url).openConnection();
