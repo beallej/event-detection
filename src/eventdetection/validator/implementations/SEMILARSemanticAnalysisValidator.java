@@ -85,10 +85,6 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
 	 */
     public SEMILARSemanticAnalysisValidator(Query query, Article article) {
 		super(query, article);
-        System.out.println("THIS IS SEMILRA");
-
-	//}
-//    public articleSentenceSentenceSimilarityTest() {
 
         /* Word to word similarity expanded to sentence to sentence .. so we need word metrics */
         boolean wnFirstSenseOnly = false; //applies for WN based methods only.
@@ -144,10 +140,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
                     topN.remove(topN.size() - 1);
             }
         }
-        
-        //If article > threshold
-        //CHeck if top 5 sentences are great
-        //If not reduce the probibility to 0
+
 
   		double average = 0.0;
 		for (Pair<Double, CoreMap> p : topN){
@@ -156,15 +149,15 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         }
         average /= (double) topN.size(); 
         double validation = 0.0;
-        if (average > 0.15) {
-            validation = postProcess(topN, query,phrase1.toString());
+        if (average > 0.15 || tempTitle > 0.15) {
+            validation = postProcess(topN, query,phrase1.toString(), title, tempTitle);
         }
         System.out.println("Annotated title: "+ article.getAnnotatedTitle());
         System.out.println("ARTICLE  ID " + article.getID() + " average: "+average + " title: "+tempTitle);
         return new ValidationResult[]{new ValidationResult(article.getID(), validation)};
     }
     
-    public double postProcess(SortedList<Pair<Double, CoreMap>> topN, Query query, String rawQuery){
+    public double postProcess(SortedList<Pair<Double, CoreMap>> topN, Query query, String rawQuery, String articleTitle, double titleScore){
         String subject, dirObject, indirObject;
         subject = query.getSubject();
         dirObject = "";
@@ -194,33 +187,51 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
             }
             }
 
-        int matchedSentenceOutOf5 = 0;
+        int articleMatchScore = 0;
+        int matchedPerSentence = 0;
         for (Pair<Double, CoreMap> p : topN){ //for each sentence
-            int matchedPerSentence = 0;
-            for (CoreLabel token: p.getY().get(TokensAnnotation.class)){ //each word in sentence
-                String pos = token.get(PartOfSpeechAnnotation.class);
-                String lemma = token.get(LemmaAnnotation.class);
-                if (pos.length() > 1 && pos.substring(0,2).equals("NN")){
-                    //System.out.println(article.getID() +"POS tag for word : " + token + " tag: " + pos + " lemma " + lemma);
-                    for (String imptNoun:keywordNouns){
-                        double matched = wnMetricLin.computeWordSimilarityNoPos(lemma, imptNoun);
-                        if (matched>0.65){
-                            matchedPerSentence += 1;
-                        }
-                    }
-                }
-            }
+            matchedPerSentence= validationScore(p.getY(), keywordNouns);
             if (matchedPerSentence > 0){
-                matchedSentenceOutOf5 += 1;
-            }
+                articleMatchScore += 1;
+            }            
         }
-        if (matchedSentenceOutOf5 > 1){
+
+        Annotation annotatedTitle = POSTagger.annotate(articleTitle);
+        CoreMap taggedTitle = annotatedTitle.get(SentencesAnnotation.class).get(0);
+        
+        matchedPerSentence = validationScore(taggedTitle, keywordNouns);
+        if (matchedPerSentence > 0){
+            articleMatchScore += 2;
+        }
+        System.out.println("MATCH SCORE: " + articleMatchScore);
+
+
+
+        //add function here
+        if (articleMatchScore > 2){ // at least (title + 1/5 sentences) or (3 sentences) or both
             return 1.0;
         } 
         return 0.0;
 
     }
 
+    public int validationScore(CoreMap sentence, ArrayList<String> keywordNouns){
+        int matchedPerSentence = 0;
+        for (CoreLabel token: sentence.get(TokensAnnotation.class)){ //each word in sentence
+            String pos = token.get(PartOfSpeechAnnotation.class);
+            String lemma = token.get(LemmaAnnotation.class);
+            if (pos.length() > 1 && pos.substring(0,2).equals("NN")){
+                //System.out.println(article.getID() +"POS tag for word : " + token + " tag: " + pos + " lemma " + lemma);
+                for (String imptNoun:keywordNouns){
+                    double matched = wnMetricLin.computeWordSimilarityNoPos(lemma, imptNoun);
+                    if (matched>0.65){
+                        matchedPerSentence += 1;
+                    }
+                }
+            }
+        }       
+        return matchedPerSentence;
+    }
 	/**
 	 * Hook for loading properties from the Validator's JSON data
 	 * 
