@@ -1,0 +1,9 @@
+{
+	"id" : "TextRank Swoogle Semantic Analysis",
+	"class" : "eventdetection.validator.implementations.TextRankSwoogleSemanticAnalysisValidator",
+	"type" : "OneToOne",
+	"properties" : {
+		"url-prefix" : "http://swoogle.umbc.edu/StsService/GetStsSim?operation=api"
+	},
+	"enabled" : true
+}
