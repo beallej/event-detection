@@ -21,6 +21,9 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -31,18 +34,21 @@ import toberumono.json.JSONArray;
 import toberumono.json.JSONBoolean;
 import toberumono.json.JSONObject;
 
+import static eventdetection.common.ThreadingUtils.pool;
+
 /**
  * A mechanism for managing articles.
  * 
  * @author Joshua Lipstone
  */
 public class ArticleManager {
+	private static final Logger logger = LoggerFactory.getLogger("ArticleManager");
+	
 	private final Connection connection;
 	private final String table;
 	private final Collection<Path> storage;
 	private final boolean posTaggingEnabled;
 	private static final ReadWriteLock fsLock = new ReentrantReadWriteLock();
-	private final Logger logger;
 	
 	/**
 	 * Initializes an {@link ArticleManager} from JSON configuration data.
@@ -62,7 +68,6 @@ public class ArticleManager {
 		this.storage = ((JSONArray) paths.get("articles")).stream().collect(LinkedHashSet::new, (s, p) -> s.add(Paths.get(p.toString())), LinkedHashSet::addAll);
 		JSONObject posTagging = (JSONObject) articles.get("pos-tagging");
 		this.posTaggingEnabled = ((JSONBoolean) posTagging.get("enable-pos-tagging")).value();
-		this.logger = LoggerFactory.getLogger(getClass());
 	}
 	
 	/**
@@ -82,7 +87,6 @@ public class ArticleManager {
 		this.table = articleTable;
 		this.storage = articleStorage;
 		this.posTaggingEnabled = posTaggingEnabled;
-		this.logger = LoggerFactory.getLogger(getClass());
 	}
 	
 	/**
@@ -263,57 +267,66 @@ public class ArticleManager {
 	public List<Article> loadArticles(Collection<Integer> ids) throws SQLException {
 		synchronized (fsLock.readLock()) {
 			List<Article> articles = new ArrayList<>();
+			List<Future<Article>> futures = new ArrayList<>();
 			try (ResultSet rs = connection.prepareStatement("select * from articles").executeQuery()) {
 				logger.info("Starting to deserialize articles");
-				Article article = null;
 				if (ids.size() > 0) {
 					int id = 0;
 					while (rs.next()) {
 						id = rs.getInt("id");
 						if (ids.contains(id)) {
-							article = loadArticle(rs);
-							if (article != null) {
-								articles.add(article);
-								ids.remove(id); //Prevents articles from being loaded more than once
-							}
+							futures.add(pool.submit(loadArticle(rs.getString("title"), rs.getString("filename"))));
+							ids.remove(id);
 						}
 					}
 				}
 				else {
-					while (rs.next()) {
-						article = loadArticle(rs);
-						if (article != null)
-							articles.add(article);
-					}
+					while (rs.next())
+						futures.add(pool.submit(loadArticle(rs.getString("title"), rs.getString("filename"))));
 				}
-				logger.info("Done deserializing articles");
 			}
+			Article article = null;
+			for (Future<Article> future : futures) {
+				try {
+					article = future.get();
+					if (article != null)
+						articles.add(article);
+				}
+				catch (InterruptedException e) {
+					logger.warn("A concurrency error occurred while deserializing articles", e);
+				}
+				catch (ExecutionException e) {
+					logger.warn("An error occurred while deserializing articles", e.getCause());
+				}
+			}
+			logger.info("Done deserializing articles");
 			if (ids.size() > 0)
 				logger.warn("Did not find articles with ids matching " + ids.stream().reduce("", (a, b) -> a + ", " + b.toString(), (a, b) -> a + b).substring(2));
 			return articles;
 		}
 	}
 	
-	private Article loadArticle(ResultSet rs) throws SQLException {
-		Article article = null;
-		for (Path store : storage) {
-			if (!Files.exists(store))
-				continue;
-			String filename = rs.getString("filename");
-			Path serialized = ArticleManager.toSerializedPath(store.resolve(filename));
-			if (!Files.exists(serialized))
-				continue;
-			try (ObjectInputStream serialIn = new ObjectInputStream(new FileInputStream(serialized.toFile()))) {
-				article = (Article) serialIn.readObject();
+	private Callable<Article> loadArticle(String title, String filename) {
+		return () -> {
+			Article article = null;
+			for (Path store : storage) {
+				if (!Files.exists(store))
+					continue;
+				Path serialized = ArticleManager.toSerializedPath(store.resolve(filename));
+				if (!Files.exists(serialized))
+					continue;
+				try (ObjectInputStream serialIn = new ObjectInputStream(new FileInputStream(serialized.toFile()))) {
+					article = (Article) serialIn.readObject();
+				}
+				catch (ClassNotFoundException | IOException e) {
+					logger.debug("Error while deserializing data for " + title, e);
+					article = null;
+				}
 			}
-			catch (ClassNotFoundException | IOException e) {
-				logger.debug("Error while deserializing data for " + rs.getString("title"), e);
-				article = null;
-			}
-		}
-		if (article == null)
-			logger.warn("Unable to find the serialized data for " + rs.getString("title") + ".  Skipping.");
-		return article;
+			if (article == null)
+				logger.warn("Unable to find the serialized data for " + title + ".  Skipping.");
+			return article;
+		};
 	}
 	
 	/**
