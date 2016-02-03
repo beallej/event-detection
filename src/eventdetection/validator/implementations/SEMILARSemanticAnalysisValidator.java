@@ -27,7 +27,7 @@ import edu.stanford.nlp.ling.*;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.util.CoreMap;
 import eventdetection.common.Article;
-import eventdetection.common.POSUtils;
+import eventdetection.common.POSTagger;
 import eventdetection.common.Query;
 import eventdetection.common.Source;
 import eventdetection.validator.ValidationResult;
@@ -36,7 +36,6 @@ import eventdetection.validator.types.OneToOneValidator;
 import eventdetection.validator.types.Validator;
 import eventdetection.common.ArticleManager;
 import eventdetection.common.DBConnection;
-import eventdetection.common.POSTagger;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -130,7 +129,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
 			List<CoreMap> sentences = paragraph.get(SentencesAnnotation.class);
 
 			for (CoreMap sentence : sentences) {
-                String sen = POSUtils.reconstructSentence(sentence);
+                String sen = POSTagger.reconstructSentence(sentence);
                 articleSentence = preprocessor.preprocessSentence(sen);
                 temp = (double) optimumComparerWNLin.computeSimilarity(querySentence, articleSentence);
                 if (temp.equals(Double.NaN))

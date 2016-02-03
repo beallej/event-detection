@@ -45,7 +45,6 @@ import eventdetection.common.Article;
 import eventdetection.common.ArticleManager;
 import eventdetection.common.DBConnection;
 import eventdetection.common.POSTagger;
-import eventdetection.common.POSUtils;
 import eventdetection.common.Source;
 
 /**
@@ -502,7 +501,7 @@ enum OutputType {
 		@Override
 		public void printOutput(Appendable writer, Map<Article, List<Pair<CoreMap, Double>>> ranked, boolean pos) throws IOException {
 			JSONObject output = new JSONObject();
-			Function<CoreMap, String> converter = pos ? POSTagger::tag : POSUtils::reconstructSentence;
+			Function<CoreMap, String> converter = pos ? POSTagger::tag : POSTagger::reconstructSentence;
 			for (Entry<Article, List<Pair<CoreMap, Double>>> e : ranked.entrySet()) {
 				JSONArray array = new JSONArray();
 				for (Pair<CoreMap, Double> sentence : e.getValue()) {
@@ -518,7 +517,7 @@ enum OutputType {
 		
 		@Override
 		public void printOutput(Appendable writer, List<Pair<CoreMap, Double>> ranked, boolean pos) throws IOException {
-			Function<CoreMap, String> converter = pos ? POSTagger::tag : POSUtils::reconstructSentence;
+			Function<CoreMap, String> converter = pos ? POSTagger::tag : POSTagger::reconstructSentence;
 			JSONArray array = new JSONArray();
 			for (Pair<CoreMap, Double> sentence : ranked) {
 				JSONArray sen = new JSONArray(2);
@@ -532,7 +531,7 @@ enum OutputType {
 	LIST {
 		@Override
 		public void printOutput(Appendable writer, Map<Article, List<Pair<CoreMap, Double>>> ranked, boolean pos) throws IOException {
-			Function<CoreMap, String> converter = pos ? POSTagger::tag : POSUtils::reconstructSentence;
+			Function<CoreMap, String> converter = pos ? POSTagger::tag : POSTagger::reconstructSentence;
 			for (Entry<Article, List<Pair<CoreMap, Double>>> e : ranked.entrySet()) {
 				writer.append(border).append(e.getKey().getID().toString()).append(border).append(System.lineSeparator());
 				for (Pair<CoreMap, Double> s : e.getValue())
@@ -542,7 +541,7 @@ enum OutputType {
 		
 		@Override
 		public void printOutput(Appendable writer, List<Pair<CoreMap, Double>> ranked, boolean pos) throws IOException {
-			Function<CoreMap, String> converter = pos ? POSTagger::tag : POSUtils::reconstructSentence;
+			Function<CoreMap, String> converter = pos ? POSTagger::tag : POSTagger::reconstructSentence;
 			for (Pair<CoreMap, Double> s : ranked)
 				writer.append(s.getY().toString()).append(" :: ").append(converter.apply(s.getX())).append(System.lineSeparator());
 		}

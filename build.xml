@@ -96,7 +96,6 @@
 		<!--Copy css files to their appropriate locations in the bin directory (for JavaFx)-->
 		<copy todir="${bin}">
 			<fileset dir="${src}" includes="**/*.css" />
-			<fileset dir="${libs}" includes="**/stop-words.txt" />
 		</copy>
 	</target>
 
