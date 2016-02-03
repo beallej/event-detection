@@ -217,7 +217,7 @@ public class POSTagger {
 	public static String reconstructParagraph(Annotation paragraph) {
 		StringBuilder sb = new StringBuilder();
 		for (CoreMap sentence : paragraph.get(SentencesAnnotation.class))
-			reconstructSentence(sentence, sb).append(". ");
+			reconstructSentence(sentence, sb).append(" ");
 		return sb.toString().replaceAll("\\s+([!,.;:'\"?%])", "$1").trim();
 	}
 	
@@ -243,11 +243,6 @@ public class POSTagger {
 	 * @return the {@link StringBuilder}
 	 */
 	public static StringBuilder reconstructSentence(CoreMap sentence, StringBuilder sb) {
-		// traversing the words in the current sentence
-		// a CoreLabel is a CoreMap with additional token-specific methods
-		List<CoreLabel> tokens = sentence.get(TokensAnnotation.class);
-		for (CoreLabel token : tokens)
-			sb.append(token.word()).append(" ");
-		return sb;
+		return sb.append(sentence.toString());
 	}
 }
