@@ -6,10 +6,13 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -179,11 +182,23 @@ public class ValidatorController {
 	 *            the IDs of the {@link Article Articles} against which the {@link Query Queries} are to be validated
 	 * @throws SQLException
 	 *             if an error occurs while reading from or writing to the database
+	 * @throws IOException
+	 *             if an error occurs while securing access to the serialized {@link Article Articles}
 	 */
-	public void executeValidators(Collection<Integer> queryIDs, Collection<Integer> articleIDs) throws SQLException {
+	public void executeValidators(Collection<Integer> queryIDs, Collection<Integer> articleIDs) throws SQLException, IOException {
 		long start = System.currentTimeMillis();
 		synchronized (connection) {
-			executeValidatorsUsingObjects(loadQueries(queryIDs), articleManager.loadArticles(articleIDs));
+			Path active = Paths.get(System.getProperty("user.home"), ".event-detection-active");
+			if (!Files.exists(active)) {
+				Files.createDirectories(active.getParent());
+				Files.createFile(active);
+			}
+			
+			List<Article> articles = null;
+			try (FileChannel chan = FileChannel.open(active, StandardOpenOption.CREATE, StandardOpenOption.WRITE); FileLock lock = chan.lock();) {
+				articles = articleManager.loadArticles(articleIDs);
+			}
+			executeValidatorsUsingObjects(loadQueries(queryIDs), articles);
 		}
 		System.out.println(System.currentTimeMillis() - start);
 	}
