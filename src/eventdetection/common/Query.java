@@ -8,7 +8,7 @@ import java.sql.SQLException;
  * 
  * @author Joshua Lipstone
  */
-public class Query {
+public class Query implements IDAble<Integer> {
 	private final int id;
 	private final String subject, verb, directObject, indirectObject, location;
 	private final boolean processed;
@@ -62,7 +62,8 @@ public class Query {
 	/**
 	 * @return the id
 	 */
-	public int getId() {
+	@Override
+	public Integer getID() {
 		return id;
 	}
 	

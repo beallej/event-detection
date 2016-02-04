@@ -216,7 +216,7 @@ public class ValidatorController {
 			//Unfortunately, we can only perform existence checks for one-to-one validation algorithms
 			try (PreparedStatement stmt = connection.prepareStatement("select * from validation_results as vr where vr.query = ? and vr.algorithm = ? and vr.article = ?")) {
 				for (Query query : queries) {
-					stmt.setInt(1, query.getId());
+					stmt.setInt(1, query.getID());
 					for (Article article : articles) {
 						stmt.setInt(3, article.getID());
 						for (ValidatorWrapper vw : validators.get(ValidatorType.OneToOne).values()) {
@@ -226,10 +226,10 @@ public class ValidatorController {
 									continue;
 							}
 							try {
-								results.add(new Triple<>(query.getId(), vw.getID(), pool.submit(vw.construct(query, article))));
+								results.add(new Triple<>(query.getID(), vw.getID(), pool.submit(vw.construct(query, article))));
 							}
 							catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-								logger.error("Unable to initialize the validator, " + vw.getName() + ", for query " + query.getId() + " and article " + article.getID(), e);
+								logger.error("Unable to initialize the validator, " + vw.getName() + ", for query " + query.getID() + " and article " + article.getID(), e);
 							}
 						}
 					}
