@@ -182,24 +182,44 @@ public class ValidatorController {
 	 */
 	public void executeValidators(Collection<Integer> queryIDs, Collection<Integer> articleIDs) throws SQLException {
 		synchronized (connection) {
-			Collection<Query> queries = loadQueries(queryIDs);
-			Collection<Article> articles = articleManager.loadArticles(articleIDs);
+			executeValidatorsUsingObjects(loadQueries(queryIDs), articleManager.loadArticles(articleIDs));
+		}
+	}
+	
+	/**
+	 * Executes the {@link Validator Validators} registered with the {@link ValidatorController} on the given
+	 * {@link Collection} of {@link Query} IDs and {@link Collection} of {@link Article} IDs after loading them from the
+	 * database and writes the results to the database.
+	 * 
+	 * @param queries
+	 *            the IDs of the {@link Query Queries} to be validated
+	 * @param articles
+	 *            the IDs of the {@link Article Articles} against which the {@link Query Queries} are to be validated
+	 * @throws SQLException
+	 *             if an error occurs while reading from or writing to the database
+	 */
+	public void executeValidatorsUsingObjects(Collection<Query> queries, Collection<Article> articles) throws SQLException {
+		Collection<Integer> queryIDs = null, articleIDs = null;
+		synchronized (connection) {
 			List<Triple<Integer, Integer, Future<ValidationResult[]>>> results = new ArrayList<>();
 			for (ValidatorWrapper vw : validators.get(ValidatorType.ManyToMany).values()) {
 				try {
 					results.add(new Triple<>(null, vw.getID(), pool.submit(vw.construct(queries.toArray(new Query[0]), articles.toArray(new Article[0])))));
 				}
 				catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-					logger.error("Unable to initialize the validator, " + vw.getName() + ", for queries " + queryIDs.toString() + " and articles " + articleIDs.toString(), e);
+					logger.error("Unable to initialize the validator, " + vw.getName() + ", for queries " +
+							(queryIDs == null ? (queryIDs = queries.stream().collect(ArrayList::new, (a, b) -> a.add(b.getID()), ArrayList::addAll)) : queryIDs).toString() + " and articles " +
+							(articleIDs == null ? (articleIDs = articles.stream().collect(ArrayList::new, (a, b) -> a.add(b.getID()), ArrayList::addAll)) : articleIDs).toString(), e);
 				}
 			}
 			for (ValidatorWrapper vw : validators.get(ValidatorType.OneToMany).values()) {
 				for (Query query : queries) {
 					try {
-						results.add(new Triple<>(query.getId(), vw.getID(), pool.submit(vw.construct(query, articles.toArray(new Article[0])))));
+						results.add(new Triple<>(query.getID(), vw.getID(), pool.submit(vw.construct(query, articles.toArray(new Article[0])))));
 					}
 					catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-						logger.error("Unable to initialize the validator, " + vw.getName() + ", for query " + query.getId() + " and articles " + articleIDs.toString(), e);
+						logger.error("Unable to initialize the validator, " + vw.getName() + ", for query " + query.getID() + " and articles " +
+								(articleIDs == null ? (articleIDs = articles.stream().collect(ArrayList::new, (a, b) -> a.add(b.getID()), ArrayList::addAll)) : articleIDs).toString(), e);
 					}
 				}
 			}
@@ -209,7 +229,9 @@ public class ValidatorController {
 						results.add(new Triple<>(null, vw.getID(), pool.submit(vw.construct(queries.toArray(new Query[0]), article))));
 					}
 					catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-						logger.error("Unable to initialize the validator, " + vw.getName() + ", for queries " + queryIDs.toString() + " and article " + article.getID(), e);
+						logger.error("Unable to initialize the validator, " + vw.getName() + ", for queries " +
+								(articleIDs == null ? (articleIDs = articles.stream().collect(ArrayList::new, (a, b) -> a.add(b.getID()), ArrayList::addAll)) : articleIDs).toString() +
+								" and article " + article.getID(), e);
 					}
 				}
 			}
