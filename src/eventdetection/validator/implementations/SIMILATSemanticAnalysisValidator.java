@@ -115,7 +115,8 @@ public class SIMILATSemanticAnalysisValidator extends OneToOneValidator {
     LSAComparer lsaComparer;
     LexicalOverlapComparer lexicalOverlapComparer; // Just see the lexical overlap.
     //For LDA based method.. see the separate example file. Its something different.
-    
+
+	
     
 	/**
 	 * Constructs a new instance of the {@link Validator} for the given {@code ID}, {@link Query}, and {@link Article}
@@ -168,6 +169,19 @@ public class SIMILATSemanticAnalysisValidator extends OneToOneValidator {
         //for LDA based method.. please see the different example file.
     }
 
+	/**
+	 * Constructs a new instance of the {@link Validator} for the given {@code ID}, {@link Query}, and {@link Article}
+	 * 
+	 * @param json
+	 *            the {@link JSONObject} containing the instance-specific parameters
+	 * @param query
+	 *            the {@link Query} to validate
+	 * @param article
+	 *            the {@link Article} against which the {@link Query} is to be validated
+	 */
+	public SIMILATSemanticAnalysisValidator(JSONObject json, Query query, Article article) {
+		this(query, article);
+	}
 
     
 	@Override
@@ -222,12 +236,12 @@ public class SIMILATSemanticAnalysisValidator extends OneToOneValidator {
     }
 
 	/**
-	 * Hook for loading properties from the Validator's JSON data
+	 * Hook for loading parameters from the Validator's JSON data
 	 * 
-	 * @param properties
-	 *            a {@link JSONObject} holding the validator's static properties
+	 * @param parameters
+	 *            a {@link JSONObject} holding the validator's static parameters
 	 */
-	public static void loadStaticProperties(JSONObject properties) {
-		MAX_SENTENCES = (Integer) properties.get("max-sentences").value();
+	public static void loadStaticParameters(JSONObject parameters) {
+		MAX_SENTENCES = (Integer) parameters.get("max-sentences").value();
 	}
 }

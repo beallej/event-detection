@@ -181,9 +181,11 @@ public class ValidatorController {
 	 *             if an error occurs while reading from or writing to the database
 	 */
 	public void executeValidators(Collection<Integer> queryIDs, Collection<Integer> articleIDs) throws SQLException {
+		long start = System.currentTimeMillis();
 		synchronized (connection) {
 			executeValidatorsUsingObjects(loadQueries(queryIDs), articleManager.loadArticles(articleIDs));
 		}
+		System.out.println(System.currentTimeMillis() - start);
 	}
 	
 	/**
@@ -292,13 +294,15 @@ public class ValidatorController {
 }
 
 class ValidatorWrapper {
-	private static final Logger logger = LoggerFactory.getLogger(ValidatorWrapper.class);
+	private static final Logger logger = LoggerFactory.getLogger("ValidatorWrapper");
 	
 	private final int algorithmID;
 	private final String name;
 	private final Class<? extends Validator> clazz;
 	private final ValidatorType type;
 	private final Constructor<? extends Validator> constructor;
+	private final JSONObject instanceParameters;
+	private final boolean useInstanceParameters;
 	
 	@SuppressWarnings("unchecked")
 	public ValidatorWrapper(Connection connection, String table, ClassLoader classloader, JSONObject validator) throws SQLException, ClassNotFoundException, NoSuchMethodException, SecurityException {
@@ -306,8 +310,25 @@ class ValidatorWrapper {
 		name = validator.get("id").value().toString();
 		type = ValidatorType.valueOf(validator.get("type").value().toString());
 		
-		constructor = clazz.getConstructor(type.getConstructorArgTypes());
+		JSONObject parameters = (JSONObject) validator.get("parameters");
+		instanceParameters = parameters != null ? (JSONObject) parameters.get("instance") : null;
+		
+		Class<?>[][] constructorTypes = type.getConstructorArgTypes();
+		Constructor<? extends Validator> temp = null;
+		if (instanceParameters != null)
+			try {
+				temp = clazz.getConstructor(constructorTypes[0]);
+			}
+			catch (NoSuchMethodException e) {
+				if (instanceParameters != null)
+					logger.warn("Validator " + name + " has declared instance parameters but no constructor for them.");
+				temp = clazz.getConstructor(constructorTypes[1]);
+			}
+		else
+			temp = clazz.getConstructor(constructorTypes[1]);
+		constructor = temp;
 		constructor.setAccessible(true);
+		useInstanceParameters = constructor.getParameterCount() > 2;
 		
 		try (PreparedStatement stmt = connection.prepareStatement("select id from " + table + " as va where va.algorithm = ?")) {
 			stmt.setString(1, name);
@@ -316,13 +337,13 @@ class ValidatorWrapper {
 				algorithmID = rs.getInt("id");
 			}
 		}
-		if (validator.containsKey("properties"))
-			loadStaticProperties((JSONObject) validator.get("properties"));
+		if (parameters.containsKey("static"))
+			loadStaticProperties(((JSONObject) parameters.get("static")));
 	}
 	
 	private void loadStaticProperties(JSONObject properties) {
 		try {
-			Method staticInit = clazz.getMethod("loadStaticProperties", JSONObject.class);
+			Method staticInit = clazz.getMethod("loadStaticParameters", JSONObject.class);
 			staticInit.setAccessible(true);
 			try {
 				staticInit.invoke(null, properties);
@@ -332,7 +353,7 @@ class ValidatorWrapper {
 			}
 		}
 		catch (NoSuchMethodException | SecurityException e) {
-			logger.warn("Unable to find the static property initialization method for " + name, e);
+			logger.warn("Validator " + name + " has declared static parameters but no static parameter initialization method for them.");
 		}
 	}
 	
@@ -349,6 +370,11 @@ class ValidatorWrapper {
 	}
 	
 	public Validator construct(Object... args) throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-		return constructor.newInstance(args);
+		Object[] params;
+		if (useInstanceParameters)
+			params = new Object[]{instanceParameters, args[0], args[1]};
+		else
+			params = args;
+		return constructor.newInstance(params);
 	}
 }

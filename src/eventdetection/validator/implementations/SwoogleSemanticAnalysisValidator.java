@@ -46,6 +46,20 @@ public class SwoogleSemanticAnalysisValidator extends OneToOneValidator {
 		super(query, article);
 	}
 	
+	/**
+	 * Constructs a new instance of the {@link Validator} for the given {@code ID}, {@link Query}, and {@link Article}
+	 * 
+	 * @param json
+	 *            the {@link JSONObject} containing the instance-specific parameters
+	 * @param query
+	 *            the {@link Query} to validate
+	 * @param article
+	 *            the {@link Article} against which the {@link Query} is to be validated
+	 */
+	public SwoogleSemanticAnalysisValidator(JSONObject json, Query query, Article article) {
+		this(query, article);
+	}
+	
 	@Override
 	public ValidationResult[] call() throws IOException {
 		StringBuilder phrase1 = new StringBuilder();
@@ -78,13 +92,13 @@ public class SwoogleSemanticAnalysisValidator extends OneToOneValidator {
 	}
 	
 	/**
-	 * Hook for loading properties from the Validator's JSON data
+	 * Hook for loading parameters from the Validator's JSON data
 	 * 
-	 * @param properties
-	 *            a {@link JSONObject} holding the validator's static properties
+	 * @param parameters
+	 *            a {@link JSONObject} holding the validator's static parameters
 	 */
-	public static void loadStaticProperties(JSONObject properties) {
-		URL_PREFIX = (String) properties.get("url-prefix").value();
-		MAX_SENTENCES = (Integer) properties.get("max-sentences").value();
+	public static void loadStaticParameters(JSONObject parameters) {
+		URL_PREFIX = (String) parameters.get("url-prefix").value();
+		MAX_SENTENCES = (Integer) parameters.get("max-sentences").value();
 	}
 }
