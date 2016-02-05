@@ -26,7 +26,7 @@ public class ThreadingUtils {
 	 */
 	public static final ExecutorService pool = Executors.newWorkStealingPool();
 	
-	private static final Logger logger = LoggerFactory.getLogger("InterprocessSynchronizationHandler");
+	private static final Logger logger = LoggerFactory.getLogger("ThreadingUtils");
 	private static final ReentrantLock lock = new ReentrantLock();
 	private static final Path active = Paths.get(System.getProperty("user.home"), ".event-detection-active");
 	private static FileLock fsLock = null;
