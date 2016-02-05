@@ -86,6 +86,7 @@ public class ThreadingUtils {
 			fsLock = null;
 			chan = null;
 			lock.unlock();
+			logger.error("Failed to acquire the interprocess lock.", e);
 			throw e;
 		}
 	}
