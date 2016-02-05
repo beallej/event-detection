@@ -6,13 +6,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -43,6 +40,7 @@ import static eventdetection.common.ThreadingUtils.pool;
 import eventdetection.common.Article;
 import eventdetection.common.ArticleManager;
 import eventdetection.common.DBConnection;
+import eventdetection.common.InterprocessSynchronizationHandler;
 import eventdetection.common.Query;
 import eventdetection.validator.types.Validator;
 import eventdetection.validator.types.ValidatorType;
@@ -186,21 +184,17 @@ public class ValidatorController {
 	 *             if an error occurs while securing access to the serialized {@link Article Articles}
 	 */
 	public void executeValidators(Collection<Integer> queryIDs, Collection<Integer> articleIDs) throws SQLException, IOException {
-		long start = System.currentTimeMillis();
 		synchronized (connection) {
-			Path active = Paths.get(System.getProperty("user.home"), ".event-detection-active");
-			if (!Files.exists(active)) {
-				Files.createDirectories(active.getParent());
-				Files.createFile(active);
-			}
-			
 			List<Article> articles = null;
-			try (FileChannel chan = FileChannel.open(active, StandardOpenOption.CREATE, StandardOpenOption.WRITE); FileLock lock = chan.lock();) {
+			try {
+				InterprocessSynchronizationHandler.acquireLock();
 				articles = articleManager.loadArticles(articleIDs);
+			}
+			finally {
+				InterprocessSynchronizationHandler.releaseLock();
 			}
 			executeValidatorsUsingObjects(loadQueries(queryIDs), articles);
 		}
-		System.out.println(System.currentTimeMillis() - start);
 	}
 	
 	/**
