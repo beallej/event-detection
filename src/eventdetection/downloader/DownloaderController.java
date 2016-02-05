@@ -18,7 +18,7 @@ import toberumono.json.JSONSystem;
 import eventdetection.common.Article;
 import eventdetection.common.ArticleManager;
 import eventdetection.common.DBConnection;
-import eventdetection.common.InterprocessSynchronizationHandler;
+import eventdetection.common.ThreadingUtils;
 
 /**
  * Main class of the downloader. Controls startup and and article management.
@@ -63,7 +63,7 @@ public class DownloaderController {
 			dc.addDownloader(fm);
 			ArticleManager am = new ArticleManager(connection, tables.get("articles").value().toString(), paths, articles);
 			try {
-				InterprocessSynchronizationHandler.acquireLock();
+				ThreadingUtils.acquireLock();
 				Calendar oldest = computeOldest((JSONObject) articles.get("deletion-delay"));
 				am.removeArticlesBefore(oldest);
 				List<Article> processed = new ArrayList<>();
@@ -73,7 +73,7 @@ public class DownloaderController {
 					System.out.println("Finished Processing: " + done.getUntaggedTitle());
 			}
 			finally {
-				InterprocessSynchronizationHandler.releaseLock();
+				ThreadingUtils.releaseLock();
 			}
 		}
 	}

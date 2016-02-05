@@ -40,8 +40,8 @@ import static eventdetection.common.ThreadingUtils.pool;
 import eventdetection.common.Article;
 import eventdetection.common.ArticleManager;
 import eventdetection.common.DBConnection;
-import eventdetection.common.InterprocessSynchronizationHandler;
 import eventdetection.common.Query;
+import eventdetection.common.ThreadingUtils;
 import eventdetection.validator.types.Validator;
 import eventdetection.validator.types.ValidatorType;
 
@@ -187,11 +187,11 @@ public class ValidatorController {
 		synchronized (connection) {
 			List<Article> articles = null;
 			try {
-				InterprocessSynchronizationHandler.acquireLock();
+				ThreadingUtils.acquireLock();
 				articles = articleManager.loadArticles(articleIDs);
 			}
 			finally {
-				InterprocessSynchronizationHandler.releaseLock();
+				ThreadingUtils.releaseLock();
 			}
 			executeValidatorsUsingObjects(loadQueries(queryIDs), articles);
 		}
