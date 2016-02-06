@@ -44,7 +44,7 @@
           {% else %}
             <td><i class="fa fa-times"></i></td>
           {% endif %}
-          <td><a href="{{ url_for('query', id=query['id']) }}" class="btn btn-default btn-sm">View Info</a>
+          <td><a href="{{ url_for('query', query_id=query['id']) }}" class="btn btn-default btn-sm">View Info</a>
         </tr>
       {% endfor %}
     </tbody>

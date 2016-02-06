@@ -14,7 +14,7 @@
 1. Just do it. `./run.sh`
 
 #### Running the Web App
-1. Run the application: `python3 event_detection_web.py`
+1. Run the application: `python3 EventDetectionWeb.py`
 2. To view the application, navigate to [localhost:5000](http://localhost:5000/)
 
 #### After Pulling New Code
