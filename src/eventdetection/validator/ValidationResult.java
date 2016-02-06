@@ -102,7 +102,7 @@ public class ValidationResult {
 	 *            ({@code validates + invalidates} need not equal 1)
 	 */
 	public ValidationResult(Query query, Article article, Double validates, Double invalidates) {
-		this(query.getId(), article.getID(), validates, invalidates);
+		this(query.getID(), article.getID(), validates, invalidates);
 	}
 	
 	/**

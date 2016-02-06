@@ -214,6 +214,7 @@ public class ArticleManager {
 							Files.delete(serialPath);
 						throw e;
 					}
+					logger.info("Finished Processing: " + article.getUntaggedTitle());
 					return article;
 				}
 			}

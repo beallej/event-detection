@@ -2,8 +2,10 @@
 	"id" : "SEMILAR Semantic Analysis",
 	"class" : "eventdetection.validator.implementations.SEMILARSemanticAnalysisValidator",
 	"type" : "OneToOne",
-	"properties" : {
-		"max-sentences" : 5
+	"parameters" : {
+		"static" : {
+			"max-sentences" : 5
+		}
 	},
 	"enabled" : true
 }

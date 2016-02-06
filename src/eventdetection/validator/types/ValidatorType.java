@@ -2,6 +2,8 @@ package eventdetection.validator.types;
 
 import java.util.List;
 
+import toberumono.json.JSONObject;
+
 import eventdetection.common.Article;
 import eventdetection.common.Query;
 
@@ -16,8 +18,8 @@ public enum ValidatorType {
 	 */
 	OneToOne {
 		@Override
-		public Class<?>[] getConstructorArgTypes() {
-			return new Class<?>[]{Query.class, Article.class};
+		public Class<?>[][] getConstructorArgTypes() {
+			return new Class<?>[][]{{JSONObject.class, Query.class, Article.class}, {Query.class, Article.class}};
 		}
 	},
 	/**
@@ -25,8 +27,8 @@ public enum ValidatorType {
 	 */
 	OneToMany {
 		@Override
-		public Class<?>[] getConstructorArgTypes() {
-			return new Class<?>[]{Query.class, List.class};
+		public Class<?>[][] getConstructorArgTypes() {
+			return new Class<?>[][]{{JSONObject.class, Query.class, List.class}, {Query.class, List.class}};
 		}
 	},
 	/**
@@ -34,8 +36,8 @@ public enum ValidatorType {
 	 */
 	ManyToOne {
 		@Override
-		public Class<?>[] getConstructorArgTypes() {
-			return new Class<?>[]{List.class, Article.class};
+		public Class<?>[][] getConstructorArgTypes() {
+			return new Class<?>[][]{{JSONObject.class, List.class, Article.class}, {List.class, Article.class}};
 		}
 	},
 	/**
@@ -43,13 +45,13 @@ public enum ValidatorType {
 	 */
 	ManyToMany {
 		@Override
-		public Class<?>[] getConstructorArgTypes() {
-			return new Class<?>[]{List.class, List.class};
+		public Class<?>[][] getConstructorArgTypes() {
+			return new Class<?>[][]{{JSONObject.class, List.class, List.class}, {List.class, List.class}};
 		}
 	};
 	
 	/**
 	 * @return the {@link Class} objects representing the types for the {@link Validator Validator's} constructor
 	 */
-	public abstract Class<?>[] getConstructorArgTypes();
+	public abstract Class<?>[][] getConstructorArgTypes();
 }

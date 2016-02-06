@@ -12,3 +12,4 @@ event-detection.jar
 .idea/
 *.iml
 validator.jar
+text-rank.jar

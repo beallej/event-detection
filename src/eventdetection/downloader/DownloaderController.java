@@ -1,17 +1,11 @@
 package eventdetection.downloader;
 
 import java.io.IOException;
-import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.List;
 
 import toberumono.json.JSONArray;
 import toberumono.json.JSONBoolean;
@@ -22,6 +16,7 @@ import toberumono.json.JSONSystem;
 import eventdetection.common.Article;
 import eventdetection.common.ArticleManager;
 import eventdetection.common.DBConnection;
+import eventdetection.common.ThreadingUtils;
 
 /**
  * Main class of the downloader. Controls startup and and article management.
@@ -65,22 +60,12 @@ public class DownloaderController {
 			
 			dc.addDownloader(fm);
 			ArticleManager am = new ArticleManager(connection, tables.get("articles").value().toString(), paths, articles);
-			
-			Path active = Paths.get(System.getProperty("user.home"), ".event-detection-active");
-			if (!Files.exists(active)) {
-				Files.createDirectories(active.getParent());
-				Files.createFile(active);
-			}
-			
-			try (FileChannel chan = FileChannel.open(active, StandardOpenOption.CREATE, StandardOpenOption.WRITE); FileLock lock = chan.lock();) {
+			ThreadingUtils.executeTask(() -> {
 				Calendar oldest = computeOldest((JSONObject) articles.get("deletion-delay"));
 				am.removeArticlesBefore(oldest);
-				List<Article> processed = new ArrayList<>();
 				for (Article article : dc.get())
-					processed.add(am.store(article));
-				for (Article done : processed)
-					System.out.println("Finished Processing: " + done.getUntaggedTitle());
-			}
+					am.store(article);
+			});
 		}
 	}
 	

@@ -100,7 +100,8 @@ public class TextRankGraph<T> {
 					outsSize = ins[j].getTarget().outsSize();
 					for (int k = 0; k < outsSize; k++)
 						sum += outs[k].getWeight();
-					rankings[i] += (ins[j].getWeight() / sum * ins[j].getTarget().getRank());
+					if (sum != 0) //Accounts for the possibility of wholly unrelated sentences
+						rankings[i] += (ins[j].getWeight() / sum * ins[j].getTarget().getRank());
 				}
 				rankings[i] = negDampingFactor + dampingFactor * rankings[i];
 			}
@@ -120,7 +121,7 @@ public class TextRankGraph<T> {
 	 */
 	public Stream<Pair<T, Double>> getRankedObjectsStream() {
 		rankNodes();
-		return Arrays.stream(nodes).map(a -> new Pair<>(a.getValue(), a.getRank()));
+		return Arrays.stream(nodes, 0, position).map(a -> new Pair<>(a.getValue(), a.getRank()));
 	}
 	
 	/**
