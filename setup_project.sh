@@ -50,13 +50,12 @@ if ( $download_libs ); then
 	wget '-N' '--directory-prefix=../' 'http://central.maven.org/maven2/org/jdom/jdom2/2.0.6/jdom2-2.0.6.jar'
 	wget '-N' '--directory-prefix=../' 'http://central.maven.org/maven2/org/slf4j/slf4j-api/1.7.12/slf4j-api-1.7.12.jar'
 	wget '-N' '--directory-prefix=../' 'http://central.maven.org/maven2/org/slf4j/slf4j-simple/1.7.12/slf4j-simple-1.7.12.jar'
-	wget '-N' '--directory-prefix=../' 'https://jdbc.postgresql.org/download/postgresql-9.4.1207.jar'
 	wget '-N' '--directory-prefix=../' 'http://nlp.stanford.edu/software/stanford-corenlp-full-2015-12-09.zip'
 	wget '-N' '--directory-prefix=../SEMILAR' 'http://deeptutor2.memphis.edu/Semilar-Web/public/downloads/SEMILAR-API-1.0.zip'
 	wget '-N' '--directory-prefix=../SEMILAR' 'http://deeptutor2.memphis.edu/Semilar-Web/public/downloads/LSA-MODELS.zip'
 	wget '-N' '--directory-prefix=../SEMILAR' 'http://deeptutor2.memphis.edu/Semilar-Web/public/downloads/LDA-MODELS.zip'
 	unzip '-u' '../stanford-corenlp-full-2015-12-09' '-d' '../'
-	wget '-N' '--directory-prefix=../' 'https://jdbc.postgresql.org/download/${key_library}'
+	wget '-N' '--directory-prefix=../' "https://jdbc.postgresql.org/download/${key_library}"
 else
 	echo "Skipping."
 fi

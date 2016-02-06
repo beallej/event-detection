@@ -4,17 +4,22 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Map.Entry;
 
 import toberumono.json.JSONData;
 import toberumono.json.JSONObject;
 
 /**
- * A static class that the methods used to connect to the database.
+ * A static class that handles opening connections to the database.
  * 
  * @author Joshua Lipstone
  */
 public class DBConnection {
+	private static final Logger logger = LoggerFactory.getLogger("DBConnection");
 	
 	private DBConnection() {/* This is a static class */}
 	
@@ -37,8 +42,10 @@ public class DBConnection {
 	public static void configureConnection(JSONObject database) {
 		for (Entry<String, JSONData<?>> e : database.entrySet()) {
 			String key = "db." + e.getKey();
-			if (System.getProperty(key) != null)
+			if (System.getProperty(key) != null) {
+				logger.warn(key + " is already set to " + System.getProperty(key));
 				continue;
+			}
 			Object val = e.getValue().value();
 			if (val == null)
 				continue;
@@ -59,8 +66,10 @@ public class DBConnection {
 	 */
 	public static Connection getConnection() throws SQLException {
 		String dbtype = System.getProperty("db.type");
-		if (dbtype == null)
+		if (dbtype == null) {
+			logger.error("Database Connection not configured.");
 			return null;
+		}
 		Properties connectionProps = new Properties();
 		String connection = "jdbc:";
 		switch (dbtype) {
@@ -73,6 +82,7 @@ public class DBConnection {
 				connection += "/" + System.getProperty("db.name", "event_detection");
 				break;
 			default:
+				logger.error(dbtype + " is not a valid database type.");
 				return null;
 		}
 		connectionProps.put("user", System.getProperty("db.user", "root"));
