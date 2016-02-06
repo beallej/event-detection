@@ -115,10 +115,10 @@ public class ThreadingUtils {
 	}
 	
 	/**
-	 * Executes the given {@link Supplier} with the locks provided by this class acquired.
+	 * Executes the given task synchronously with regard to the locks provided by this class.
 	 * 
 	 * @param task
-	 *            the task to execute as a {@link Supplier}
+	 *            the task to execute
 	 * @return the result of executing the task
 	 * @throws IOException
 	 *             if an error occurs while interacting with the interprocess lock or an IO error occurs within the function
@@ -136,10 +136,10 @@ public class ThreadingUtils {
 	}
 	
 	/**
-	 * Executes the given {@link Runnable} with the locks provided by this class acquired.
+	 * Executes the given task synchronously with regard to the locks provided by this class.
 	 * 
 	 * @param task
-	 *            the task to execute as a {@link Runnable}
+	 *            the task to execute
 	 * @throws IOException
 	 *             if an error occurs while interacting with the interprocess lock or an IO error occurs within the function
 	 * @throws SQLException 
