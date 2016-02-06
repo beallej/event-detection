@@ -5,9 +5,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.List;
 
 import toberumono.json.JSONArray;
 import toberumono.json.JSONBoolean;
@@ -62,19 +60,12 @@ public class DownloaderController {
 			
 			dc.addDownloader(fm);
 			ArticleManager am = new ArticleManager(connection, tables.get("articles").value().toString(), paths, articles);
-			try {
-				ThreadingUtils.acquireLock();
+			ThreadingUtils.executeTask(() -> {
 				Calendar oldest = computeOldest((JSONObject) articles.get("deletion-delay"));
 				am.removeArticlesBefore(oldest);
-				List<Article> processed = new ArrayList<>();
 				for (Article article : dc.get())
-					processed.add(am.store(article));
-				for (Article done : processed)
-					System.out.println("Finished Processing: " + done.getUntaggedTitle());
-			}
-			finally {
-				ThreadingUtils.releaseLock();
-			}
+					am.store(article);
+			});
 		}
 	}
 	

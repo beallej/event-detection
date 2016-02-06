@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
@@ -120,9 +121,11 @@ public class ThreadingUtils {
 	 *            the task to execute as a {@link Supplier}
 	 * @return the result of executing the task
 	 * @throws IOException
-	 *             if an error occurs while interacting with the interprocess lock
+	 *             if an error occurs while interacting with the interprocess lock or an IO error occurs within the function
+	 * @throws SQLException
+	 *             if an SQL error occurs within the function
 	 */
-	public static <T> T executeTask(Supplier<T> task) throws IOException {
+	public static <T> T executeTask(IOSQLExceptedSupplier<T> task) throws IOException, SQLException {
 		try {
 			acquireLock();
 			return task.get();
@@ -138,9 +141,11 @@ public class ThreadingUtils {
 	 * @param task
 	 *            the task to execute as a {@link Runnable}
 	 * @throws IOException
-	 *             if an error occurs while interacting with the interprocess lock
+	 *             if an error occurs while interacting with the interprocess lock or an IO error occurs within the function
+	 * @throws SQLException 
+	 *             if an SQL error occurs within the function
 	 */
-	public static void executeTask(Runnable task) throws IOException {
+	public static void executeTask(IOSQLExceptedRunnable task) throws IOException, SQLException {
 		try {
 			acquireLock();
 			task.run();

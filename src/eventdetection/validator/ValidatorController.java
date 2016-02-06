@@ -185,15 +185,7 @@ public class ValidatorController {
 	 */
 	public void executeValidators(Collection<Integer> queryIDs, Collection<Integer> articleIDs) throws SQLException, IOException {
 		synchronized (connection) {
-			List<Article> articles = null;
-			try {
-				ThreadingUtils.acquireLock();
-				articles = articleManager.loadArticles(articleIDs);
-			}
-			finally {
-				ThreadingUtils.releaseLock();
-			}
-			executeValidatorsUsingObjects(loadQueries(queryIDs), articles);
+			executeValidatorsUsingObjects(loadQueries(queryIDs), ThreadingUtils.executeTask(() -> articleManager.loadArticles(articleIDs)));
 		}
 	}
 	
