@@ -175,6 +175,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
 
         for (CoreLabel token: taggedQuery.get(TokensAnnotation.class)){
                 String pos = token.get(PartOfSpeechAnnotation.class);
+                System.out.println("Query tag: "+token + pos);
                 if (pos.length() > 1 && pos.substring(0,2).equals("NN")){
                     if (subject.contains(token.get(LemmaAnnotation.class))){
                         keywordNouns.add(token.get(LemmaAnnotation.class));
@@ -191,6 +192,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         for (Pair<Double, CoreMap> p : topN){ //for each sentence
             matchedPerSentence= validationScore(p.getY(), keywordNouns);
             if (matchedPerSentence > 0){
+                System.out.println("SEntence matched "+p.getY());
                 articleMatchScore += 1;
             }            
         }
@@ -199,9 +201,9 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         CoreMap taggedTitle = annotatedTitle.get(SentencesAnnotation.class).get(0);
         
         matchedPerSentence = validationScore(taggedTitle, keywordNouns);
-        if (matchedPerSentence > 0){
-            articleMatchScore += 2;
-        }
+        // if (matchedPerSentence > 0 || titleScore>0.20){
+        //     articleMatchScore += 2;
+        // }
         System.out.println("MATCH SCORE: " + articleMatchScore);
 
 
@@ -219,13 +221,28 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         for (CoreLabel token: sentence.get(TokensAnnotation.class)){ //each word in sentence
             String pos = token.get(PartOfSpeechAnnotation.class);
             String lemma = token.get(LemmaAnnotation.class);
+            // WE NEED Better Lemmatization
+            ///
             if (pos.length() > 1 && pos.substring(0,2).equals("NN")){
-                //System.out.println(article.getID() +"POS tag for word : " + token + " tag: " + pos + " lemma " + lemma);
+                System.out.println(article.getID() +"POS tag for word : " + token + " tag: " + pos + " lemma " + lemma);
                 for (String imptNoun:keywordNouns){
-                    double matched = wnMetricLin.computeWordSimilarityNoPos(lemma, imptNoun);
+                    double matched = 0.0;
+                    if (pos.equals("NNP")){
+                        if (lemma.toLowerCase().equals(imptNoun.toLowerCase())){
+                            matched = 1;
+                        }
+                    } else {
+                        matched = wnMetricLin.computeWordSimilarityNoPos(lemma, imptNoun);
+                    System.out.println("2 words that matched: "+lemma+ " matched with query "+imptNoun+" result: "+matched);
+                    }
                     if (matched>0.65){
                         matchedPerSentence += 1;
                     }
+
+                    // NOUN is matched
+
+                    //We would want to look at Verb + adj depending on the matched noun and see if any of them match our query
+                    // Check dependecy Graph
                 }
             }
         }       
@@ -239,5 +256,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
 	 */
 	public static void loadStaticProperties(JSONObject properties) {
 		MAX_SENTENCES = (Integer) properties.get("max-sentences").value();
+        System.out.println("MAX SENTENCE " + MAX_SENTENCES);
+
 	}
 }
