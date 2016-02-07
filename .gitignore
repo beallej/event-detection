@@ -3,6 +3,7 @@ doc
 bin
 .classpath
 articles
+articles_test
 venv/
 *.pyc
 .DS_STORE

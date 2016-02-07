@@ -5,6 +5,8 @@ import eventdetection.common.Source;
 
 import java.io.IOException;
 import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -47,16 +49,9 @@ public class TestDownloader extends Downloader {
         System.out.print("Enter article url: ");
         String url = scanner.nextLine();
 
-        System.out.print("Enter article text: ");
-        StringBuilder textBuilder = new StringBuilder();
-
-        do {
-            String textResult = scanner.nextLine();
-            textBuilder.append(textResult);
-            textBuilder.append("\n");
-
-        } while (scanner.hasNextLine());
-        String text = textBuilder.toString();
+        System.out.print("Enter filename: ");
+        String fileName = scanner.nextLine();
+        String text = readFile(fileName);
 
 
         try {
@@ -68,6 +63,25 @@ public class TestDownloader extends Downloader {
         scanner.close();
 
         return articles;
+    }
+
+    private String readFile(String fileName) {
+        File file = new File(fileName);
+        StringBuilder textBuilder = new StringBuilder();
+        try {
+
+            Scanner sc = new Scanner(file);
+
+            while (sc.hasNextLine()) {
+                String text = sc.nextLine();
+                textBuilder.append(text);
+            }
+            sc.close();
+        }
+        catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        return textBuilder.toString();
     }
 
     @Override
