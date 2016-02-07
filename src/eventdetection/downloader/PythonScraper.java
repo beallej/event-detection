@@ -14,20 +14,14 @@ import toberumono.json.JSONObject;
 import toberumono.json.JSONString;
 import toberumono.json.JSONSystem;
 
+import static eventdetection.common.SubprocessHelpers.*;
+
 /**
  * An extension of {@link Scraper} that is designed for invoking Python 3 scripts.
  * 
  * @author Joshua Lipstone
  */
 public class PythonScraper extends Scraper {
-	/**
-	 * The path required to run the system's bash executable.
-	 */
-	public static final String bashPath = getBashPath();
-	/**
-	 * The path required to run the system's Python 3 executable.
-	 */
-	public static final String pythonPath = getPythonPath();
 	
 	protected final Path json;
 	protected final JSONObject scripts, parameters;
@@ -58,38 +52,6 @@ public class PythonScraper extends Scraper {
 		variableParameters.put("url", new JSONString(link));
 		String sectioned = callScript("sectioning", variableParameters);
 		return sectioned.trim();
-	}
-	
-	private static final String getBashPath() {
-		ProcessBuilder pb = new ProcessBuilder();
-		pb.command("which", "bash");
-		try {
-			Process p = pb.start();
-			try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-				p.waitFor();
-				return reader.readLine().trim();
-			}
-		}
-		catch (IOException | InterruptedException e) {
-			e.printStackTrace();
-		}
-		return "/bin/bash";
-	}
-	
-	private static final String getPythonPath() {
-		ProcessBuilder pb = new ProcessBuilder();
-		pb.command(bashPath, "-l", "-c", "[ \"$(python --version 2>&1 | grep 'Python 3')\" != \"\" ] && echo \"$(which python)\" || echo \"$(which python3)\"");
-		try {
-			Process p = pb.start();
-			try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-				p.waitFor();
-				return reader.readLine().trim();
-			}
-		}
-		catch (IOException | InterruptedException e) {
-			e.printStackTrace();
-		}
-		return "python3";
 	}
 	
 	/**
