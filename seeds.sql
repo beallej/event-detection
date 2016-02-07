@@ -4,3 +4,4 @@ INSERT INTO users (email) values ('event.detection.carleton@gmail.com');
 INSERT INTO validation_algorithms (algorithm) values ('keyword');
 INSERT INTO validation_algorithms (algorithm) values ('Swoogle Semantic Analysis');
 INSERT INTO validation_algorithms (algorithm) values ('SEMILAR Semantic Analysis');
+INSERT INTO validation_algorithms (algorithm) values ('TextRank Swoogle Semantic Analysis');
