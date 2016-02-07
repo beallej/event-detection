@@ -145,6 +145,8 @@ public abstract class Downloader implements Supplier<List<Article>>, Closeable {
 	 *            the method used to store the constructed {@link IDAble} objects
 	 * @param <T>
 	 *            the type of the item to load. This will be implicitly set when this method is used correctly
+	 * @param <V>
+	 *            the type of the ID of the item to load. This will be implicitly set when this method is used correctly
 	 * @return a {@link List} of the IDs of the loaded objects
 	 * @throws SQLException
 	 *             if an error occurs while loading
@@ -170,6 +172,8 @@ public abstract class Downloader implements Supplier<List<Article>>, Closeable {
 	 *            the method used to store the constructed {@link IDAble} objects
 	 * @param <T>
 	 *            the type of the item to load. This will be implicitly set when this method is used correctly
+	 * @param <V>
+	 *            the type of the ID of the item to load. This will be implicitly set when this method is used correctly
 	 * @return a {@link List} of the IDs of the loaded objects
 	 * @throws SQLException
 	 *             if an error occurs while loading

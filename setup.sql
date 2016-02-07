@@ -64,15 +64,16 @@ CREATE TABLE IF NOT EXISTS query_articles (
 
 CREATE TABLE IF NOT EXISTS validation_algorithms (
 	id serial primary key unique not null,
-	algorithm varchar(255) not null
+	algorithm varchar(255) unique not null
 );
 
 CREATE TABLE IF NOT EXISTS validation_results (
 	query integer references queries(id) ON DELETE CASCADE,
 	algorithm integer references validation_algorithms(id) ON DELETE CASCADE,
+	article integer references articles(id) ON DELETE CASCADE,
 	validates real default 0.0 not null CHECK (validates >= 0.0 and validates <= 1.0),
 	invalidates real default null CHECK (invalidates is null or (invalidates >= 0.0 and invalidates <= 1.0)),
-	primary key (query, algorithm)
+	primary key (query, algorithm, article)
 );
 
 CREATE OR REPLACE FUNCTION generate_invalidates() RETURNS trigger as $generate_invalidates$

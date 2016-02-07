@@ -34,7 +34,7 @@ public class POSTagger {
 			// NER, parsing, and coreference resolution
 			Properties props = new Properties();
 			props.setProperty("annotators", "tokenize, ssplit, pos, lemma, ner, parse, dcoref");
-			pipeline = System.getProperty("enable.pos", "true").toLowerCase().charAt(0) == 't' ? new StanfordCoreNLP(props) : null;
+			pipeline = new StanfordCoreNLP(props);
 		}
 		return pipeline;
 	}
@@ -129,15 +129,25 @@ public class POSTagger {
 	 * 
 	 * @param sentences
 	 *            a {@link List} of {@link CoreMap CoreMaps} representing the text
-	 * @return the {@link StringBuilder} used (for chaining purposes)
+	 * @return the tagged text as a {@link String}
 	 */
 	public static String tag(List<CoreMap> sentences) {
 		return tag(sentences, new StringBuilder()).toString().trim();
 	}
 	
 	/**
-	 * Generates tagged text from the given {@link List} of {@link CoreMap CoreMaps} and places it in the given
-	 * {@link StringBuilder}.
+	 * Generates tagged text from the given {@link CoreMap}.
+	 * 
+	 * @param sentence
+	 *            a {@link CoreMap} representing the text
+	 * @return the tagged text as a {@link String}
+	 */
+	public static String tag(CoreMap sentence) {
+		return tag(sentence, new StringBuilder()).toString().trim();
+	}
+	
+	/**
+	 * Generates tagged text from the given {@link Annotation} and places it in the given {@link StringBuilder}.
 	 * 
 	 * @param document
 	 *            the {@link Annotation} to use to generate the tagged text. It <i>must</i> have already been run through
@@ -151,7 +161,8 @@ public class POSTagger {
 	}
 	
 	/**
-	 * Generates tagged text from the given {@link Annotation} and places it in the given {@link StringBuilder}.
+	 * Generates tagged text from the given {@link List} of {@link CoreMap CoreMaps} and places it in the given
+	 * {@link StringBuilder}.
 	 * 
 	 * @param sentences
 	 *            a {@link List} of {@link CoreMap CoreMaps} representing the text
@@ -171,6 +182,21 @@ public class POSTagger {
 	}
 	
 	/**
+	 * Generates tagged text from the given {@link CoreMap} and places it in the given {@link StringBuilder}.
+	 * 
+	 * @param sentence
+	 *            a {@link CoreMap} representing the text
+	 * @param sb
+	 *            the {@link StringBuilder} in which the tagged text should be placed
+	 * @return the {@link StringBuilder} used (for chaining purposes)
+	 */
+	public static StringBuilder tag(CoreMap sentence, StringBuilder sb) {
+		for (CoreLabel token : sentence.get(TokensAnnotation.class))
+			sb.append(token.word()).append(delimiter).append(token.get(PartOfSpeechAnnotation.class)).append(" ");
+		return sb;
+	}
+	
+	/**
 	 * Untags the given text. This process is comprised of using regex to remove the _tag suffixes from each word.
 	 * 
 	 * @param text
@@ -179,5 +205,44 @@ public class POSTagger {
 	 */
 	public static String untag(String text) {
 		return untagger.matcher(text).replaceAll("$1");
+	}
+
+	/**
+	 * Reconstructs a paragraph (without PoS tags) from a {@link Annotation} from the CoreNLP library.
+	 * 
+	 * @param paragraph
+	 *            the {@link Annotation} representing the paragraph to reconstruct
+	 * @return the reconstructed sentence
+	 */
+	public static String reconstructParagraph(Annotation paragraph) {
+		StringBuilder sb = new StringBuilder();
+		for (CoreMap sentence : paragraph.get(SentencesAnnotation.class))
+			reconstructSentence(sentence, sb).append(" ");
+		return sb.toString().replaceAll("\\s+([!,.;:'\"?%])", "$1").trim();
+	}
+	
+	/**
+	 * Reconstructs a sentence (without PoS tags) from a {@link CoreMap} from the CoreNLP library.
+	 * 
+	 * @param sentence
+	 *            the {@link CoreMap} representing the sentence to reconstruct
+	 * @return the reconstructed sentence
+	 */
+	public static String reconstructSentence(CoreMap sentence) {
+		return reconstructSentence(sentence, new StringBuilder()).toString().replaceAll("\\s+([!,\\.;:'\"?%])", "$1").trim();
+	}
+	
+	/**
+	 * Reconstructs a sentence (without PoS tags) from a {@link CoreMap} from the CoreNLP library in the given
+	 * {@link StringBuilder}.
+	 * 
+	 * @param sentence
+	 *            the {@link CoreMap} representing the sentence to reconstruct
+	 * @param sb
+	 *            the {@link StringBuilder} into which the sentence should be reconstructed
+	 * @return the {@link StringBuilder}
+	 */
+	public static StringBuilder reconstructSentence(CoreMap sentence, StringBuilder sb) {
+		return sb.append(sentence.toString());
 	}
 }

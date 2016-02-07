@@ -56,6 +56,7 @@
 		<include name="**/repackaged-stanford-corenlp*.jar" />
 		<include name="**/stanford-corenlp-full*/**/*.jar" />
 		<include name="**/postgresql*.jar" />
+		<include name="**/Semilar*.jar" />
 	</patternset>
 
 	<patternset id="Build Excludes">
@@ -95,7 +96,6 @@
 		<!--Copy css files to their appropriate locations in the bin directory (for JavaFx)-->
 		<copy todir="${bin}">
 			<fileset dir="${src}" includes="**/*.css" />
-			<fileset dir="${libs}" includes="**/stop-words.txt" />
 		</copy>
 	</target>
 
@@ -122,7 +122,17 @@
 					<patternset refid="libraries" />
 				</multirootfileset>
 			</path>
-			<identitymapper />
+			<scriptmapper language="javascript">
+				self.addMappedName(source.replace(/ /g, "%20"));
+			</scriptmapper>
+		</pathconvert>
+		<pathconvert property="jar.classpath" pathsep=" ">
+			<path>
+				<pathelement location="${jar}" />
+			</path>
+			<scriptmapper language="javascript">
+				self.addMappedName(source.replace(/ /g, "%20"));
+			</scriptmapper>
 		</pathconvert>
 	</target>
 
@@ -148,6 +158,21 @@
 					</zips>
 				</archives>
 			</restrict>
+		</jar>
+		<!--These jar commands just create .jar files with alternate entry classes-->
+		<property name="validator-jar" location="${prefix}validator.jar" />
+		<jar destfile="${validator-jar}" filesetmanifest="mergewithoutmain">
+			<manifest>
+				<attribute name="Main-Class" value="eventdetection.validator.ValidatorController" />
+				<attribute name="Class-Path" value="${jar.classpath}" />
+			</manifest>
+		</jar>
+		<property name="text-rank-jar" location="${prefix}text-rank.jar" />
+		<jar destfile="${text-rank-jar}" filesetmanifest="mergewithoutmain">
+			<manifest>
+				<attribute name="Main-Class" value="eventdetection.textrank.TextRank" />
+				<attribute name="Class-Path" value="${jar.classpath}" />
+			</manifest>
 		</jar>
 	</target>
 
