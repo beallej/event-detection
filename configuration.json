@@ -1,37 +1,38 @@
 {
 	"articles" : {
 		"deletion-delay" : {
-			"years" : 0,
-			"months" : 0,
-			"weeks" : 1,
-			"days" : 0,
-			"hours" : 0,
-			"minutes" : 0,
-			"seconds" : 0
+			"years"		: 0,
+			"months"	: 0,
+			"weeks"		: 1,
+			"days"		: 0,
+			"hours"		: 0,
+			"minutes"	: 0,
+			"seconds"	: 0
 		},
 		"pos-tagging" : {
 			"enable-pos-tagging" : true,
-			"enable-tag-simplification" : false
 		}
 	},
 	"database" : {
-		"server" : "localhost",
-		"port" : null,
-		"type" : "PostgreSQL",
-		"name" : "event_detection",
-		"user" : "root",
-		"pass" : null
+		"server"	: "localhost",
+		"port"		: null,
+		"type"		: "PostgreSQL",
+		"name"		: "event_detection",
+		"user"		: "root",
+		"pass"		: null
 	},
 	"paths" : {
-		"sources" : [ ],
-		"feeds" : [ ],
-		"scrapers" : [ "./scrapers" ],
-		"articles" : [ "./articles" ]
+		"sources"		: [],
+		"feeds"			: [],
+		"scrapers"		: ["./scrapers"],
+		"articles"		: ["./articles"],
+		"validators"	: ["./validators"],
 	},
 	"tables" : {
-		"sources" : "sources",
-		"feeds" : "feeds",
-		"scrapers" : null,
-		"articles" : "articles"
+		"sources"		: "sources",
+		"feeds"			: "feeds",
+		"scrapers"		: null,
+		"articles"		: "articles",
+		"validators"	: "validation_algorithms"
 	}
 }
