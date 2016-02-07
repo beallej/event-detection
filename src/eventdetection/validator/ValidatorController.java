@@ -72,36 +72,49 @@ public class ValidatorController {
 		JSONObject paths = (JSONObject) config.get("paths");
 		JSONObject articles = (JSONObject) config.get("articles");
 		this.articleManager = new ArticleManager(connection, ((JSONObject) config.get("tables")).get("articles").value().toString(), paths, articles);
-		((JSONArray) paths.get("validators")).value().stream().map(a -> ((JSONString) a).value()).forEach(s -> {
-			try {
-				loadValidators(((JSONObject) config.get("tables")).get("validators").value().toString(), Paths.get(s));
-			}
-			catch (ClassNotFoundException | NoSuchMethodException | SecurityException | SQLException | IOException e) {
-				logger.warn("Unabile to initialize a validator described in " + s, e);
-			}
-		});
+		((JSONArray) paths.get("validators")).value().stream().map(a -> ((JSONString) a).value())
+				.forEach(s -> loadValidators(((JSONObject) config.get("tables")).get("validators").value().toString(), Paths.get(s)));
 	}
 	
-	private void loadValidators(String table, Path path) throws ClassNotFoundException, NoSuchMethodException, SecurityException, SQLException, IOException {
+	private void loadValidators(String table, Path path) {
 		if (Files.isRegularFile(path)) {
 			if (path.getFileName().toString().endsWith(".json")) {
-				JSONObject json = (JSONObject) JSONSystem.loadJSON(path);
-				if (!json.containsKey("enabled") || ((JSONBoolean) json.get("enabled")).value()) {
-					ValidatorWrapper vw = new ValidatorWrapper(connection, table, getClass().getClassLoader(), json);
-					validators.get(vw.getType()).put(vw.getName(), vw);
+				try {
+					JSONObject json = (JSONObject) JSONSystem.loadJSON(path);
+					if (!json.containsKey("enabled") || ((JSONBoolean) json.get("enabled")).value()) {
+						ValidatorWrapper vw = new ValidatorWrapper(connection, table, getClass().getClassLoader(), json);
+						validators.get(vw.getType()).put(vw.getName(), vw);
+					}
+				}
+				catch (ClassNotFoundException | NoSuchMethodException | SecurityException | IOException e) {
+					logger.warn("Unable to initialize the validator described in " + path, e);
+				}
+				catch (SQLException e) {
+					logger.error("Could not find the id for the validator described in " + path + " in the database.");
 				}
 			}
 		}
 		else {
-			ClassLoader classloader = new URLClassLoader(new URL[]{path.toUri().toURL()});
 			try (DirectoryStream<Path> stream = Files.newDirectoryStream(path, p -> p.getFileName().toString().endsWith(".json"))) {
+				ClassLoader classloader = new URLClassLoader(new URL[]{path.toUri().toURL()});
 				for (Path p : stream) {
 					JSONObject json = (JSONObject) JSONSystem.loadJSON(p);
 					if (!json.containsKey("enabled") || ((JSONBoolean) json.get("enabled")).value()) {
-						ValidatorWrapper vw = new ValidatorWrapper(connection, table, classloader, json);
-						validators.get(vw.getType()).put(vw.getName(), vw);
+						try {
+							ValidatorWrapper vw = new ValidatorWrapper(connection, table, classloader, json);
+							validators.get(vw.getType()).put(vw.getName(), vw);
+						}
+						catch (ClassNotFoundException | NoSuchMethodException | SecurityException e) {
+							logger.warn("Unabile to initialize a validator described in " + p, e);
+						}
+						catch (SQLException e) {
+							logger.error("Could not find the id for the validator described in " + path + " in the database.");
+						}
 					}
 				}
+			}
+			catch (IOException e) {
+				logger.error("Unable to load validators from " + path);
 			}
 		}
 	}
@@ -119,7 +132,7 @@ public class ValidatorController {
 	 *             if there is an issue loading an {@link Article}
 	 */
 	public static void main(String[] args) throws IOException, SQLException, ClassNotFoundException {
-		Path configPath = null; //The configuration file must be provided
+		Path configPath = Paths.get("./configuration.json"); //The configuration file must be provided
 		int action = 0;
 		Collection<Integer> articleIDs = new LinkedHashSet<>();
 		Collection<Integer> queryIDs = new LinkedHashSet<>();
@@ -136,7 +149,6 @@ public class ValidatorController {
 				articleIDs.add(Integer.parseInt(arg));
 			else if (action == 2)
 				queryIDs.add(Integer.parseInt(arg));
-				
 		}
 		JSONObject config = (JSONObject) JSONSystem.loadJSON(configPath);
 		DBConnection.configureConnection((JSONObject) config.get("database"));
@@ -334,7 +346,8 @@ class ValidatorWrapper {
 		try (PreparedStatement stmt = connection.prepareStatement("select id from " + table + " as va where va.algorithm = ?")) {
 			stmt.setString(1, name);
 			try (ResultSet rs = stmt.executeQuery()) {
-				rs.next();
+				if (!rs.next())
+					logger.error("Unable to find the id for the Validator, " + name + ", in the database.");
 				algorithmID = rs.getInt("id");
 			}
 		}
