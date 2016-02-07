@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Set;
 import java.text.*;
 import edu.sussex.nlp.jws.*;
 import java.util.Properties;
@@ -23,6 +24,8 @@ import edu.stanford.nlp.pipeline.StanfordCoreNLP;
 
 
 import edu.stanford.nlp.ling.CoreAnnotations.*;
+import edu.stanford.nlp.semgraph.SemanticGraph;
+import edu.stanford.nlp.semgraph.SemanticGraphCoreAnnotations.CollapsedCCProcessedDependenciesAnnotation;
 import edu.stanford.nlp.ling.*;
 import edu.stanford.nlp.pipeline.Annotation;
 import edu.stanford.nlp.util.CoreMap;
@@ -157,6 +160,27 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
     }
     
     public double postProcess(SortedList<Pair<Double, CoreMap>> topN, Query query, String rawQuery, String articleTitle, double titleScore){
+
+	// Julia's dependencies experimentation
+	/*
+	for (Annotation paragraph : article.getAnnotatedText()) {
+		List<CoreMap> sentences = paragraph.get(SentencesAnnotation.class);
+		for (CoreMap sentence : sentences) {
+			SemanticGraph dependencies = sentence.get(CollapsedCCProcessedDependenciesAnnotation.class);
+			System.out.println("\"" + sentence + "\"");
+			// Print out root(s) of every sentence with all their children
+			Collection<IndexedWord> roots = dependencies.getRoots();
+			for (IndexedWord root : roots) {
+				Set<IndexedWord> children = dependencies.getChildren(root);
+				System.out.println("Root: " + root + "\nChildren: " + children);
+			}
+			// Prints out the dependency graph for every sentence
+			System.out.println("Dependency graph:\n" + dependencies);
+			// Note: Tried getting words' DependentsAnnotation.class but it returns null
+		}
+	}
+	*/
+
         String subject, dirObject, indirObject;
         subject = query.getSubject();
         dirObject = "";
