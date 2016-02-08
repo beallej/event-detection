@@ -26,13 +26,15 @@
     "sources" : [ ],
     "feeds" : [ ],
     "scrapers" : [ "./scrapers" ],
-    "articles" : [ "./articles_test" ]
+    "articles" : [ "./articles_test" ],
+    "validators" : [ "./validators" ]
   },
   "tables" : {
     "sources" : "sources",
     "feeds" : "feeds",
     "scrapers" : null,
-    "articles" : "articles"
+    "articles" : "articles",
+    "validators" : "validation_algorithms"
   },
   "test-downloader" : true
 }
