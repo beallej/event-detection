@@ -16,7 +16,7 @@ class TesterDataSource:
     def __init__(self):
         db = Globals.database
         try:
-            conn = psycopg2.connect(user='root', database="event_detection")
+            conn = psycopg2.connect(user='root', database=db)
             conn.autocommit = True
         except psycopg2.Error:
             print("Error: cannot connect to event_detection database")
