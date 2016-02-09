@@ -2,6 +2,7 @@ from HierarchicalAgglomerativeClusterer import *
 import operator
 from AbstractClusterer import *
 from nltk.stem.wordnet import WordNetLemmatizer
+import sys
 
 class ClusterValidator:
     """
@@ -19,6 +20,9 @@ class ClusterValidator:
         clusterer = HierarchicalAgglomerativeClusterer()
         self.clusters = clusterer.cluster()
         self.lemmatizer = WordNetLemmatizer()
+
+    def get_clusters(self):
+        return self.clusters
 
     def add_query(self, query):
         """
@@ -90,12 +94,9 @@ class ClusterValidator:
 
 
 def main():
-    clusterValidator = ClusterValidator()
-    result, value = clusterValidator.validate(8)
-    if result is None:
-        print("No clusters found for value " + str(value))
-    else:
-        print(result.article_titles, result.article_ids, value)
+    cv = ClusterValidator()
+    article_ids = [int(article_id) for article_id in sys.argv[1:]]
+    print([cluster.as_json() for cluster in self.clusters])
 
 if __name__ == "__main__":
     main()

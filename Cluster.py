@@ -52,3 +52,7 @@ class Cluster:
                     for kw in kw_dict[pos]:
                         self.keywords.add(kw[0])
         return self.keywords
+
+    def as_json(self):
+        keywords = self.get_keywords()
+        return json.dumps({"keywords": keywords, "articles": article_ids})
