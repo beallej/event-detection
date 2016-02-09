@@ -9,7 +9,6 @@ from psycopg2.extras import RealDictCursor
 class Tester:
     def __init__(self):
         self.dataSource = TesterDataSource()
-
     def test(self):
         self.query_articles = self.dataSource.get_query_articles()
         self.results = self.dataSource.get_validation_results()
@@ -23,26 +22,66 @@ class Tester:
         X = np.arange(0,1,0.025)
         labels = []
         Y_vals = []
+        X_vals = []
         for algorithm in self.algorithms:
             algorithm_id = algorithm[0]
             algorithm_name = algorithm[1]
             labels.append(algorithm_name)
-            best_threshold = 0
-            best_f1 = 0
-            Y = []
-            for threshold in X:
+            best_f1_measures = []
+            best_thresholds = []
+            for article_left_out in self.article_ids:
                 f1_measures = []
-                for article_left_out in self.article_ids:
-                    f1_measures.append(self.f1(article_left_out, algorithm_id, threshold))
-                avg_f1 = mean(f1_measures)
-                if avg_f1 > best_f1:
-                    best_f1 = avg_f1
-                    best_threshold = threshold
-                Y.append(avg_f1)
-            Y_vals.append(Y)
+                best_threshold = 0
+                best_f1 = 0
+                for threshold in X:
+                    f1_measure = self.f1(article_left_out, algorithm_id, threshold)
+                    f1_measures.append(f1_measure)
+                    if f1_measure > best_f1:
+                        best_f1 = f1_measure
+                        best_threshold = threshold
+                best_f1_measures.append(best_f1)
+                best_thresholds.append(best_threshold)
 
-            self.best_thresholds[algorithm_id] = (best_f1, best_threshold)
-        self.plot_threshold_and_results(X, labels, Y_vals)
+            X_vals.append(best_thresholds)
+            Y_vals.append(best_f1_measures)
+
+
+            self.plot_threshold_and_results_multi(best_thresholds, labels, best_f1_measures)
+
+
+    # def test(self):
+    #     self.query_articles = self.dataSource.get_query_articles()
+    #     self.results = self.dataSource.get_validation_results()
+    #     self.article_ids = self.dataSource.get_articles()
+    #     self.query_ids = self.dataSource.get_queries()
+    #     self.algorithms = self.dataSource.get_algorithms()
+    #
+    #     self.best_thresholds = {}
+    #
+    #     #self.bootstrap()
+    #     X = np.arange(0,1,0.025)
+    #     labels = []
+    #     Y_vals = []
+    #     for algorithm in self.algorithms:
+    #         algorithm_id = algorithm[0]
+    #         algorithm_name = algorithm[1]
+    #         labels.append(algorithm_name)
+    #         best_threshold = 0
+    #         best_f1 = 0
+    #         Y = []
+    #         for threshold in X:
+    #             f1_measures = []
+    #             for article_left_out in self.article_ids:
+    #                 f1_measures.append(self.f1(article_left_out, algorithm_id, threshold))
+    #             avg_f1 = mean(f1_measures)
+    #             if avg_f1 > best_f1:
+    #                 best_f1 = avg_f1
+    #                 best_threshold = threshold
+    #             Y.append(avg_f1)
+    #         Y_vals.append(Y)
+    #
+    #         self.best_thresholds[algorithm_id] = (best_f1, best_threshold)
+    #     self.plot_threshold_and_results(X, labels, Y_vals)
 
 
 
@@ -61,6 +100,21 @@ class Tester:
         plot.ylabel("F1 Measure")
         plot.show()
 
+    #this is more daves way
+    def plot_threshold_and_results_multi(self, x_vals, labels, y_vals):
+            colors = ["red", "blue", "yellow", "green", "orange", "purple", "pink"]
+            color_index = 0
+            key_legends = []
+            for y_i, y in enumerate(y_vals):
+                plot.scatter(x_vals[y_i], y, color=colors[color_index])
+                #legend = mpatches.Patch(color=colors[color_index], label = labels[y_i])
+                #key_legends.append(legend)
+                #color_index = (color_index + 1)% len(colors)
+            plot.legend(handles=key_legends)
+            plot.title('F1 Measure with different thresholds for different algorithms')
+            plot.xlabel("Threshold")
+            plot.ylabel("F1 Measure")
+            plot.show()
 
 
     #TODO: should we separate out the algorithms???
