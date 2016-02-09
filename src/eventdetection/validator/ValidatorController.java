@@ -292,8 +292,11 @@ public class ValidatorController {
 							logger.info("Added " + stringVer + " to the database.");
 						}
 					}
-					catch (InterruptedException | ExecutionException e) {
+					catch (InterruptedException e) {
 						e.printStackTrace();
+					}
+					catch (ExecutionException e) {
+						e.getCause().printStackTrace();
 					}
 				}
 			}
