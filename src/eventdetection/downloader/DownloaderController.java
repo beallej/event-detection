@@ -1,29 +1,71 @@
 package eventdetection.downloader;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.Calendar;
+import java.util.Map;
 
 import toberumono.json.JSONArray;
 import toberumono.json.JSONBoolean;
 import toberumono.json.JSONData;
 import toberumono.json.JSONObject;
 import toberumono.json.JSONSystem;
+import toberumono.structures.tuples.Pair;
 
 import eventdetection.common.Article;
 import eventdetection.common.ArticleManager;
 import eventdetection.common.DBConnection;
+import eventdetection.common.Query;
 import eventdetection.common.ThreadingUtils;
+import eventdetection.pipeline.Pipeline;
+import eventdetection.pipeline.PipelineComponent;
 
 /**
  * Main class of the downloader. Controls startup and and article management.
  * 
  * @author Joshua Lipstone
  */
-public class DownloaderController {
+public class DownloaderController implements Closeable, PipelineComponent {
+	private final DownloaderCollection dc;
+	private final ArticleManager am;
+	private final Instant oldest;
+	
+	/**
+	 * Constructs a new {@link DownloaderController} with the given configuration data. This is for use with
+	 * {@link Pipeline}.
+	 * 
+	 * @param config
+	 *            the configuration data
+	 * @throws SQLException
+	 *             if an error occurs while connecting to the database
+	 * @throws IOException
+	 *             if an error occurs while loading data from the file system
+	 */
+	public DownloaderController(JSONObject config) throws SQLException, IOException {
+		updateJSONConfiguration(config);
+		dc = new DownloaderCollection();
+		Connection connection = DBConnection.getConnection();
+		JSONObject paths = (JSONObject) config.get("paths");
+		JSONObject articles = (JSONObject) config.get("articles");
+		JSONObject tables = (JSONObject) config.get("tables");
+		am = new ArticleManager(connection, tables.get("articles").value().toString(), paths, articles);
+		oldest = computeOldest((JSONObject) articles.get("deletion-delay")).toInstant();
+		for (JSONData<?> str : ((JSONArray) paths.get("sources")).value())
+			Downloader.loadSource(Paths.get(str.toString()));
+		
+		FeedManager fm = new FeedManager(connection);
+		for (JSONData<?> str : ((JSONArray) paths.get("scrapers")).value())
+			fm.addScraper(Paths.get(str.toString()));
+		for (JSONData<?> str : ((JSONArray) paths.get("feeds")).value())
+			fm.addFeed(Paths.get(str.toString()));
+		fm.addFeed(connection, tables.get("feeds").value().toString());
+		dc.addDownloader(fm);
+	}
 	
 	/**
 	 * The main method.
@@ -42,31 +84,22 @@ public class DownloaderController {
 		if (config.isModified())
 			JSONSystem.writeJSON(config, configPath);
 		DBConnection.configureConnection((JSONObject) config.get("database"));
-		try (DownloaderCollection dc = new DownloaderCollection()) {
-			Connection connection = DBConnection.getConnection();
-			JSONObject paths = (JSONObject) config.get("paths");
-			JSONObject articles = (JSONObject) config.get("articles");
-			JSONObject tables = (JSONObject) config.get("tables");
-			Downloader.loadSource(connection, tables.get("sources").value().toString());
-			for (JSONData<?> str : ((JSONArray) paths.get("sources")).value())
-				Downloader.loadSource(Paths.get(str.toString()));
-				
-			FeedManager fm = new FeedManager(connection);
-			for (JSONData<?> str : ((JSONArray) paths.get("scrapers")).value())
-				fm.addScraper(Paths.get(str.toString()));
-			for (JSONData<?> str : ((JSONArray) paths.get("feeds")).value())
-				fm.addFeed(Paths.get(str.toString()));
-			fm.addFeed(connection, tables.get("feeds").value().toString());
-			
-			dc.addDownloader(fm);
-			ArticleManager am = new ArticleManager(connection, tables.get("articles").value().toString(), paths, articles);
-			ThreadingUtils.executeTask(() -> {
-				Calendar oldest = computeOldest((JSONObject) articles.get("deletion-delay"));
-				am.removeArticlesBefore(oldest);
-				for (Article article : dc.get())
-					am.store(article);
-			});
+		try (DownloaderController dc = new DownloaderController(config)) {
+			dc.execute();
 		}
+	}
+	
+	@Override
+	public Pair<Map<Integer, Query>, Map<Integer, Article>> execute(Pair<Map<Integer, Query>, Map<Integer, Article>> inputs) throws IOException, SQLException {
+		Map<Integer, Article> articles = inputs.getY();
+		ThreadingUtils.executeTask(() -> {
+			am.removeArticlesBefore(oldest);
+			for (Article article : dc.get()) {
+				article = am.store(article);
+				articles.put(article.getID(), article);
+			}
+		});
+		return inputs;
 	}
 	
 	private static Calendar computeOldest(JSONObject deletionDelay) {
@@ -85,5 +118,10 @@ public class DownloaderController {
 		JSONObject articles = (JSONObject) config.get("articles");
 		JSONSystem.transferField("enable-pos-tagging", new JSONBoolean(true), articles, (JSONObject) articles.get("pos-tagging"));
 		JSONSystem.transferField("enable-tag-simplification", new JSONBoolean(false), (JSONObject) articles.get("pos-tagging"));
+	}
+	
+	@Override
+	public void close() throws IOException {
+		dc.close();
 	}
 }

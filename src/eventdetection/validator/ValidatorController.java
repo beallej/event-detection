@@ -33,6 +33,7 @@ import toberumono.json.JSONBoolean;
 import toberumono.json.JSONObject;
 import toberumono.json.JSONString;
 import toberumono.json.JSONSystem;
+import toberumono.structures.tuples.Pair;
 import toberumono.structures.tuples.Triple;
 
 import static eventdetection.common.ThreadingUtils.pool;
@@ -42,6 +43,7 @@ import eventdetection.common.ArticleManager;
 import eventdetection.common.DBConnection;
 import eventdetection.common.Query;
 import eventdetection.common.ThreadingUtils;
+import eventdetection.pipeline.PipelineComponent;
 import eventdetection.validator.types.Validator;
 import eventdetection.validator.types.ValidatorType;
 
@@ -50,22 +52,22 @@ import eventdetection.validator.types.ValidatorType;
  * 
  * @author Joshua Lipstone
  */
-public class ValidatorController {
+public class ValidatorController implements PipelineComponent {
 	private final Connection connection;
 	private final Map<ValidatorType, Map<String, ValidatorWrapper>> validators;
 	private static final Logger logger = LoggerFactory.getLogger("ValidatorController");
 	private final ArticleManager articleManager;
 	
 	/**
-	 * Constructs a {@link ValidatorController} that uses the given {@link Connection} to connect to the database.
+	 * Constructs a {@link ValidatorController} with the given configuration data.
 	 * 
-	 * @param connection
-	 *            a {@link Connection} to the database to be used
 	 * @param config
 	 *            the {@link JSONObject} holding the configuration data
+	 * @throws SQLException
+	 *             if an error occurs while connecting to the database
 	 */
-	public ValidatorController(Connection connection, JSONObject config) {
-		this.connection = connection;
+	public ValidatorController(JSONObject config) throws SQLException {
+		this.connection = DBConnection.getConnection();
 		this.validators = new EnumMap<>(ValidatorType.class);
 		for (ValidatorType vt : ValidatorType.values())
 			validators.put(vt, new LinkedHashMap<>());
@@ -153,7 +155,7 @@ public class ValidatorController {
 		JSONObject config = (JSONObject) JSONSystem.loadJSON(configPath);
 		DBConnection.configureConnection((JSONObject) config.get("database"));
 		try (Connection connection = DBConnection.getConnection()) {
-			ValidatorController vc = new ValidatorController(connection, config);
+			ValidatorController vc = new ValidatorController(config);
 			vc.executeValidators(queryIDs, articleIDs);
 		}
 	}
@@ -181,6 +183,12 @@ public class ValidatorController {
 		return queries;
 	}
 	
+	@Override
+	public Pair<Map<Integer, Query>, Map<Integer, Article>> execute(Pair<Map<Integer, Query>, Map<Integer, Article>> inputs) throws IOException, SQLException {
+		execute(inputs.getX(), inputs.getY());
+		return inputs;
+	}
+	
 	/**
 	 * Executes the {@link Validator Validators} registered with the {@link ValidatorController} on the given
 	 * {@link Collection} of {@link Query} IDs and {@link Collection} of {@link Article} IDs after loading them from the
@@ -197,8 +205,8 @@ public class ValidatorController {
 	 */
 	public void executeValidators(Collection<Integer> queryIDs, Collection<Integer> articleIDs) throws SQLException, IOException {
 		synchronized (connection) {
-			executeValidators(loadQueries(queryIDs),
-					(ThreadingUtils.executeTask(() -> articleManager.loadArticles(articleIDs)).stream().collect(LinkedHashMap::new, (a, b) -> a.put(b.getID(), b), LinkedHashMap::putAll)));
+			execute(loadQueries(queryIDs),
+					ThreadingUtils.executeTask(() -> articleManager.loadArticles(articleIDs)).stream().collect(LinkedHashMap::new, (a, b) -> a.put(b.getID(), b), LinkedHashMap::putAll));
 		}
 	}
 	
@@ -214,7 +222,7 @@ public class ValidatorController {
 	 * @throws SQLException
 	 *             if an error occurs while reading from or writing to the database
 	 */
-	public void executeValidators(Map<Integer, Query> queries, Map<Integer, Article> articles) throws SQLException {
+	public void execute(Map<Integer, Query> queries, Map<Integer, Article> articles) throws SQLException {
 		synchronized (connection) {
 			List<Triple<Integer, Integer, Future<ValidationResult[]>>> results = new ArrayList<>();
 			for (ValidatorWrapper vw : validators.get(ValidatorType.ManyToMany).values()) {
