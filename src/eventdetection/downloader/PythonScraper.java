@@ -8,13 +8,14 @@ import java.io.OutputStreamWriter;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import toberumono.json.JSONArray;
 import toberumono.json.JSONObject;
 import toberumono.json.JSONString;
 import toberumono.json.JSONSystem;
 
-import static eventdetection.common.SubprocessHelpers.*;
+import eventdetection.common.SubprocessHelpers;
 
 /**
  * An extension of {@link Scraper} that is designed for invoking Python 3 scripts.
@@ -70,12 +71,6 @@ public class PythonScraper extends Scraper {
 	public String callScript(String scriptName, JSONObject variableParameters) throws IOException {
 		String[] comm = ((JSONArray) scripts.get(scriptName)).stream().collect(ArrayList::new, (a, b) -> a.add((String) b.value()), ArrayList::addAll).toArray(new String[0]);
 		Path scriptPath = json.getParent().resolve(comm[0]);
-		String[] command = {bashPath, "-l", "-c", ""};
-		StringBuilder cmd = new StringBuilder(pythonPath.length() * 2);
-		cmd.append(pythonPath).append(" ").append(scriptPath.normalize().toString());
-		for (String c : comm)
-			cmd.append(" ").append(c);
-		command[3] = cmd.toString();
 		JSONObject parameters = new JSONObject();
 		JSONObject scriptParameters = (JSONObject) parameters.get(scriptName);
 		JSONObject globalParameters = (JSONObject) parameters.get("global");
@@ -85,9 +80,7 @@ public class PythonScraper extends Scraper {
 			parameters.putAll(scriptParameters);
 		if (variableParameters != null)
 			parameters.putAll(variableParameters);
-		ProcessBuilder pb = new ProcessBuilder(command);
-		pb.directory(scriptPath.getParent().toFile());
-		Process p = pb.start();
+		Process p = SubprocessHelpers.executePythonProcess(scriptPath, Arrays.copyOfRange(comm, 1, comm.length));
 		try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(p.getOutputStream()))) {
 			JSONSystem.writeJSON(parameters, bw);
 		}
