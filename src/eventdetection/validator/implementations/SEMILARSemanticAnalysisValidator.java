@@ -49,6 +49,8 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -162,21 +164,39 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
     public double postProcess(SortedList<Pair<Double, CoreMap>> topN, Query query, String rawQuery, String articleTitle, double titleScore){
 
 	// Julia's dependencies experimentation
+	// Note: for IndexedWord, value = word = ex "asking", lemma = "ask", tag = "VBG"
 	/*
 	for (Annotation paragraph : article.getAnnotatedText()) {
 		List<CoreMap> sentences = paragraph.get(SentencesAnnotation.class);
 		for (CoreMap sentence : sentences) {
 			SemanticGraph dependencies = sentence.get(CollapsedCCProcessedDependenciesAnnotation.class);
 			System.out.println("\"" + sentence + "\"");
-			// Print out root(s) of every sentence with all their children
-			Collection<IndexedWord> roots = dependencies.getRoots();
-			for (IndexedWord root : roots) {
-				Set<IndexedWord> children = dependencies.getChildren(root);
-				System.out.println("Root: " + root + "\nChildren: " + children);
+			// Get 'first' (usually only) root
+			IndexedWord root = dependencies.getFirstRoot();
+			// Get a node's children
+			Set<IndexedWord> children = dependencies.getChildren(root);
+			System.out.println("Root: " + root + "\nChildren: " + children);
+			for (IndexedWord child : children) {
+				// Get a node's parent
+				IndexedWord parent = dependencies.getParent(child);
+				System.out.println("Child " + child + "\tParent " + parent);
 			}
 			// Prints out the dependency graph for every sentence
 			System.out.println("Dependency graph:\n" + dependencies);
 			// Note: Tried getting words' DependentsAnnotation.class but it returns null
+			
+			// Use POSList to get nsubj. We can do dobj, etc as well
+			String posList = dependencies.toPOSList();
+			String nsubjPattern = "nsubj[^\n]*\n";
+			//String nsubjPattern = "nsubj(\([^)]*\))";
+			Pattern nsubjRegex = Pattern.compile(nsubjPattern);
+			Matcher nsubjMatcher = nsubjRegex.matcher(posList);
+			if (nsubjMatcher.find()) {
+				System.out.println("FOUND NSUBJ: " + nsubjMatcher.group(0));
+			}
+			else {
+				System.out.println("NO NSUBJ FOUND");
+			}
 		}
 	}
 	*/
