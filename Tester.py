@@ -9,6 +9,9 @@ from psycopg2.extras import RealDictCursor
 class Tester:
     def __init__(self):
         self.dataSource = TesterDataSource()
+
+
+    #TODO: RIGHT NOW WERE LEAVING ONE ARTICLE OUT BUT WE SHOULD PROBS LEAVE ONE QUERY-ARTICLE PAIR OUT
     def test(self):
         self.query_articles = self.dataSource.get_query_articles()
         self.results = self.dataSource.get_validation_results()
@@ -45,8 +48,7 @@ class Tester:
             X_vals.append(best_thresholds)
             Y_vals.append(best_f1_measures)
 
-
-            self.plot_threshold_and_results_multi(best_thresholds, labels, best_f1_measures)
+        self.plot_threshold_and_results_multi(X_vals, labels, Y_vals)
 
 
     # def test(self):
@@ -101,18 +103,19 @@ class Tester:
         plot.show()
 
     #this is more daves way
+    #THIS TAKES IN A LIST OF X VALUE LISTS AND A LIST OF Y VALUE LISTS AND A LIST OF KEY LEGENDS
     def plot_threshold_and_results_multi(self, x_vals, labels, y_vals):
             colors = ["red", "blue", "yellow", "green", "orange", "purple", "pink"]
             color_index = 0
             key_legends = []
             for y_i, y in enumerate(y_vals):
                 plot.scatter(x_vals[y_i], y, color=colors[color_index])
-                #legend = mpatches.Patch(color=colors[color_index], label = labels[y_i])
-                #key_legends.append(legend)
-                #color_index = (color_index + 1)% len(colors)
+                legend = mpatches.Patch(color=colors[color_index], label = labels[y_i])
+                key_legends.append(legend)
+                color_index = (color_index + 1)% len(colors)
             plot.legend(handles=key_legends)
             plot.title('F1 Measure with different thresholds for different algorithms')
-            plot.xlabel("Threshold")
+            plot.xlabel("Best Threshold Found")
             plot.ylabel("F1 Measure")
             plot.show()
 
@@ -166,6 +169,30 @@ class Tester:
         print("Bootstrapped 95% confidence intervals for recall \nLow:", CIs[0], "\nHigh:", CIs[1])
 
 
+    def validate_article_left_out(self, article_left_out, algorithm_id, threshold):
+        true_positives = 0
+        false_positives = 0
+        false_negatives = 0
+        for query_id in self.query_ids:
+            test_value_probability = self.results[(query_id, article_left_out, algorithm_id)]
+            actual_value = self.query_articles[(query_id, article_left_out)]
+            test_value = (test_value_probability > threshold)
+            if test_value and actual_value:
+                true_positives += 1
+            elif test_value and not actual_value:
+                false_positives += 1
+            elif not test_value and actual_value:
+                false_negatives += 1
+
+        recall = self.recall(true_positives, false_negatives)
+        precision = self.precision(true_positives, false_positives)
+
+        if recall + precision == 0:
+            return 0
+        f1 = 2 * (precision * recall)/(precision + recall)
+
+        return f1
+
     #I know this is inneficient we can fix it later
     def f1(self, article_left_out, algorithm_id, threshold):
         true_positives = 0
@@ -187,7 +214,6 @@ class Tester:
         recall = self.recall(true_positives, false_negatives)
         precision = self.precision(true_positives, false_positives)
 
-        #TODO: FIX THIS
         if recall + precision == 0:
             return 0
         f1 = 2 * (precision * recall)/(precision + recall)
