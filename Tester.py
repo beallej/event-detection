@@ -5,23 +5,23 @@ import matplotlib.pyplot as plot
 import matplotlib.patches as mpatches
 from psycopg2.extras import RealDictCursor
 from random import random
+from collections import defaultdict
 
 class Tester:
     def __init__(self):
         self.dataSource = TesterDataSource()
-
-
-    #TODO: RIGHT NOW WERE LEAVING ONE ARTICLE OUT BUT WE SHOULD PROBS LEAVE ONE QUERY-ARTICLE PAIR OUT
-    def test(self):
         self.query_articles = self.dataSource.get_query_articles()
         self.results = self.dataSource.get_validation_results()
         self.article_ids = self.dataSource.get_articles()
         self.query_ids = self.dataSource.get_queries()
         self.algorithms = self.dataSource.get_algorithms()
 
+
+    #TODO: RIGHT NOW WERE LEAVING ONE ARTICLE OUT BUT WE SHOULD PROBS LEAVE ONE QUERY-ARTICLE PAIR OUT
+    def test(self):
         self.best_thresholds = {}
 
-        #self.bootstrap()
+        self.bootstrap()
         X = np.arange(.1,.4,0.025)
         labels = []
         Y_vals = []
@@ -61,6 +61,17 @@ class Tester:
         # #
         # self.plot_threshold_and_results_multi(X_vals, labels, Y_vals)
 
+    def separate_algorithm_data(self):
+        #q ar alg
+        algorithm_datasets = defaultdict(dict)
+        for algorithm in self.algorithms:
+            algorithm_id = algorithm[0]
+            for query_id in self.query_ids:
+                for article_id in self.article_ids:
+                    algorithm_datasets[algorithm_id][(query_id, article_id)] = self.results[(query_id, article_id, algorithm_id)]
+        self.results_by_algorithm = algorithm_datasets
+        print(algorithm_datasets)
+
     def validate_random(self, article, query):
         actual_value = self.query_articles[(query, article)]
         test_value = random()
@@ -96,20 +107,41 @@ class Tester:
             plot.show()
 
 
-        #TODO: should we separate out the algorithms???
+    #     #TODO: should we separate out the algorithms???
+    # def f1_bootstrap(self, dataset):
+    #     true_positives = 0
+    #     false_positives = 0
+    #     false_negatives = 0
+    #     for datum in dataset:
+    #         query_id = datum[0]
+    #         article_id = datum[1]
+    #         algorithm_id = datum[2]
+    #         test_value_probability = self.results[(query_id, article_id, algorithm_id)]
+    #         actual_value = self.query_articles[(query_id, article_id)]
+    #
+    #         #TODO: should we use 0 as a threshold here???
+    #         test_value = (test_value_probability > 0.0)
+    #         if test_value and actual_value:
+    #             true_positives += 1
+    #         elif test_value and not actual_value:
+    #             false_positives += 1
+    #         elif not test_value and actual_value:
+    #             false_negatives += 1
+    #     return self.calculate_f1(true_positives, false_positives, false_negatives)
+
+         #TODO: should we separate out the algorithms???
     def f1_bootstrap(self, dataset):
         true_positives = 0
         false_positives = 0
         false_negatives = 0
         for datum in dataset:
-            query_id = datum[0]
-            article_id = datum[1]
-            algorithm_id = datum[2]
-            test_value_probability = self.results[(query_id, article_id, algorithm_id)]
+            query_id = datum[0][0]
+            article_id = datum[0][1]
+            test_value_probability = datum[1]
             actual_value = self.query_articles[(query_id, article_id)]
 
             #TODO: should we use 0 as a threshold here???
-            test_value = (test_value_probability > 0.0)
+            test_value = (test_value_probability > 0.34)
             if test_value and actual_value:
                 true_positives += 1
             elif test_value and not actual_value:
@@ -120,9 +152,11 @@ class Tester:
 
 
     def bootstrap(self):
-
-        CIs = bootstrap.ci(data=list(self.results), statfunction=self.f1_bootstrap, n_samples=1)
-        print("Bootstrapped 95% confidence intervals for recall \nLow:", CIs[0], "\nHigh:", CIs[1])
+        self.separate_algorithm_data()
+        data = list(self.results_by_algorithm[2].items())
+        print(data)
+        CIs = bootstrap.ci(data=data, statfunction=self.f1_bootstrap, n_samples=100)
+        print("Bootstrapped 95% confidence intervals for f1 \nLow:", CIs[0], "\nHigh:", CIs[1])
 
 
     def validate_query_article_left_out(self, article_left_out, query_left_out, algorithm_id, threshold):
@@ -275,7 +309,10 @@ class TesterDataSource:
 
 def main():
     tester = Tester()
-    tester.test()
+    tester.separate_algorithm_data()
+    tester.bootstrap()
+    # print(tester.results_by_algorithm[2].items())
+    # tester.test()
 
 if __name__ == "__main__":
     main()
