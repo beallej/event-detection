@@ -9,6 +9,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -29,12 +30,36 @@ import eventdetection.common.ThreadingUtils;
 import eventdetection.downloader.DownloaderController;
 import eventdetection.validator.ValidatorController;
 
+/**
+ * Implements an easily-expanded pipeline system for the project.
+ * 
+ * @author Joshua Lipstone
+ */
 public class Pipeline implements PipelineComponent, Closeable {
 	private final ArticleManager articleManager;
 	private final List<PipelineComponent> components;
 	private boolean closed;
 	
+	/**
+	 * Creates a new {@link Pipeline} instance.
+	 * 
+	 * @param config
+	 *            a {@link JSONObject} holding the configuration data for the {@link Pipeline} and its components
+	 * @param queryIDs
+	 *            the IDs of the {@link Query Queries} to use. This must be empty or {@code null} for the downloader to be
+	 *            run
+	 * @param articleIDs
+	 *            the IDs of the {@link Article Articles} to use. This must be empty or {@code null} for the downloader to be
+	 *            run
+	 * @param addDefaultComponents
+	 *            whether the default pipeline components should be added (Downloader, preprocessors, and Validator)
+	 * @throws IOException
+	 *             if an error occurs while initializing the Downloader
+	 * @throws SQLException
+	 *             if an error occurs while connecting to the database
+	 */
 	public Pipeline(JSONObject config, Collection<Integer> queryIDs, Collection<Integer> articleIDs, boolean addDefaultComponents) throws IOException, SQLException {
+		final Collection<Integer> qIDs = queryIDs == null ? Collections.EMPTY_LIST : queryIDs, aIDs = articleIDs == null ? Collections.EMPTY_LIST : articleIDs;
 		Connection connection = DBConnection.getConnection();
 		JSONObject paths = (JSONObject) config.get("paths");
 		JSONObject articles = (JSONObject) config.get("articles");
@@ -43,8 +68,8 @@ public class Pipeline implements PipelineComponent, Closeable {
 		
 		components = new ArrayList<>();
 		if (addDefaultComponents) {
-			addComponent(inputs -> Pipeline.loadQueries(queryIDs, inputs));
-			addComponent(inputs -> Pipeline.loadArticles(articleManager, articleIDs, inputs));
+			addComponent(inputs -> Pipeline.loadQueries(qIDs, inputs));
+			addComponent(inputs -> Pipeline.loadArticles(articleManager, aIDs, inputs));
 			if (articleIDs.size() == 0) { //Only run the downloader if no articles are specified.
 				addComponent(new DownloaderController(config));
 				addComponent(inputs -> {
@@ -60,6 +85,16 @@ public class Pipeline implements PipelineComponent, Closeable {
 		}
 	}
 	
+	/**
+	 * Main method for the {@link Pipeline} entry point.
+	 * 
+	 * @param args
+	 *            the command-line arguments
+	 * @throws IOException
+	 *             if an error occurs while initializing the Downloader
+	 * @throws SQLException
+	 *             if an error occurs while connecting to the database
+	 */
 	public static void main(String[] args) throws IOException, SQLException {
 		Path configPath = Paths.get("./configuration.json"); //The configuration file defaults to "./configuration.json", but can be changed with arguments
 		int action = 0;
