@@ -1,10 +1,10 @@
 from DataSource import *
 import numpy as np
-from scipy import mean
 import scikits.bootstrap as bootstrap
 import matplotlib.pyplot as plot
 import matplotlib.patches as mpatches
 from psycopg2.extras import RealDictCursor
+from random import random
 
 class Tester:
     def __init__(self):
@@ -22,7 +22,7 @@ class Tester:
         self.best_thresholds = {}
 
         #self.bootstrap()
-        X = np.arange(0,1,0.025)
+        X = np.arange(.1,.4,0.025)
         labels = []
         Y_vals = []
         X_vals = []
@@ -32,77 +32,53 @@ class Tester:
             labels.append(algorithm_name)
             best_f1_measures = []
             best_thresholds = []
-            for article_left_out in self.article_ids:
-                f1_measures = []
-                best_threshold = 0
-                best_f1 = 0
-                for threshold in X:
-                    f1_measure = self.f1(article_left_out, algorithm_id, threshold)
-                    f1_measures.append(f1_measure)
-                    if f1_measure > best_f1:
-                        best_f1 = f1_measure
-                        best_threshold = threshold
-                best_f1_measures.append(best_f1)
-                best_thresholds.append(best_threshold)
+            true_positives = 0
+            false_positives = 0
+            false_negatives = 0
+            for article in self.article_ids:
+                for query in self.query_ids:
+                    f1_measures = []
+                    best_threshold = 0
+                    best_f1 = 0
+                    for threshold in X:
+                        f1_measure = self.f1(article, query, algorithm_id, threshold)
+                        f1_measures.append(f1_measure)
+                        if f1_measure > best_f1:
+                            best_f1 = f1_measure
+                            best_threshold = threshold
+                    best_f1_measures.append(best_f1)
+                    best_thresholds.append(best_threshold)
+                    t_p, f_p, f_n = self.validate_query_article_left_out(article, query, algorithm_id, best_threshold)
+                    #t_p, f_p, f_n = self.validate_random(article, query)
+                    true_positives += t_p
+                    false_positives += f_p
+                    false_negatives += f_n
+            f1 = self.calculate_f1(true_positives, false_positives, false_negatives)
+            print(algorithm_name, f1)
+        #
+        #     X_vals.append(best_thresholds)
+        #     Y_vals.append(best_f1_measures)
+        # #
+        # self.plot_threshold_and_results_multi(X_vals, labels, Y_vals)
 
-            X_vals.append(best_thresholds)
-            Y_vals.append(best_f1_measures)
+    def validate_random(self, article, query):
+        actual_value = self.query_articles[(query, article)]
+        test_value = random()
 
-        self.plot_threshold_and_results_multi(X_vals, labels, Y_vals)
+        random_threshold = 91/3645
+        test_value = (test_value < random_threshold)
 
+        true_positives, false_positives, false_negatives = 0, 0, 0
+        if test_value and actual_value:
+            true_positives = 1
+        elif test_value and not actual_value:
+            false_positives = 1
+        elif not test_value and actual_value:
+            false_negatives = 1
 
-    # def test(self):
-    #     self.query_articles = self.dataSource.get_query_articles()
-    #     self.results = self.dataSource.get_validation_results()
-    #     self.article_ids = self.dataSource.get_articles()
-    #     self.query_ids = self.dataSource.get_queries()
-    #     self.algorithms = self.dataSource.get_algorithms()
-    #
-    #     self.best_thresholds = {}
-    #
-    #     #self.bootstrap()
-    #     X = np.arange(0,1,0.025)
-    #     labels = []
-    #     Y_vals = []
-    #     for algorithm in self.algorithms:
-    #         algorithm_id = algorithm[0]
-    #         algorithm_name = algorithm[1]
-    #         labels.append(algorithm_name)
-    #         best_threshold = 0
-    #         best_f1 = 0
-    #         Y = []
-    #         for threshold in X:
-    #             f1_measures = []
-    #             for article_left_out in self.article_ids:
-    #                 f1_measures.append(self.f1(article_left_out, algorithm_id, threshold))
-    #             avg_f1 = mean(f1_measures)
-    #             if avg_f1 > best_f1:
-    #                 best_f1 = avg_f1
-    #                 best_threshold = threshold
-    #             Y.append(avg_f1)
-    #         Y_vals.append(Y)
-    #
-    #         self.best_thresholds[algorithm_id] = (best_f1, best_threshold)
-    #     self.plot_threshold_and_results(X, labels, Y_vals)
+        return true_positives, false_positives, false_negatives
 
 
-
-    def plot_threshold_and_results(self, x, labels, y_vals):
-        colors = ["red", "blue", "yellow", "green", "orange", "purple", "pink"]
-        color_index = 0
-        key_legends = []
-        for y_i, y in enumerate(y_vals):
-            plot.scatter(x, y, color=colors[color_index])
-            legend = mpatches.Patch(color=colors[color_index], label = labels[y_i])
-            key_legends.append(legend)
-            color_index = (color_index + 1)% len(colors)
-        plot.legend(handles=key_legends)
-        plot.title('F1 Measure with different thresholds for different algorithms')
-        plot.xlabel("Threshold")
-        plot.ylabel("F1 Measure")
-        plot.show()
-
-    #this is more daves way
     #THIS TAKES IN A LIST OF X VALUE LISTS AND A LIST OF Y VALUE LISTS AND A LIST OF KEY LEGENDS
     def plot_threshold_and_results_multi(self, x_vals, labels, y_vals):
             colors = ["red", "blue", "yellow", "green", "orange", "purple", "pink"]
@@ -120,10 +96,11 @@ class Tester:
             plot.show()
 
 
-    #TODO: should we separate out the algorithms???
-    def precision_bootstrap(self, dataset):
+        #TODO: should we separate out the algorithms???
+    def f1_bootstrap(self, dataset):
         true_positives = 0
         false_positives = 0
+        false_negatives = 0
         for datum in dataset:
             query_id = datum[0]
             article_id = datum[1]
@@ -137,70 +114,39 @@ class Tester:
                 true_positives += 1
             elif test_value and not actual_value:
                 false_positives += 1
-
-        return self.precision(true_positives, false_positives)
-
-        #TODO: should we separate out the algorithms???
-    def recall_bootstrap(self, dataset):
-        true_positives = 0
-        false_negatives = 0
-        for datum in dataset:
-            query_id = datum[0]
-            article_id = datum[1]
-            algorithm_id = datum[2]
-            test_value_probability = self.results[(query_id, article_id, algorithm_id)]
-            actual_value = self.query_articles[(query_id, article_id)]
-
-            #TODO: should we use 0 as a threshold here???
-            test_value = (test_value_probability > 0.0)
-            if test_value and actual_value:
-                true_positives += 1
             elif not test_value and actual_value:
                 false_negatives += 1
-        return self.recall(true_positives, false_negatives)
+        return self.calculate_f1(true_positives, false_positives, false_negatives)
 
 
     def bootstrap(self):
 
-        # CIs = bootstrap.ci(data=list(self.results), statfunction=self.precision_bootstrap)
-        # print("Bootstrapped 95% confidence intervals for precision \nLow:", CIs[0], "\nHigh:", CIs[1])
-
-        CIs = bootstrap.ci(data=list(self.results), statfunction=self.recall_bootstrap, n_samples=1)
+        CIs = bootstrap.ci(data=list(self.results), statfunction=self.f1_bootstrap, n_samples=1)
         print("Bootstrapped 95% confidence intervals for recall \nLow:", CIs[0], "\nHigh:", CIs[1])
 
 
-    def validate_article_left_out(self, article_left_out, algorithm_id, threshold):
-        true_positives = 0
-        false_positives = 0
-        false_negatives = 0
-        for query_id in self.query_ids:
-            test_value_probability = self.results[(query_id, article_left_out, algorithm_id)]
-            actual_value = self.query_articles[(query_id, article_left_out)]
-            test_value = (test_value_probability > threshold)
-            if test_value and actual_value:
-                true_positives += 1
-            elif test_value and not actual_value:
-                false_positives += 1
-            elif not test_value and actual_value:
-                false_negatives += 1
+    def validate_query_article_left_out(self, article_left_out, query_left_out, algorithm_id, threshold):
+        test_value_probability = self.results[(query_left_out, article_left_out, algorithm_id)]
+        actual_value = self.query_articles[(query_left_out, article_left_out)]
+        test_value = (test_value_probability > threshold)
+        true_positives, false_positives, false_negatives = 0, 0, 0
+        if test_value and actual_value:
+            true_positives = 1
+        elif test_value and not actual_value:
+            false_positives = 1
+        elif not test_value and actual_value:
+            false_negatives = 1
 
-        recall = self.recall(true_positives, false_negatives)
-        precision = self.precision(true_positives, false_positives)
-
-        if recall + precision == 0:
-            return 0
-        f1 = 2 * (precision * recall)/(precision + recall)
-
-        return f1
+        return true_positives, false_positives, false_negatives
 
     #I know this is inneficient we can fix it later
-    def f1(self, article_left_out, algorithm_id, threshold):
+    def f1(self, article_left_out, query_left_out, algorithm_id, threshold):
         true_positives = 0
         false_positives = 0
         false_negatives = 0
         for article_id in self.article_ids:
-            if article_id != article_left_out:
-                for query_id in self.query_ids:
+            for query_id in self.query_ids:
+                if article_id != article_left_out and query_id != query_left_out:
                     test_value_probability = self.results[(query_id, article_id, algorithm_id)]
                     actual_value = self.query_articles[(query_id, article_id)]
                     test_value = (test_value_probability > threshold)
@@ -210,7 +156,11 @@ class Tester:
                         false_positives += 1
                     elif not test_value and actual_value:
                         false_negatives += 1
+        f1 = self.calculate_f1(true_positives, false_positives, false_negatives)
 
+        return f1
+
+    def calculate_f1(self, true_positives, false_positives, false_negatives):
         recall = self.recall(true_positives, false_negatives)
         precision = self.precision(true_positives, false_positives)
 
@@ -219,6 +169,7 @@ class Tester:
         f1 = 2 * (precision * recall)/(precision + recall)
 
         return f1
+
 
     def precision(self, true_positives, false_positives):
         if true_positives + false_positives == 0:
@@ -282,17 +233,6 @@ class TesterDataSource:
             query_articles_list = self.cursor.fetchall()
             self.query_articles = {(qa["query"], qa["article"]) : qa["validates"] for qa in query_articles_list}
         return self.query_articles
-
-    # def get_query_articles(self):
-    #     """
-    #     Gets a list of all query_articles and if the query validates the article
-    #     Caches the list
-    #     :return: the list of query articles
-    #     """
-    #     if self.query_articles is None:
-    #         self.cursor.execute("SELECT query, article, validates FROM query_articles")
-    #         self.query_articles = self.cursor.fetchall()
-    #     return self.query_articles()
 
 
     def get_articles(self):
