@@ -7,7 +7,7 @@ from KeywordExtractor import *
 from Validator import Article
 import json
 import fcntl
-import os
+import os, sys
 
 
 class ArticleProcessorDaemon:
@@ -21,9 +21,10 @@ class ArticleProcessorDaemon:
         """
         fd, fo = 0, 0
         try:
-            fo = open(os.getenv("HOME") + "/.event-detection-active", "wb")
-            fd = fo.fileno()
-            fcntl.lockf(fd, fcntl.LOCK_EX)
+            if "--no-lock" not in sys.argv:
+                fo = open(os.getenv("HOME") + "/.event-detection-active", "wb")
+                fd = fo.fileno()
+                fcntl.lockf(fd, fcntl.LOCK_EX)
             ds = DataSource()
             unprocessed_articles = ds.get_unprocessed_articles()
             for article in unprocessed_articles:
@@ -35,10 +36,12 @@ class ArticleProcessorDaemon:
                     keyword_string = json.dumps(keywords)
                     ds.add_keywords_to_article(article[0], keyword_string)
                 except (FileNotFoundError, IOError):
+                        print(article[2])
                         print("Wrong file or file path")
         finally:
-            fcntl.lockf(fd, fcntl.LOCK_UN)
-            fo.close()
+            if "--no-lock" not in sys.argv:
+                fcntl.lockf(fd, fcntl.LOCK_UN)
+                fo.close()
 
 
 if __name__ == "__main__":
