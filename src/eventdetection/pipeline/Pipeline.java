@@ -1,5 +1,6 @@
 package eventdetection.pipeline;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -8,7 +9,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -29,7 +29,36 @@ import eventdetection.common.ThreadingUtils;
 import eventdetection.downloader.DownloaderController;
 import eventdetection.validator.ValidatorController;
 
-public class Pipeline implements PipelineComponent {
+public class Pipeline implements PipelineComponent, Closeable {
+	private final ArticleManager articleManager;
+	private final List<PipelineComponent> components;
+	private boolean closed;
+	
+	public Pipeline(JSONObject config, Collection<Integer> queryIDs, Collection<Integer> articleIDs, boolean addDefaultComponents) throws IOException, SQLException {
+		Connection connection = DBConnection.getConnection();
+		JSONObject paths = (JSONObject) config.get("paths");
+		JSONObject articles = (JSONObject) config.get("articles");
+		JSONObject tables = (JSONObject) config.get("tables");
+		articleManager = new ArticleManager(connection, tables.get("articles").value().toString(), paths, articles);
+		
+		components = new ArrayList<>();
+		if (addDefaultComponents) {
+			addComponent(inputs -> Pipeline.loadQueries(queryIDs, inputs));
+			addComponent(inputs -> Pipeline.loadArticles(articleManager, articleIDs, inputs));
+			if (articleIDs.size() == 0) { //Only run the downloader if no articles are specified.
+				addComponent(new DownloaderController(config));
+				addComponent(inputs -> {
+					SubprocessHelpers.executePythonProcess(Paths.get("./ArticleProcessorDaemon.py"), "--no-lock");
+					return inputs;
+				});
+				addComponent(inputs -> {
+					SubprocessHelpers.executePythonProcess(Paths.get("./QueryProcessorDaemon.py"), "--no-lock");
+					return inputs;
+				});
+			}
+			addComponent(new ValidatorController(config));
+		}
+	}
 	
 	public static void main(String[] args) throws IOException, SQLException {
 		Path configPath = Paths.get("./configuration.json"); //The configuration file defaults to "./configuration.json", but can be changed with arguments
@@ -52,27 +81,9 @@ public class Pipeline implements PipelineComponent {
 		JSONObject config = (JSONObject) JSONSystem.loadJSON(configPath);
 		DBConnection.configureConnection((JSONObject) config.get("database"));
 		
-		Connection connection = DBConnection.getConnection();
-		JSONObject paths = (JSONObject) config.get("paths");
-		JSONObject articles = (JSONObject) config.get("articles");
-		JSONObject tables = (JSONObject) config.get("tables");
-		final ArticleManager articleManager = new ArticleManager(connection, tables.get("articles").value().toString(), paths, articles);
-		
-		List<PipelineComponent> components = new ArrayList<>();
-		components.add(inputs -> Pipeline.loadQueries(queryIDs, inputs));
-		components.add(inputs -> Pipeline.loadArticles(articleManager, articleIDs, inputs));
-		if (articleIDs.size() == 0) { //Only run the downloader if no articles are specified.
-			components.add(new DownloaderController(config));
-			components.add(inputs -> {
-				SubprocessHelpers.executePythonProcess(Paths.get("./ArticleProcessorDaemon.py"), "--no-lock");
-				return inputs;
-			});
+		try (Pipeline pipeline = new Pipeline(config, queryIDs, articleIDs, true)) {
+			pipeline.execute();
 		}
-		components.add(new ValidatorController(config));
-		
-		Pair<Map<Integer, Query>, Map<Integer, Article>> inputs = new Pair<>(new LinkedHashMap<>(), new LinkedHashMap<>());
-		for (PipelineComponent pc : components)
-			inputs = pc.execute(inputs);
 	}
 	
 	private static Pair<Map<Integer, Query>, Map<Integer, Article>> loadArticles(ArticleManager am, Collection<Integer> ids, Pair<Map<Integer, Query>, Map<Integer, Article>> inputs)
@@ -107,10 +118,42 @@ public class Pipeline implements PipelineComponent {
 			logger.warn("Did not find queries with ids matching " + ids.stream().reduce("", (a, b) -> a + ", " + b.toString(), (a, b) -> a + b).substring(2));
 		return inputs;
 	}
-
+	
+	/**
+	 * Adds a {@link PipelineComponent} to the {@link Pipeline}
+	 * 
+	 * @param component
+	 *            the {@link PipelineComponent} to add
+	 * @return the {@link Pipeline} for chaining purposes
+	 */
+	public Pipeline addComponent(PipelineComponent component) {
+		components.add(component);
+		return this;
+	}
+	
 	@Override
 	public Pair<Map<Integer, Query>, Map<Integer, Article>> execute(Pair<Map<Integer, Query>, Map<Integer, Article>> inputs) throws IOException, SQLException {
-		// TODO Auto-generated method stub
+		for (PipelineComponent pc : components)
+			inputs = pc.execute(inputs);
 		return null;
+	}
+	
+	@Override
+	public void close() throws IOException {
+		if (closed)
+			return;
+		closed = true;
+		IOException except = null;
+		for (PipelineComponent comp : components) {
+			try {
+				if (comp instanceof Closeable)
+					((Closeable) comp).close();
+			}
+			catch (IOException e) {
+				except = e;
+			}
+		}
+		if (except != null)
+			throw except;
 	}
 }

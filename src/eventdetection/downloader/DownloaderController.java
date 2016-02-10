@@ -1,6 +1,5 @@
 package eventdetection.downloader;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -30,8 +29,7 @@ import eventdetection.pipeline.PipelineComponent;
  * 
  * @author Joshua Lipstone
  */
-public class DownloaderController implements Closeable, PipelineComponent {
-	private final DownloaderCollection dc;
+public class DownloaderController extends DownloaderCollection implements PipelineComponent {
 	private final ArticleManager am;
 	private final Instant oldest;
 	
@@ -47,8 +45,8 @@ public class DownloaderController implements Closeable, PipelineComponent {
 	 *             if an error occurs while loading data from the file system
 	 */
 	public DownloaderController(JSONObject config) throws SQLException, IOException {
+		super();
 		updateJSONConfiguration(config);
-		dc = new DownloaderCollection();
 		Connection connection = DBConnection.getConnection();
 		JSONObject paths = (JSONObject) config.get("paths");
 		JSONObject articles = (JSONObject) config.get("articles");
@@ -64,7 +62,7 @@ public class DownloaderController implements Closeable, PipelineComponent {
 		for (JSONData<?> str : ((JSONArray) paths.get("feeds")).value())
 			fm.addFeed(Paths.get(str.toString()));
 		fm.addFeed(connection, tables.get("feeds").value().toString());
-		dc.addDownloader(fm);
+		addDownloader(fm);
 	}
 	
 	/**
@@ -94,7 +92,7 @@ public class DownloaderController implements Closeable, PipelineComponent {
 		Map<Integer, Article> articles = inputs.getY();
 		ThreadingUtils.executeTask(() -> {
 			am.removeArticlesBefore(oldest);
-			for (Article article : dc.get()) {
+			for (Article article : get()) {
 				article = am.store(article);
 				articles.put(article.getID(), article);
 			}
@@ -118,10 +116,5 @@ public class DownloaderController implements Closeable, PipelineComponent {
 		JSONObject articles = (JSONObject) config.get("articles");
 		JSONSystem.transferField("enable-pos-tagging", new JSONBoolean(true), articles, (JSONObject) articles.get("pos-tagging"));
 		JSONSystem.transferField("enable-tag-simplification", new JSONBoolean(false), (JSONObject) articles.get("pos-tagging"));
-	}
-	
-	@Override
-	public void close() throws IOException {
-		dc.close();
 	}
 }
