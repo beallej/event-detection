@@ -53,6 +53,7 @@ public class DownloaderController extends DownloaderCollection implements Pipeli
 		JSONObject tables = (JSONObject) config.get("tables");
 		am = new ArticleManager(connection, tables.get("articles").value().toString(), paths, articles);
 		oldest = computeOldest((JSONObject) articles.get("deletion-delay")).toInstant();
+		Downloader.loadSource(connection, tables.get("sources").value().toString());
 		for (JSONData<?> str : ((JSONArray) paths.get("sources")).value())
 			Downloader.loadSource(Paths.get(str.toString()));
 		

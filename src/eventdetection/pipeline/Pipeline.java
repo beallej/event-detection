@@ -135,7 +135,7 @@ public class Pipeline implements PipelineComponent, Closeable {
 	public Pair<Map<Integer, Query>, Map<Integer, Article>> execute(Pair<Map<Integer, Query>, Map<Integer, Article>> inputs) throws IOException, SQLException {
 		for (PipelineComponent pc : components)
 			inputs = pc.execute(inputs);
-		return null;
+		return inputs;
 	}
 	
 	@Override
