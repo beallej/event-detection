@@ -248,32 +248,13 @@ class TesterDataSource:
             self.validation_ratio = validated["count"]/total["count"]
         return self.validation_ratio
 
-
-
-    #TODO: THIS IS DISGUSTING I HATE JSON UGHH
     def get_algorithms(self):
         """
         gets a list of algorithm ids
         :return: the list
         """
-
-        # self.cursor.execute("SELECT id FROM validation_algorithms")
-        # return self.cursor.fetchall()
-        algorithm_names = []
-        for filename in os.listdir("Validators/"):
-            algorithm_file = open("Validators/"+filename)
-            algorithm_text = algorithm_file.read()
-            algorithm_file.close()
-            algorithm_data = json.loads(algorithm_text)
-            enabled = algorithm_data["enabled"]
-            if enabled:
-                algorithm_name = algorithm_data["id"]
-                algorithm_names.append(algorithm_name)
-            algorithm_file.close()
-        algorithm_name_string = "(\'" + "\', \'".join(algorithm_names) + "\')"
-        self.cursor.execute("SELECT id, algorithm FROM validation_algorithms WHERE algorithm IN {}".format(algorithm_name_string))
+        self.cursor.execute("SELECT id, algorithm FROM validation_algorithms WHERE enabled = true")
         return self.cursor.fetchall()
-        #return[(2, "Swoogle Semantic Analysis"), (4, "TextRank Swoogle Semantic Analysis")]
 
     def get_queries(self):
         """
