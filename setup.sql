@@ -64,7 +64,8 @@ CREATE TABLE IF NOT EXISTS query_articles (
 
 CREATE TABLE IF NOT EXISTS validation_algorithms (
 	id serial primary key unique not null,
-	algorithm varchar(255) unique not null
+	algorithm varchar(255) unique not null,
+	enabled boolean not null default true
 );
 
 CREATE TABLE IF NOT EXISTS validation_results (

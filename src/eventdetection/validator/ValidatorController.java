@@ -83,7 +83,12 @@ public class ValidatorController implements PipelineComponent {
 			if (path.getFileName().toString().endsWith(".json")) {
 				try {
 					JSONObject json = (JSONObject) JSONSystem.loadJSON(path);
-					if (!json.containsKey("enabled") || ((JSONBoolean) json.get("enabled")).value()) {
+					try (PreparedStatement stmt = connection.prepareStatement("select * from validation_algorithms where algorithm = ?")) {
+						stmt.setString(1, json.get("id").value().toString());
+						try (ResultSet rs = stmt.executeQuery()) {
+							if (!rs.next() || !rs.getBoolean("enabled"))
+								return;
+						}
 						ValidatorWrapper vw = new ValidatorWrapper(connection, table, getClass().getClassLoader(), json);
 						validators.get(vw.getType()).put(vw.getName(), vw);
 					}
@@ -102,7 +107,12 @@ public class ValidatorController implements PipelineComponent {
 				for (Path p : stream) {
 					JSONObject json = (JSONObject) JSONSystem.loadJSON(p);
 					if (!json.containsKey("enabled") || ((JSONBoolean) json.get("enabled")).value()) {
-						try {
+						try (PreparedStatement stmt = connection.prepareStatement("select * from validation_algorithms where algorithm = ?")) {
+							stmt.setString(1, json.get("id").value().toString());
+							try (ResultSet rs = stmt.executeQuery()) {
+								if (!rs.next() || !rs.getBoolean("enabled"))
+									return;
+							}
 							ValidatorWrapper vw = new ValidatorWrapper(connection, table, classloader, json);
 							validators.get(vw.getType()).put(vw.getName(), vw);
 						}
@@ -110,7 +120,7 @@ public class ValidatorController implements PipelineComponent {
 							logger.warn("Unabile to initialize a validator described in " + p, e);
 						}
 						catch (SQLException e) {
-							logger.error("Could not find the id for the validator described in " + path + " in the database.");
+							logger.error("Could not find the id for the validator described in " + p + " in the database.");
 						}
 					}
 				}
