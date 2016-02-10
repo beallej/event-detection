@@ -6,18 +6,23 @@ import matplotlib.patches as mpatches
 from psycopg2.extras import RealDictCursor
 from random import random
 from collections import defaultdict
+import json
+import os
 
 class AlgorithmTester:
     def __init__(self, algorithm, tester):
-        self.algorithm_id = algorithm[0]
-        self.algorithm_name = algorithm[1]
+        self.algorithm_id = algorithm["id"]
+        self.algorithm_name = algorithm["algorithm"]
         self.tester = tester
         self.algorithm_results = tester.results_by_algorithm[self.algorithm_id]
         self.calculate_best_threshold()
 
     #TODO FILL IN LAURAS METHOD
     def calculate_best_threshold(self):
-        self.best_threshold = 0.0
+        if self.algorithm_name == "Swoogle Semantic Analysis":
+            self.best_threshold = 0.34
+        else:
+            self.best_threshold = 0.17
 
     def test(self, random=False):
         X = np.arange(.1,.4,0.025)
@@ -190,12 +195,11 @@ class Tester:
     def separate_algorithm_data(self):
         algorithm_datasets = defaultdict(dict)
         for algorithm in self.algorithms:
-            algorithm_id = algorithm[0]
+            algorithm_id = algorithm["id"]
             for query_id in self.query_ids:
                 for article_id in self.article_ids:
                     algorithm_datasets[algorithm_id][(query_id, article_id)] = self.results[(query_id, article_id, algorithm_id)]
         self.results_by_algorithm = algorithm_datasets
-        print(algorithm_datasets)
 
     def plot_threshold_and_results_multi_algorithm(self, x_vals, labels, y_vals):
         colors = ["red", "blue", "yellow", "green", "orange", "purple", "pink"]
@@ -235,15 +239,30 @@ class TesterDataSource:
         self.validation_results = None
 
 
+    #TODO: THIS IS DISGUSTING I HATE JSON UGHH
     def get_algorithms(self):
         """
         gets a list of algorithm ids
         :return: the list
         """
+
         # self.cursor.execute("SELECT id FROM validation_algorithms")
         # return self.cursor.fetchall()
-
-        return[(2, "Swoogle Semantic Analysis"), (4, "TextRank Swoogle Semantic Analysis")]
+        algorithm_names = []
+        for filename in os.listdir("Validators/"):
+            algorithm_file = open("Validators/"+filename)
+            algorithm_text = algorithm_file.read()
+            algorithm_file.close()
+            algorithm_data = json.loads(algorithm_text)
+            enabled = algorithm_data["enabled"]
+            if enabled:
+                algorithm_name = algorithm_data["id"]
+                algorithm_names.append(algorithm_name)
+            algorithm_file.close()
+        algorithm_name_string = "(\'" + "\', \'".join(algorithm_names) + "\')"
+        self.cursor.execute("SELECT id, algorithm FROM validation_algorithms WHERE algorithm IN {}".format(algorithm_name_string))
+        return self.cursor.fetchall()
+        #return[(2, "Swoogle Semantic Analysis"), (4, "TextRank Swoogle Semantic Analysis")]
 
     def get_queries(self):
         """
