@@ -108,7 +108,11 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         Sentence querySentence;
         Sentence articleSentence;
         
+	long startSP = System.nanoTime();
         SentencePreprocessor preprocessor = new SentencePreprocessor(SentencePreprocessor.TokenizerType.STANFORD, SentencePreprocessor.TaggerType.STANFORD, SentencePreprocessor.StemmerType.PORTER, SentencePreprocessor.ParserType.STANFORD);
+	long endSP = System.nanoTime();
+	long spElapsedMillis = (endSP - startSP) / 1000000;
+	//System.out.println("TIMING1: " + spElapsedMillis + " milliseconds to instantiate SentencePreprocessor"); 
         
         SortedList<Pair<Double, CoreMap>> topN = new SortedList<>((a, b) -> b.getX().compareTo(a.getX()));
         
@@ -121,7 +125,6 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         if (query.getLocation() != null && query.getLocation().length() > 0)
 			phrase1.append(" ").append(query.getLocation());       
 
-        
         querySentence = preprocessor.preprocessSentence(phrase1.toString());
         
         Double temp;
@@ -135,8 +138,16 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
 
 			for (CoreMap sentence : sentences) {
                 String sen = POSTagger.reconstructSentence(sentence);
+        	long startPPSentence = System.nanoTime();
                 articleSentence = preprocessor.preprocessSentence(sen);
+		long endPPSentence = System.nanoTime();
+		long ppSentenceElapsedMillis = (endPPSentence - startPPSentence) / 1000000;
+		//System.out.println("TIMING2: " + ppSentenceElapsedMillis + " milliseconds to preprocess sentence"); 
+		long startComputeSimilarity = System.nanoTime();
                 temp = (double) optimumComparerWNLin.computeSimilarity(querySentence, articleSentence);
+		long endComputeSimilarity = System.nanoTime();
+		long computeSimilarityElapsedMillis = (endComputeSimilarity - startComputeSimilarity) / 1000000;
+		//System.out.println("TIMING3: " + computeSimilarityElapsedMillis + " milliseconds to compute similarity between query and article sentence");
                 if (temp.equals(Double.NaN))
                     continue;
                 topN.add(new Pair<>(temp, sentence));
