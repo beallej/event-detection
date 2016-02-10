@@ -15,17 +15,24 @@ class AlgorithmTester:
         self.algorithm_name = algorithm["algorithm"]
         self.tester = tester
         self.algorithm_results = tester.results_by_algorithm[self.algorithm_id]
-        self.calculate_best_threshold()
+        self.get_best_threshold_for_algorithm()
 
-    #TODO FILL IN LAURAS METHOD
-    def calculate_best_threshold(self):
-        if self.algorithm_name == "Swoogle Semantic Analysis":
-            self.best_threshold = 0.34
-        else:
-            self.best_threshold = 0.17
+    def get_best_threshold_for_algorithm(self):
+        X = np.arange(.1,.4,0.0001)
+        best_threshold = 0
+        best_f1 = 0
+        for threshold in X:
+            # don't leave out any articles or queries by using None
+            f1_measure = self.f1(None, None, self.algorithm_id, threshold)
+            if f1_measure > best_f1:
+                best_f1 = f1_measure
+                best_threshold = threshold
+        self.best_threshold = best_threshold
+        return best_threshold
 
     def test(self, random=False):
-        X = np.arange(.1,.4,0.025)
+        #X = np.arange(self.best_threshold - .05, self.best_threshold + .05, .005)
+        X = np.arange(.1,.4,0.005)
         best_f1_measures = []
         best_thresholds = []
         true_positives = 0
@@ -61,8 +68,7 @@ class AlgorithmTester:
         actual_value = self.tester.query_articles[(query, article)]
         test_value = random()
 
-        #TODO: make this actual db value
-        random_threshold = 91/3645
+        random_threshold = self.tester.dataSource.get_validation_ration()
         test_value = (test_value < random_threshold)
 
         true_positives, false_positives, false_negatives = 0, 0, 0
@@ -74,9 +80,6 @@ class AlgorithmTester:
             false_negatives = 1
 
         return true_positives, false_positives, false_negatives
-
-
-
 
 
     def f1_bootstrap(self, dataset):
@@ -126,7 +129,7 @@ class AlgorithmTester:
         false_negatives = 0
         for article_id in self.tester.article_ids:
             for query_id in self.tester.query_ids:
-                if article_id != article_left_out and query_id != query_left_out:
+                if article_id != article_left_out or query_id != query_left_out:
                     test_value_probability = self.algorithm_results[(query_id, article_id)]
                     actual_value = self.tester.query_articles[(query_id, article_id)]
                     test_value = (test_value_probability > threshold)
@@ -190,8 +193,6 @@ class Tester:
             alg_tester.bootstrap()
 
 
-
-
     def separate_algorithm_data(self):
         algorithm_datasets = defaultdict(dict)
         for algorithm in self.algorithms:
@@ -237,6 +238,16 @@ class TesterDataSource:
 
         self.query_articles = None
         self.validation_results = None
+
+    def get_validation_ratio(self):
+        if self.validation_ratio is None:
+            self.cursor.execute("SELECT count(*) FROM query_articles where validates = true")
+            validated = self.cursor.fetchone()
+            self.cursor.execute("SELECT count(*) FROM query_articles")
+            total = self.cursor.fetchone()
+            self.validation_ratio = validated["count"]/total["count"]
+        return self.validation_ratio
+
 
 
     #TODO: THIS IS DISGUSTING I HATE JSON UGHH
@@ -326,8 +337,9 @@ class TesterDataSource:
 
 def main():
     tester = Tester()
-    tester.bootstrap_all()
-    tester.test_all()
+    tester.dataSource.get_validation_ratio()
+    # tester.bootstrap_all()
+    # tester.test_all()
 
 if __name__ == "__main__":
     main()
