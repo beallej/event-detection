@@ -41,10 +41,8 @@ class DataSource:
 
     def get_article_keywords(self, article_id):
         self.cursor.execute("SELECT keywords FROM articles WHERE id=%s", (article_id, ))
-        keywords = []
-        for wrd in self.cursor.fetchall():
-            keywords.append(wrd[0])
-        return keywords
+        words = self.cursor.fetchone()
+        return words
 
     def get_all_article_keywords(self):
         self.cursor.execute("SELECT keywords FROM articles WHERE keywords IS NOT null;")
