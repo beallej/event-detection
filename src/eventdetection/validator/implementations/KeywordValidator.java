@@ -19,36 +19,24 @@ import eventdetection.validator.types.OneToOneValidator;
  * @author Joshua Lipstone
  */
 public class KeywordValidator extends OneToOneValidator {
-	private static Path SCRIPT_PATH = null;
+	private final Path scriptPath;
 	
 	/**
-	 * Constructs a new {@link KeywordValidator} for the given {@link Query} and {@link Article}
+	 * Constructs a new {@link KeywordValidator} with the given parameters.
 	 * 
-	 * @param query
-	 *            the {@link Query} to validate
-	 * @param article
-	 *            the {@link Article} with which to validate the {@link Query}
+	 * @param parameters
+	 *            a {@link JSONObject} containing the instance-specific parameters
 	 */
-	public KeywordValidator(Query query, Article article) {
-		super(query, article);
+	public KeywordValidator(JSONObject parameters) {
+		scriptPath = Paths.get((String) parameters.get("script-path").value());
 	}
-	
+
 	@Override
-	public ValidationResult[] call() throws Exception {
-		Process p = SubprocessHelpers.executePythonProcess(SCRIPT_PATH, query.getID().toString(), article.getID().toString());
+	public ValidationResult[] call(Query query, Article article) throws Exception {
+		Process p = SubprocessHelpers.executePythonProcess(scriptPath, query.getID().toString(), article.getID().toString());
 		p.waitFor();
 		try (BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
 			return new ValidationResult[]{new ValidationResult(query, article, Double.parseDouble(br.readLine()))};
 		}
-	}
-	
-	/**
-	 * Hook for loading parameters from the Validator's JSON data
-	 * 
-	 * @param parameters
-	 *            a {@link JSONObject} holding the validator's static parameters
-	 */
-	public static void loadStaticParameters(JSONObject parameters) {
-		SCRIPT_PATH = Paths.get((String) parameters.get("script-path").value());
 	}
 }

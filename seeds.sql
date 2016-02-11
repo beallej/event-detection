@@ -5,7 +5,7 @@ INSERT INTO users (email) values ('event.detection.carleton@gmail.com');
 INSERT INTO validation_algorithms (algorithm, base_class, validator_type, parameters) values
 	('Keyword', 'eventdetection.validator.implementations.KeywordValidator', 'OneToOne', '"KeywordValidator.json"'),
 	('Swoogle Semantic Analysis', 'eventdetection.validator.implementations.SwoogleSemanticAnalysisValidator', 'OneToOne',
-		'{"static" : {"url-prefix" : "http://swoogle.umbc.edu/StsService/GetStsSim?operation=api", "max-sentences" : 5}}'),
+		'{"instance" : {"url-prefix" : "http://swoogle.umbc.edu/StsService/GetStsSim?operation=api", "max-sentences" : 5}}'),
 	('SEMILAR Semantic Analysis', 'eventdetection.validator.implementations.SIMILATSemanticAnalysisValidator', 'OneToOne', '"SIMILATSemanticAnalysisValidator.json"'),
 	('TextRank Swoogle Semantic Analysis', 'eventdetection.validator.implementations.TextRankSwoogleSemanticAnalysisValidator', 'OneToOne',
-		'{"static" : {"url-prefix" : "http://swoogle.umbc.edu/StsService/GetStsSim?operation=api"}}');
+		'{"instance" : {"url-prefix" : "http://swoogle.umbc.edu/StsService/GetStsSim?operation=api"}}');
