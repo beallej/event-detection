@@ -8,11 +8,14 @@ import java.io.OutputStreamWriter;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import toberumono.json.JSONArray;
 import toberumono.json.JSONObject;
 import toberumono.json.JSONString;
 import toberumono.json.JSONSystem;
+
+import eventdetection.common.SubprocessHelpers;
 
 /**
  * An extension of {@link Scraper} that is designed for invoking Python 3 scripts.
@@ -20,14 +23,6 @@ import toberumono.json.JSONSystem;
  * @author Joshua Lipstone
  */
 public class PythonScraper extends Scraper {
-	/**
-	 * The path required to run the system's bash executable.
-	 */
-	public static final String bashPath = getBashPath();
-	/**
-	 * The path required to run the system's Python 3 executable.
-	 */
-	public static final String pythonPath = getPythonPath();
 	
 	protected final Path json;
 	protected final JSONObject scripts, parameters;
@@ -60,38 +55,6 @@ public class PythonScraper extends Scraper {
 		return sectioned.trim();
 	}
 	
-	private static final String getBashPath() {
-		ProcessBuilder pb = new ProcessBuilder();
-		pb.command("which", "bash");
-		try {
-			Process p = pb.start();
-			try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-				p.waitFor();
-				return reader.readLine().trim();
-			}
-		}
-		catch (IOException | InterruptedException e) {
-			e.printStackTrace();
-		}
-		return "/bin/bash";
-	}
-	
-	private static final String getPythonPath() {
-		ProcessBuilder pb = new ProcessBuilder();
-		pb.command(bashPath, "-l", "-c", "[ \"$(python --version 2>&1 | grep 'Python 3')\" != \"\" ] && echo \"$(which python)\" || echo \"$(which python3)\"");
-		try {
-			Process p = pb.start();
-			try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
-				p.waitFor();
-				return reader.readLine().trim();
-			}
-		}
-		catch (IOException | InterruptedException e) {
-			e.printStackTrace();
-		}
-		return "python3";
-	}
-	
 	/**
 	 * This method calls a Python 3 script based on data in the "python" object {@link PythonScraper Scraper's} JSON file.
 	 * 
@@ -108,12 +71,6 @@ public class PythonScraper extends Scraper {
 	public String callScript(String scriptName, JSONObject variableParameters) throws IOException {
 		String[] comm = ((JSONArray) scripts.get(scriptName)).stream().collect(ArrayList::new, (a, b) -> a.add((String) b.value()), ArrayList::addAll).toArray(new String[0]);
 		Path scriptPath = json.getParent().resolve(comm[0]);
-		String[] command = {bashPath, "-l", "-c", ""};
-		StringBuilder cmd = new StringBuilder(pythonPath.length() * 2);
-		cmd.append(pythonPath).append(" ").append(scriptPath.normalize().toString());
-		for (String c : comm)
-			cmd.append(" ").append(c);
-		command[3] = cmd.toString();
 		JSONObject parameters = new JSONObject();
 		JSONObject scriptParameters = (JSONObject) parameters.get(scriptName);
 		JSONObject globalParameters = (JSONObject) parameters.get("global");
@@ -123,9 +80,7 @@ public class PythonScraper extends Scraper {
 			parameters.putAll(scriptParameters);
 		if (variableParameters != null)
 			parameters.putAll(variableParameters);
-		ProcessBuilder pb = new ProcessBuilder(command);
-		pb.directory(scriptPath.getParent().toFile());
-		Process p = pb.start();
+		Process p = SubprocessHelpers.executePythonProcess(scriptPath, Arrays.copyOfRange(comm, 1, comm.length));
 		try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(p.getOutputStream()))) {
 			JSONSystem.writeJSON(parameters, bw);
 		}
