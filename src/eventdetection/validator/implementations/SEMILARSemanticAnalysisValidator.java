@@ -267,6 +267,8 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         CoreMap taggedTitle = annotatedTitle.get(SentencesAnnotation.class).get(0);
         
         dependencyMatches = validationScore(query, taggedTitle, keywordNouns);
+        System.out.println("DEPENDENCY MATCHES OF TITLE::");
+        System.out.println(dependencyMatches.toString());
         // if (matchedPerSentence > 0 || titleScore>0.20){
         //     articleMatchScore += 2;
         // }
@@ -302,7 +304,6 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
                         }
                     } else {
                         matched = wnMetricLin.computeWordSimilarityNoPos(lemma, imptNoun);
-                    System.out.println("2 words that matched: "+lemma+ " matched with query "+imptNoun+" result: "+matched);
                     }
                     if (matched > MIN_WORD_TO_WORD_THRESHOLD){
                         matchedPerSentence += 1;
