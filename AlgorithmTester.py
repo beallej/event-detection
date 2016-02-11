@@ -1,7 +1,7 @@
-
-from random import random
+import random
 import numpy as np
 import scikits.bootstrap as bootstrap
+from Tester import *
 
 class AlgorithmTester:
     def __init__(self, algorithm, tester):
@@ -10,6 +10,7 @@ class AlgorithmTester:
         self.tester = tester
         self.algorithm_results = tester.results_by_algorithm[self.algorithm_id]
         self.get_best_threshold_for_algorithm()
+        random.seed(10)
 
     def get_best_threshold_for_algorithm(self):
         X = np.arange(.1,.4,0.0001)
@@ -32,8 +33,8 @@ class AlgorithmTester:
         self.tester.plot_threshold_and_results_multi_algorithm([X], None, [Y], x_label, y_label, title)
         return best_threshold
 
-    def test(self, random=False):
-        #X = np.arange(self.best_threshold - .05, self.best_threshold + .05, .005)
+    def test(self, distribution_algorithm=False):
+        # X = np.arange(self.best_threshold - .1, self.best_threshold + .1, .005)
         X = np.arange(.1,.4,0.005)
         best_f1_measures = []
         best_thresholds = []
@@ -42,21 +43,22 @@ class AlgorithmTester:
         false_negatives = 0
         for article in self.tester.article_ids:
             for query in self.tester.query_ids:
-                f1_measures = []
-                best_threshold = 0
-                best_f1 = 0
-                for threshold in X:
-                    f1_measure = self.f1(article, query, self.algorithm_id, threshold)
-                    f1_measures.append(f1_measure)
-                    if f1_measure > best_f1:
-                        best_f1 = f1_measure
-                        best_threshold = threshold
-                best_f1_measures.append(best_f1)
-                best_thresholds.append(best_threshold)
-                t_p, f_p, f_n = self.validate_query_article_left_out(article, query, self.best_threshold)
+                if distribution_algorithm:
+                    t_p, f_p, f_n = self.validate_distribution_algorithm(article, query, distribution_algorithm)
+                else:
+                    f1_measures = []
+                    best_threshold = 0
+                    best_f1 = 0
+                    for threshold in X:
+                        f1_measure = self.f1(article, query, self.algorithm_id, threshold)
+                        f1_measures.append(f1_measure)
+                        if f1_measure > best_f1:
+                            best_f1 = f1_measure
+                            best_threshold = threshold
+                    best_f1_measures.append(best_f1)
+                    best_thresholds.append(best_threshold)
+                    t_p, f_p, f_n = self.validate_query_article_left_out(article, query, self.best_threshold)
 
-                if random:
-                    t_p, f_p, f_n = self.validate_random(article, query)
 
                 true_positives += t_p
                 false_positives += f_p
@@ -66,12 +68,24 @@ class AlgorithmTester:
         return best_thresholds, best_f1_measures, f1
 
 
-    def validate_random(self, article, query):
+    def validate_distribution_algorithm(self, article, query, distribution_algorithm):
         actual_value = self.tester.query_articles[(query, article)]
-        test_value = random()
 
-        random_threshold = self.tester.dataSource.get_validation_ration()
-        test_value = (test_value < random_threshold)
+        if distribution_algorithm == "all_true":
+            test_value = True
+
+        elif distribution_algorithm == "all_false":
+            test_value = False
+
+        elif distribution_algorithm == "half_and_half":
+            test_value = random.randint(0, 1)
+
+        elif distribution_algorithm == "real_distribution":
+            # weights with the same distribution as
+            test_value = random.random()
+
+            random_threshold = self.tester.dataSource.get_validation_ratio()
+            test_value = (test_value < random_threshold)
 
         true_positives, false_positives, false_negatives = 0, 0, 0
         if test_value and actual_value:
@@ -106,7 +120,8 @@ class AlgorithmTester:
 
     def bootstrap(self):
         data = list(self.algorithm_results.items())
-        CIs = bootstrap.ci(data=data, statfunction=self.f1_bootstrap, n_samples=100)
+        CIs = bootstrap.ci(data=data, statfunction=self.f1_bootstrap, n_samples=10000)
+        print(self.algorithm_name)
         print("Bootstrapped 95% confidence intervals for f1 \nLow:", CIs[0], "\nHigh:", CIs[1])
 
 
@@ -165,3 +180,10 @@ class AlgorithmTester:
         if true_positives + false_negatives == 0:
             return 1
         return true_positives/(true_positives + false_negatives)
+
+def main():
+    at = AlgorithmTester({"id": 2, "algorithm": "swoogle"}, Tester())
+    at.test("half_and_half")
+
+if __name__ == "__main__":
+    main()
