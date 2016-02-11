@@ -1,5 +1,6 @@
 package eventdetection.common;
 
+import java.io.Closeable;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -41,7 +42,7 @@ import static eventdetection.common.ThreadingUtils.pool;
  * 
  * @author Joshua Lipstone
  */
-public class ArticleManager {
+public class ArticleManager implements Closeable {
 	private static final Logger logger = LoggerFactory.getLogger("ArticleManager");
 	
 	private final Connection connection;
@@ -49,6 +50,33 @@ public class ArticleManager {
 	private final Collection<Path> storage;
 	private final boolean posTaggingEnabled;
 	private static final ReadWriteLock fsLock = new ReentrantReadWriteLock();
+	private boolean closed;
+	
+	/**
+	 * Initializes an {@link ArticleManager} from JSON configuration data that connects to the database with a new
+	 * {@link Connection}.
+	 * 
+	 * @param config
+	 *            the {@link JSONObject} holding the configuration data
+	 * @throws SQLException
+	 *             if an error occurs while getting the SQL connection
+	 */
+	public ArticleManager(JSONObject config) throws SQLException {
+		this(DBConnection.getConnection(), ((JSONObject) config.get("tables")).get("articles").value().toString(), (JSONObject) config.get("paths"), (JSONObject) config.get("articles"));
+	}
+	
+	/**
+	 * Initializes an {@link ArticleManager} from JSON configuration data that connects to the database with the given
+	 * {@link Connection}.
+	 * 
+	 * @param connection
+	 *            a {@link Connection} to the database in use
+	 * @param config
+	 *            the {@link JSONObject} holding the configuration data
+	 */
+	public ArticleManager(Connection connection, JSONObject config) {
+		this(connection, ((JSONObject) config.get("tables")).get("articles").value().toString(), (JSONObject) config.get("paths"), (JSONObject) config.get("articles"));
+	}
 	
 	/**
 	 * Initializes an {@link ArticleManager} from JSON configuration data.
@@ -403,5 +431,18 @@ public class ArticleManager {
 	 */
 	public boolean isPOSTaggingEnabled() {
 		return posTaggingEnabled;
+	}
+	
+	@Override
+	public void close() throws IOException {
+		if (closed)
+			return;
+		closed = true;
+		try {
+			connection.close();
+		}
+		catch (SQLException e) {
+			logger.error("An SQL error occured while closing an ArticleManager's Connection.", e);
+		}
 	}
 }
