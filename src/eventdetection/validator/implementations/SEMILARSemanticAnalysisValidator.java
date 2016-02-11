@@ -75,7 +75,7 @@ import toberumono.structures.SortingMethods;
 public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
 
     private static int MAX_SENTENCES = 5;
-    private double MIN_WORD_TO_WORD_THRESHOLD = 0.65;
+    private double MIN_WORD_TO_WORD_THRESHOLD = 0.70;
 
     OptimumComparer optimumComparerWNLin;
     OptimumComparer optimumComparerLSATasa;
@@ -250,17 +250,21 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
                 }
             }
 
-        int articleMatchScore = 0;
+        double articleMatchScore = 0.0;
         int matchedPerSentence = 0;
         HashSet<String> dependencyMatches = new HashSet<String>();
         for (Pair<Double, CoreMap> p : topN){ //for each sentence
             dependencyMatches= validationScore(query, p.getY(), keywordNouns);
             System.out.println("DEPENDENCY MATCHES::");
-            System.out.println(dependencyMatches.toString());
-            if (dependencyMatches.size() > 0){
-                System.out.println("SEntence matched "+p.getY());
-                articleMatchScore += 1;
-            }            
+            System.out.println(dependencyMatches.toString()); 
+            // TO Do: Create a good score system (better than this hack of mine)
+            if (dependencyMatches.size() > 1){
+                System.out.println("Sentence matched a lot!!!"+p.getY());
+                articleMatchScore += 1.5;
+            }else if (dependencyMatches.size() == 1){
+                System.out.println("Sentence matched only subject or object!!!" + p.getY());
+                articleMatchScore += 0.5;
+            }  
         }
 
         Annotation annotatedTitle = POSTagger.annotate(articleTitle);
@@ -269,17 +273,22 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         dependencyMatches = validationScore(query, taggedTitle, keywordNouns);
         System.out.println("DEPENDENCY MATCHES OF TITLE::");
         System.out.println(dependencyMatches.toString());
-        // if (matchedPerSentence > 0 || titleScore>0.20){
-        //     articleMatchScore += 2;
-        // }
+        if (dependencyMatches.size() > 1){
+            System.out.println("Title matched a lot!!!" + taggedTitle);
+            articleMatchScore += 3;
+        } else if (dependencyMatches.size() == 1){
+            System.out.println("Sentence matched only subject or object!!!" + taggedTitle);
+            articleMatchScore += 1;
+        }  
 
         System.out.println("MATCH SCORE: " + articleMatchScore);
 
 
 
         //add function here
-        if (articleMatchScore > 2){ // at least (title + 1/5 sentences) or (3 sentences) or both
+        if (articleMatchScore > 3){ // at least (title + 1/5 sentences) or (3 sentences) or both
             return 1.0;
+
         } 
         return 0.0;
 
@@ -330,6 +339,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         if (matchedTokens.containsKey("SUBJECT")) {
             // TODO think about do we really need to check if subject is pronoun??
             for (CoreLabel subjectToken : matchedTokens.get("SUBJECT")) {
+                //??????????subjectToken is a CoreLabel, not WordIndex
                 if (subjectToken.tag().equals("WP") || subjectToken.tag().equals("WDT") || subjectToken.tag().equals("PRP")) {
                     dependencyMatches.add("S_PRONOUN");
                 }
@@ -337,26 +347,32 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
                     dependencyMatches.add("SUBJECT");
                 }
                 List<IndexedWord> verbNodes = getVerbNodes(subjectToken, verb, dependencies);
+                System.out.println("HERE"+ verbNodes);
                 for (IndexedWord verbNode : verbNodes){
-                    if (wnMetricLin.computeWordSimilarityNoPos(verbNode.lemma(), verb) > MIN_WORD_TO_WORD_THRESHOLD) {
+                    System.out.println("IN");
+
+                    // TODO: Not only verb to verb, but also verb to adj (e.g) die == was dead
+                    System.out.println("VERB FETCHED from: "+subjectToken+" is "+verbNode);
+                    if (verbNode != null && wnMetricLin.computeWordSimilarityNoPos(verbNode.lemma(), verb) > MIN_WORD_TO_WORD_THRESHOLD) {
                         dependencyMatches.add("VERB");
                     }
                     // TODO don't just look at children, maybe grandchildren, etc?
                     // TODO maybe don't look at all nodes indiscrimately, only look at indobj, dirobj, amod...?
-                    for (IndexedWord verbChild : dependencies.getChildren(verbNode)) {
-                        // TODO check which tags are pronouns
-                        if (verbChild.tag().equals("WP") || verbChild.tag().equals("WDT") || verbChild.tag().equals("PRP")) {
-                            dependencyMatches.add("O_PRONOUN");
-                        }
-                        else {
-                            for (CoreLabel objectToken : matchedTokens.get("DIROBJECT")) { // TODO consider INDOBJ tokens too
-                                if (wnMetricLin.computeWordSimilarityNoPos(verbChild.lemma(), objectToken.get(LemmaAnnotation.class)) > MIN_WORD_TO_WORD_THRESHOLD) {
-                                    dependencyMatches.add("OBJECT");
+                    if (matchedTokens.containsKey("DIROBJECT")){
+                        for (IndexedWord verbChild : dependencies.getChildren(verbNode)) {
+                            // TODO check which tags are pronouns
+                            if (verbChild.tag().equals("WP") || verbChild.tag().equals("WDT") || verbChild.tag().equals("PRP")) {
+                                dependencyMatches.add("O_PRONOUN");
+                            }
+                            else {
+                                for (CoreLabel objectToken : matchedTokens.get("DIROBJECT")) { // TODO consider INDOBJ tokens too
+                                    if (wnMetricLin.computeWordSimilarityNoPos(verbChild.lemma(), objectToken.get(LemmaAnnotation.class)) > MIN_WORD_TO_WORD_THRESHOLD) {
+                                        dependencyMatches.add("OBJECT");
+                                    }
                                 }
                             }
                         }
                     }
-                    //check if any of those match our object or inobject
                 }
             }
         }
@@ -387,12 +403,20 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
 
     public List<IndexedWord> getVerbNodes(CoreLabel subjectToken, String verb, SemanticGraph dependencies) {
         //Find verb of the matched subject (or object)
-        List<IndexedWord> nounNodes = dependencies.getAllNodesByWordPattern(subjectToken.toString());
+
+        List<IndexedWord> nounNodes = dependencies.getAllNodesByWordPattern(subjectToken.get(LemmaAnnotation.class));
+        System.out.println("NounNodes: "+subjectToken.get(LemmaAnnotation.class)+" result: "+dependencies);
         List<IndexedWord> verbNodes = new ArrayList<IndexedWord>();
         for (IndexedWord nounNode : nounNodes) {
             IndexedWord parent = dependencies.getParent(nounNode);
             while (parent != null && !parent.tag().substring(0).equals("V")) {
+                // WE HAVE INFINITE LOOP AS SemanticGraph not recognize Roots as root and hence parent are always not null
+                //Temporary fix
+                if (parent == dependencies.getParent(nounNode)){
+                    break;
+                }
                 parent = dependencies.getParent(nounNode);
+                System.out.println("Parent: "+parent); 
             }
             verbNodes.add(parent);
         }
