@@ -29,6 +29,7 @@ import eventdetection.common.SubprocessHelpers;
 import eventdetection.common.ThreadingUtils;
 import eventdetection.downloader.DownloaderController;
 import eventdetection.validator.ValidatorController;
+import eventdetection.voting.VotingController;
 
 /**
  * Implements an easily-expanded pipeline system for the project.
@@ -82,6 +83,7 @@ public class Pipeline implements PipelineComponent, Closeable {
 				});
 			}
 			addComponent(new ValidatorController(config));
+			addComponent(new VotingController(config));
 		}
 	}
 	
@@ -178,6 +180,7 @@ public class Pipeline implements PipelineComponent, Closeable {
 		if (closed)
 			return;
 		closed = true;
+		articleManager.close();
 		IOException except = null;
 		for (PipelineComponent comp : components) {
 			try {

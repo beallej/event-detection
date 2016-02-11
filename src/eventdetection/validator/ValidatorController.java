@@ -1,5 +1,6 @@
 package eventdetection.validator;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -54,11 +55,12 @@ import eventdetection.validator.types.ValidatorType;
  * 
  * @author Joshua Lipstone
  */
-public class ValidatorController implements PipelineComponent {
+public class ValidatorController implements PipelineComponent, Closeable {
 	private final Connection connection;
 	private final Map<ValidatorType, Map<String, ValidatorWrapper>> validators;
 	private static final Logger logger = LoggerFactory.getLogger("ValidatorController");
 	private final ArticleManager articleManager;
+	private final String validatorsTable, resultsTable;
 	
 	/**
 	 * Constructs a {@link ValidatorController} with the given configuration data.
@@ -76,11 +78,12 @@ public class ValidatorController implements PipelineComponent {
 		JSONObject paths = (JSONObject) config.get("paths");
 		JSONObject articles = (JSONObject) config.get("articles");
 		this.articleManager = new ArticleManager(connection, ((JSONObject) config.get("tables")).get("articles").value().toString(), paths, articles);
-		loadValidators(((JSONObject) config.get("tables")).get("validators").value().toString(),
-				((JSONArray) paths.get("validators")).value().stream().map(a -> Paths.get(((JSONString) a).value())).collect(Collectors.toList()));
+		validatorsTable = ((JSONString) ((JSONObject) config.get("tables")).get("validators")).value();
+		resultsTable = ((JSONString) ((JSONObject) config.get("tables")).get("results")).value();
+		loadValidators(((JSONArray) paths.get("validators")).value().stream().map(a -> Paths.get(((JSONString) a).value())).collect(Collectors.toList()));
 	}
 	
-	private void loadValidators(String table, Collection<Path> paths) {
+	private void loadValidators(Collection<Path> paths) {
 		ClassLoader classloader = new URLClassLoader(paths.stream().map(p -> { //Yes, I swear that the this code converts the Paths into URLs and stores them in an array.
 			try {
 				return p.toUri().toURL();
@@ -90,7 +93,7 @@ public class ValidatorController implements PipelineComponent {
 				return null;
 			}
 		}).collect(Collectors.toList()).toArray(new URL[0]));
-		try (PreparedStatement stmt = connection.prepareStatement("select * from " + table); ResultSet rs = stmt.executeQuery()) {
+		try (PreparedStatement stmt = connection.prepareStatement("select * from " + validatorsTable); ResultSet rs = stmt.executeQuery()) {
 			while (rs.next()) {
 				try {
 					if (rs.getBoolean("enabled")) {
@@ -121,7 +124,7 @@ public class ValidatorController implements PipelineComponent {
 			}
 		}
 		catch (SQLException e) {
-			logger.error("A major SQL error occured while attempting to load the validators from the " + table + " table.");
+			logger.error("A major SQL error occured while attempting to load the validators from the " + validatorsTable + " table.");
 		}
 	}
 	
@@ -158,8 +161,7 @@ public class ValidatorController implements PipelineComponent {
 		}
 		JSONObject config = (JSONObject) JSONSystem.loadJSON(configPath);
 		DBConnection.configureConnection((JSONObject) config.get("database"));
-		try (Connection connection = DBConnection.getConnection()) {
-			ValidatorController vc = new ValidatorController(config);
+		try (Connection connection = DBConnection.getConnection(); ValidatorController vc = new ValidatorController(config);) {
 			vc.executeValidators(queryIDs, articleIDs);
 		}
 	}
@@ -258,7 +260,7 @@ public class ValidatorController implements PipelineComponent {
 				}
 			}
 			//Unfortunately, we can only perform existence checks for one-to-one validation algorithms
-			try (PreparedStatement stmt = connection.prepareStatement("select * from validation_results as vr where vr.query = ? and vr.algorithm = ? and vr.article = ?")) {
+			try (PreparedStatement stmt = connection.prepareStatement("select * from " + resultsTable + " as vr where vr.query = ? and vr.algorithm = ? and vr.article = ?")) {
 				for (Query query : queries.values()) {
 					stmt.setInt(1, query.getID());
 					for (Article article : articles.values()) {
@@ -279,7 +281,7 @@ public class ValidatorController implements PipelineComponent {
 					}
 				}
 			}
-			String statement = "insert into validation_results as vr (query, algorithm, article, validates, invalidates) values (?, ?, ?, ?, ?) " +
+			String statement = "insert into " + resultsTable + " as vr (query, algorithm, article, validates, invalidates) values (?, ?, ?, ?, ?) " +
 					"ON CONFLICT (query, algorithm, article) DO UPDATE set (validates, invalidates) = (EXCLUDED.validates, EXCLUDED.invalidates)"; //This is valid as of PostgreSQL 9.5
 			try (PreparedStatement stmt = connection.prepareStatement(statement)) {
 				for (Triple<Integer, Integer, Future<ValidationResult[]>> result : results) {
@@ -312,6 +314,17 @@ public class ValidatorController implements PipelineComponent {
 					}
 				}
 			}
+		}
+	}
+	
+	@Override
+	public void close() throws IOException {
+		articleManager.close();
+		try {
+			connection.close();
+		}
+		catch (SQLException e) {
+			logger.error("An SQL error occured while closing a ValidatorController's Connection.", e);
 		}
 	}
 }
