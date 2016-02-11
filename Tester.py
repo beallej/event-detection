@@ -21,13 +21,18 @@ class AlgorithmTester:
         X = np.arange(.1,.4,0.0001)
         best_threshold = 0
         best_f1 = 0
+        Y = []
         for threshold in X:
             # don't leave out any articles or queries by using None
             f1_measure = self.f1(None, None, self.algorithm_id, threshold)
             if f1_measure > best_f1:
                 best_f1 = f1_measure
                 best_threshold = threshold
+            Y.append(f1_measure)
         self.best_threshold = best_threshold
+
+        #TODO: FIX X VALUE LABEL
+        self.tester.plot_threshold_and_results_multi_algorithm([X], [self.algorithm_name], [Y])
         return best_threshold
 
     def test(self, random=False):
@@ -182,6 +187,7 @@ class Tester:
         Y_vals = []
         X_vals = []
         for alg_tester in self.alg_testers:
+            alg_tester.get_best_threshold_for_algorithm()
             X, Y, f1 = alg_tester.test()
             X_vals.append(X)
             Y_vals.append(Y)
@@ -337,9 +343,8 @@ class TesterDataSource:
 
 def main():
     tester = Tester()
-    tester.dataSource.get_validation_ratio()
     # tester.bootstrap_all()
-    # tester.test_all()
+    tester.test_all()
 
 if __name__ == "__main__":
     main()
