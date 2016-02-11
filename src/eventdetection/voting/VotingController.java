@@ -63,7 +63,7 @@ public class VotingController implements PipelineComponent, Closeable {
 	private PreparedStatement constructQuery(JSONObject tables) throws SQLException {
 		String statement =
 				"select vr.query, vr.algorithm, vr.article, vr.validates, vr.invalidates, va.threshold from " + tables.get("results").value() + " vr inner join " + tables.get("validators").value() +
-						" va on vr.algorithm = va.id group by vr.query";
+						" va on vr.algorithm = va.id";
 		return connection.prepareStatement(statement);
 	}
 	
