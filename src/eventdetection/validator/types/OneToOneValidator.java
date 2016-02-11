@@ -10,28 +10,18 @@ import eventdetection.validator.ValidationResult;
  * 
  * @author Joshua Lipstone
  */
-public abstract class OneToOneValidator implements Validator {
-	protected final Query query;
-	protected final Article article;
-	
-	/**
-	 * Constructs a new instance of the {@link Validator} for the given {@link Query} and {@link Article}
-	 * 
-	 * @param query
-	 *            the {@link Query} to validate
-	 * @param article
-	 *            the {@link Article} against which the {@link Query} is to be validated
-	 */
-	public OneToOneValidator(Query query, Article article) {
-		this.query = query;
-		this.article = article;
-	}
+public abstract class OneToOneValidator {
 	
 	/**
 	 * Executes the algorithm that the {@link Validator} implements
 	 * 
-	 * @return a {@link ValidationResult} with the appropriate information
+	 * @param query
+	 *            the {@link Query} to validate
+	 * @param article
+	 *            the {@link Article} with which to validate it
+	 * @return an array of {@link ValidationResult ValidationResults} with the appropriate information
+	 * @throws Exception
+	 *             if something goes wrong
 	 */
-	@Override
-	public abstract ValidationResult[] call() throws Exception;
+	public abstract ValidationResult[] call(Query query, Article article) throws Exception;
 }

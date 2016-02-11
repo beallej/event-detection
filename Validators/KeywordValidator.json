@@ -1,5 +1,5 @@
 {
-	"static" : {
+	"instance" : {
 		"script-path" : "./JavaCallableKeywordValidator.py"
 	}
 }
