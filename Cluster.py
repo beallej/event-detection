@@ -1,6 +1,5 @@
 from DataSource import *
 import json
-from collections import defaultdict
 
 class Cluster:
     ds = DataSource()
@@ -53,6 +52,6 @@ class Cluster:
                         self.keywords.add(kw[0])
         return self.keywords
 
-    def as_json(self):
-        keywords = self.get_keywords()
-        return json.dumps({"keywords": keywords, "articles": article_ids})
+    def as_dictionary(self):
+        keywords = list(self.get_keywords())
+        return {"keywords": keywords, "articles": self.article_ids}

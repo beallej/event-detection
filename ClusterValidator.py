@@ -3,6 +3,7 @@ import operator
 from AbstractClusterer import *
 from nltk.stem.wordnet import WordNetLemmatizer
 import sys
+import json
 
 class ClusterValidator:
     """
@@ -96,7 +97,7 @@ class ClusterValidator:
 def main():
     cv = ClusterValidator()
     article_ids = [int(article_id) for article_id in sys.argv[1:]]
-    print([cluster.as_json() for cluster in self.clusters])
+    print(json.dumps([cluster.as_dictionary() for cluster in cv.clusters]))
 
 if __name__ == "__main__":
     main()
