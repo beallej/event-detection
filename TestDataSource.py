@@ -20,6 +20,7 @@ class TesterDataSource:
 
         self.query_articles = None
         self.validation_results = None
+        self.validation_ratio = None
 
     def get_validation_ratio(self):
         if self.validation_ratio is None:
