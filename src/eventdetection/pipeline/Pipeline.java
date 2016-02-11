@@ -59,7 +59,7 @@ public class Pipeline implements PipelineComponent, Closeable {
 	 *             if an error occurs while connecting to the database
 	 */
 	public Pipeline(JSONObject config, Collection<Integer> queryIDs, Collection<Integer> articleIDs, boolean addDefaultComponents) throws IOException, SQLException {
-		final Collection<Integer> qIDs = queryIDs == null ? Collections.EMPTY_LIST : queryIDs, aIDs = articleIDs == null ? Collections.EMPTY_LIST : articleIDs;
+		final Collection<Integer> qIDs = queryIDs == null ? Collections.emptyList() : queryIDs, aIDs = articleIDs == null ? Collections.emptyList() : articleIDs;
 		Connection connection = DBConnection.getConnection();
 		JSONObject paths = (JSONObject) config.get("paths");
 		JSONObject articles = (JSONObject) config.get("articles");

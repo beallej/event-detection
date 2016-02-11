@@ -1,12 +1,6 @@
 {
-	"id" : "Swoogle Semantic Analysis",
-	"class" : "eventdetection.validator.implementations.SwoogleSemanticAnalysisValidator",
-	"type" : "OneToOne",
-	"parameters" : {
-		"static" : {
-			"url-prefix" : "http://swoogle.umbc.edu/StsService/GetStsSim?operation=api",
-			"max-sentences" : 5
-		}
-	},
-	"enabled" : true
+	"static" : {
+		"url-prefix" : "http://swoogle.umbc.edu/StsService/GetStsSim?operation=api",
+		"max-sentences" : 5
+	}
 }

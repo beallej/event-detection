@@ -4,9 +4,9 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -24,12 +24,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
+import org.postgresql.util.PGobject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import toberumono.json.JSONArray;
-import toberumono.json.JSONBoolean;
+import toberumono.json.JSONData;
 import toberumono.json.JSONObject;
 import toberumono.json.JSONString;
 import toberumono.json.JSONSystem;
@@ -74,60 +76,52 @@ public class ValidatorController implements PipelineComponent {
 		JSONObject paths = (JSONObject) config.get("paths");
 		JSONObject articles = (JSONObject) config.get("articles");
 		this.articleManager = new ArticleManager(connection, ((JSONObject) config.get("tables")).get("articles").value().toString(), paths, articles);
-		((JSONArray) paths.get("validators")).value().stream().map(a -> ((JSONString) a).value())
-				.forEach(s -> loadValidators(((JSONObject) config.get("tables")).get("validators").value().toString(), Paths.get(s)));
+		loadValidators(((JSONObject) config.get("tables")).get("validators").value().toString(),
+				((JSONArray) paths.get("validators")).value().stream().map(a -> Paths.get(((JSONString) a).value())).collect(Collectors.toList()));
 	}
 	
-	private void loadValidators(String table, Path path) {
-		if (Files.isRegularFile(path)) {
-			if (path.getFileName().toString().endsWith(".json")) {
+	private void loadValidators(String table, Collection<Path> paths) {
+		ClassLoader classloader = new URLClassLoader(paths.stream().map(p -> { //Yes, I swear that the this code converts the Paths into URLs and stores them in an array.
+			try {
+				return p.toUri().toURL();
+			}
+			catch (MalformedURLException e) { //This should never happen because we are generating a URL from a known path
+				logger.error(p + " could not be converted to a valid URL.");
+				return null;
+			}
+		}).collect(Collectors.toList()).toArray(new URL[0]));
+		try (PreparedStatement stmt = connection.prepareStatement("select * from " + table); ResultSet rs = stmt.executeQuery()) {
+			while (rs.next()) {
 				try {
-					JSONObject json = (JSONObject) JSONSystem.loadJSON(path);
-					try (PreparedStatement stmt = connection.prepareStatement("select * from validation_algorithms where algorithm = ?")) {
-						stmt.setString(1, json.get("id").value().toString());
-						try (ResultSet rs = stmt.executeQuery()) {
-							if (!rs.next() || !rs.getBoolean("enabled"))
-								return;
+					if (rs.getBoolean("enabled")) {
+						PGobject sqlParameters = (PGobject) rs.getObject("parameters");
+						sqlParameters.setType("jsonb");
+						String pvalue = sqlParameters.getValue();
+						JSONData<?> rawJSON = pvalue == null ? null : JSONSystem.parseJSON(pvalue);
+						JSONObject parameters = null;
+						if (rawJSON instanceof JSONString) { //If it is a JSON String, then it is the path to a JSON file
+							Path loc = null;
+							String filename = ((JSONString) rawJSON).value();
+							for (Path p : paths)
+								if (Files.exists(loc = p.resolve(filename)))
+									break;
+							parameters = (JSONObject) JSONSystem.loadJSON(loc);
 						}
-						ValidatorWrapper vw = new ValidatorWrapper(connection, table, getClass().getClassLoader(), json);
+						else if (rawJSON instanceof JSONObject) //If it is a JSON Object, then it holds the parameters
+							parameters = (JSONObject) rawJSON;
+						else if (rawJSON != null) //If the parameters field is null, then there isn't a problem
+							logger.warn("The parameters column for the validator, " + rs.getString("algorithm") + ", was not null, but could not be interpreted as a JSON Object or JSON String.");
+						ValidatorWrapper vw = new ValidatorWrapper(rs, classloader, parameters);
 						validators.get(vw.getType()).put(vw.getName(), vw);
 					}
 				}
-				catch (ClassNotFoundException | NoSuchMethodException | SecurityException | IOException e) {
-					logger.warn("Unable to initialize the validator described in " + path, e);
-				}
-				catch (SQLException e) {
-					logger.error("Could not find the id for the validator described in " + path + " in the database.");
+				catch (SQLException | ClassCastException | ClassNotFoundException | NoSuchMethodException | SecurityException | IOException e) {
+					logger.error("Unable to initialize the validator, " + rs.getString("algorithm") + ".", e);
 				}
 			}
 		}
-		else {
-			try (DirectoryStream<Path> stream = Files.newDirectoryStream(path, p -> p.getFileName().toString().endsWith(".json"))) {
-				ClassLoader classloader = new URLClassLoader(new URL[]{path.toUri().toURL()});
-				for (Path p : stream) {
-					JSONObject json = (JSONObject) JSONSystem.loadJSON(p);
-					if (!json.containsKey("enabled") || ((JSONBoolean) json.get("enabled")).value()) {
-						try (PreparedStatement stmt = connection.prepareStatement("select * from validation_algorithms where algorithm = ?")) {
-							stmt.setString(1, json.get("id").value().toString());
-							try (ResultSet rs = stmt.executeQuery()) {
-								if (!rs.next() || !rs.getBoolean("enabled"))
-									return;
-							}
-							ValidatorWrapper vw = new ValidatorWrapper(connection, table, classloader, json);
-							validators.get(vw.getType()).put(vw.getName(), vw);
-						}
-						catch (ClassNotFoundException | NoSuchMethodException | SecurityException e) {
-							logger.warn("Unabile to initialize a validator described in " + p, e);
-						}
-						catch (SQLException e) {
-							logger.error("Could not find the id for the validator described in " + p + " in the database.");
-						}
-					}
-				}
-			}
-			catch (IOException e) {
-				logger.error("Unable to load validators from " + path);
-			}
+		catch (SQLException e) {
+			logger.error("A major SQL error occured while attempting to load the validators from the " + table + " table.");
 		}
 	}
 	
@@ -325,7 +319,7 @@ public class ValidatorController implements PipelineComponent {
 class ValidatorWrapper {
 	private static final Logger logger = LoggerFactory.getLogger("ValidatorWrapper");
 	
-	private final int algorithmID;
+	private final int id;
 	private final String name;
 	private final Class<? extends Validator> clazz;
 	private final ValidatorType type;
@@ -334,12 +328,13 @@ class ValidatorWrapper {
 	private final boolean useInstanceParameters;
 	
 	@SuppressWarnings("unchecked")
-	public ValidatorWrapper(Connection connection, String table, ClassLoader classloader, JSONObject validator) throws SQLException, ClassNotFoundException, NoSuchMethodException, SecurityException {
-		clazz = (Class<? extends Validator>) classloader.loadClass(validator.get("class").value().toString());
-		name = validator.get("id").value().toString();
-		type = ValidatorType.valueOf(validator.get("type").value().toString());
-		
-		JSONObject parameters = (JSONObject) validator.get("parameters");
+	public ValidatorWrapper(ResultSet rs, ClassLoader classloader, JSONObject parameters) throws SQLException, ClassNotFoundException, NoSuchMethodException, SecurityException {
+		id = rs.getInt("id");
+		name = rs.getString("algorithm");
+		clazz = (Class<? extends Validator>) classloader.loadClass(rs.getString("base_class"));
+		type = ValidatorType.valueOf(rs.getString("validator_type"));
+		if (parameters != null && parameters.containsKey("parameters")) //Backwards compatibility
+			parameters = (JSONObject) parameters.get("parameters");
 		instanceParameters = parameters != null ? (JSONObject) parameters.get("instance") : null;
 		
 		Class<?>[][] constructorTypes = type.getConstructorArgTypes();
@@ -358,15 +353,6 @@ class ValidatorWrapper {
 		constructor = temp;
 		constructor.setAccessible(true);
 		useInstanceParameters = constructor.getParameterCount() > 2;
-		
-		try (PreparedStatement stmt = connection.prepareStatement("select id from " + table + " as va where va.algorithm = ?")) {
-			stmt.setString(1, name);
-			try (ResultSet rs = stmt.executeQuery()) {
-				if (!rs.next())
-					logger.error("Unable to find the id for the Validator, " + name + ", in the database.");
-				algorithmID = rs.getInt("id");
-			}
-		}
 		if (parameters.containsKey("static"))
 			loadStaticProperties(((JSONObject) parameters.get("static")));
 	}
@@ -388,7 +374,7 @@ class ValidatorWrapper {
 	}
 	
 	public int getID() {
-		return algorithmID;
+		return id;
 	}
 	
 	public String getName() {
