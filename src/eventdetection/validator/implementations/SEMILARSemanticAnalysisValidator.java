@@ -258,6 +258,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
             System.out.println("DEPENDENCY MATCHES::");
             System.out.println(dependencyMatches.toString()); 
             // TO Do: Create a good score system (better than this hack of mine)
+            // NEED a more complex match (what if a S match from this sentence and S_pronoun-V-O match in other?)
             if (dependencyMatches.size() > 1){
                 System.out.println("Sentence matched a lot!!!"+p.getY());
                 articleMatchScore += 1.5;
@@ -312,7 +313,15 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
                             matched = 1;
                         }
                     } else {
-                        matched = wnMetricLin.computeWordSimilarityNoPos(lemma, imptNoun);
+                        matched = wnMetricLin.computeWordSimilarityNoPos(lemma.toLowerCase(), imptNoun.toLowerCase());
+                        // TODO::: HACK for now to account for the stupid library which does not know what mosque is!
+                        // This only fixes identical word. i need LEMMATISATION here!
+                        if (lemma.toLowerCase().equals(imptNoun.toLowerCase())) {
+                            matched = 1;
+                        }
+                        // if (imptNoun.equals("mosque")){
+                        //     System.out.println("MOSQUE - "+lemma+" matched: "+matched);
+                        // }
                     }
                     if (matched > MIN_WORD_TO_WORD_THRESHOLD){
                         matchedPerSentence += 1;
