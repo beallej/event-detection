@@ -53,6 +53,32 @@ public class ArticleManager implements Closeable {
 	private boolean closed;
 	
 	/**
+	 * Initializes an {@link ArticleManager} from JSON configuration data that connects to the database with a new
+	 * {@link Connection}.
+	 * 
+	 * @param config
+	 *            the {@link JSONObject} holding the configuration data
+	 * @throws SQLException
+	 *             if an error occurs while getting the SQL connection
+	 */
+	public ArticleManager(JSONObject config) throws SQLException {
+		this(DBConnection.getConnection(), ((JSONObject) config.get("tables")).get("articles").value().toString(), (JSONObject) config.get("paths"), (JSONObject) config.get("articles"));
+	}
+	
+	/**
+	 * Initializes an {@link ArticleManager} from JSON configuration data that connects to the database with the given
+	 * {@link Connection}.
+	 * 
+	 * @param connection
+	 *            a {@link Connection} to the database in use
+	 * @param config
+	 *            the {@link JSONObject} holding the configuration data
+	 */
+	public ArticleManager(Connection connection, JSONObject config) {
+		this(connection, ((JSONObject) config.get("tables")).get("articles").value().toString(), (JSONObject) config.get("paths"), (JSONObject) config.get("articles"));
+	}
+	
+	/**
 	 * Initializes an {@link ArticleManager} from JSON configuration data.
 	 * 
 	 * @param connection
@@ -406,7 +432,7 @@ public class ArticleManager implements Closeable {
 	public boolean isPOSTaggingEnabled() {
 		return posTaggingEnabled;
 	}
-
+	
 	@Override
 	public void close() throws IOException {
 		if (closed)

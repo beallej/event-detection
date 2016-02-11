@@ -137,10 +137,8 @@ public class ValidatorController implements PipelineComponent, Closeable {
 	 *             if an I/O error occurs
 	 * @throws SQLException
 	 *             if an SQL error occurs
-	 * @throws ClassNotFoundException
-	 *             if there is an issue loading an {@link Article}
 	 */
-	public static void main(String[] args) throws IOException, SQLException, ClassNotFoundException {
+	public static void main(String[] args) throws IOException, SQLException {
 		Path configPath = Paths.get("./configuration.json"); //The configuration file defaults to "./configuration.json", but can be changed with arguments
 		int action = 0;
 		Collection<Integer> articleIDs = new LinkedHashSet<>();
@@ -166,29 +164,6 @@ public class ValidatorController implements PipelineComponent, Closeable {
 		}
 	}
 	
-	private Map<Integer, Query> loadQueries(Collection<Integer> ids) throws SQLException {
-		Map<Integer, Query> queries = new LinkedHashMap<>();
-		try (ResultSet rs = connection.prepareStatement("select * from queries").executeQuery()) {
-			if (ids.size() > 0) {
-				int id = 0;
-				while (ids.size() > 0 && rs.next()) {
-					id = rs.getInt("id");
-					if (ids.contains(id)) {
-						ids.remove(id); //Prevents queries from being loaded more than once
-						queries.put(id, new Query(rs));
-					}
-				}
-			}
-			else {
-				while (rs.next())
-					queries.put(rs.getInt("id"), new Query(rs));
-			}
-		}
-		if (ids.size() > 0)
-			logger.warn("Did not find queries with ids matching " + ids.stream().reduce("", (a, b) -> a + ", " + b.toString(), (a, b) -> a + b).substring(2));
-		return queries;
-	}
-	
 	@Override
 	public Pair<Map<Integer, Query>, Map<Integer, Article>> execute(Pair<Map<Integer, Query>, Map<Integer, Article>> inputs) throws IOException, SQLException {
 		execute(inputs.getX(), inputs.getY());
@@ -211,8 +186,7 @@ public class ValidatorController implements PipelineComponent, Closeable {
 	 */
 	public void executeValidators(Collection<Integer> queryIDs, Collection<Integer> articleIDs) throws SQLException, IOException {
 		synchronized (connection) {
-			execute(loadQueries(queryIDs),
-					ThreadingUtils.executeTask(() -> articleManager.loadArticles(articleIDs)).stream().collect(LinkedHashMap::new, (a, b) -> a.put(b.getID(), b), LinkedHashMap::putAll));
+			execute(ThreadingUtils.loadQueries(queryIDs), ThreadingUtils.loadArticles(articleManager, articleIDs));
 		}
 	}
 	
