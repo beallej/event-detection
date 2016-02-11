@@ -61,9 +61,9 @@ public class VotingController implements PipelineComponent, Closeable {
 	}
 	
 	private PreparedStatement constructQuery(JSONObject tables) throws SQLException {
-		String statement =
-				"select vr.query, vr.algorithm, vr.article, vr.validates, vr.invalidates, va.threshold from " + tables.get("results").value() + " vr inner join " + tables.get("validators").value() +
-						" va on vr.algorithm = va.id";
+		String statement = "select vr.query as \"vr.query\", vr.algorithm as \"vr.algorithm\", vr.article as \"vr.article\", " +
+				"vr.validates as \"vr.validates\", vr.invalidates as \"vr.invalidates\", va.threshold as \"va.threshold\" " +
+				"from validation_results as vr inner join validation_algorithms as va on vr.algorithm = va.id;";
 		return connection.prepareStatement(statement);
 	}
 	
@@ -107,7 +107,8 @@ public class VotingController implements PipelineComponent, Closeable {
 	 * @param returnValidated
 	 *            if {@code true}, this method will return the {@link Query Queries} that were validated. If {@code false},
 	 *            this method will return the {@link Query Queries} that were not validated
-	 * @return a {@link List} containing the {@link Query Queries} that were either validated or not validated depending on the value of {@code returnValidated}
+	 * @return a {@link List} containing the {@link Query Queries} that were either validated or not validated depending on
+	 *         the value of {@code returnValidated}
 	 * @throws IOException
 	 *             if an error occurs while interacting with the interprocess lock
 	 * @throws SQLException
@@ -129,7 +130,7 @@ public class VotingController implements PipelineComponent, Closeable {
 						sum.put(query, sum.get(query) + 1);
 						logger.info("Article " + article + " validates query " + query);
 					}
-					count.put(query, count.get(count) + 1);
+					count.put(query, count.get(query) + 1);
 				}
 			}
 		});
