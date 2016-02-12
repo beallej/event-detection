@@ -2,6 +2,8 @@ import random
 import numpy as np
 import scikits.bootstrap as bootstrap
 from Tester import *
+from collections import  Counter
+import matplotlib.pyplot as plt
 
 class AlgorithmTester:
     def __init__(self, algorithm, tester):
@@ -30,12 +32,12 @@ class AlgorithmTester:
         x_label = "Threshold"
         y_label = "F1 Measure"
         title = "F1 Measure by Threshold for {} Validator".format(self.algorithm_name)
-        self.tester.plot_threshold_and_results_multi_algorithm([X], None, [Y], x_label, y_label, title)
+        #self.tester.plot_threshold_and_results_multi_algorithm([X], None, [Y], x_label, y_label, title)
         return best_threshold
 
     def test(self, distribution_algorithm=False):
-        # X = np.arange(self.best_threshold - .1, self.best_threshold + .1, .005)
-        X = np.arange(.1,.4,0.005)
+        X = np.arange(self.best_threshold - .05, self.best_threshold + .05, .005)
+        #X = np.arange(.1,.4,0.005)
         best_f1_measures = []
         best_thresholds = []
         true_positives = 0
@@ -125,6 +127,66 @@ class AlgorithmTester:
         print("Bootstrapped 95% confidence intervals for f1 \nLow:", CIs[0], "\nHigh:", CIs[1])
 
 
+    def f1_randomized(self, test_values, actual_values):
+        random.shuffle(actual_values)
+        true_positives = 0
+        false_positives = 0
+        false_negatives = 0
+        for i in range(len(test_values)):
+            test_value = test_values[i]
+            actual_value = actual_values[i]
+            if test_value and actual_value:
+                true_positives += 1
+            elif test_value and not actual_value:
+                false_positives += 1
+            elif not test_value and actual_value:
+                false_negatives += 1
+        return self.calculate_f1(true_positives, false_positives, false_negatives)
+
+    def create_randomization_distribution_f1(self):
+        test_values = []
+        actual_values = []
+        f1s = Counter()
+        f1s_array =[]
+        for query in self.tester.query_ids:
+            for article in self.tester.article_ids:
+                test_value_probability = self.algorithm_results[(query, article)]
+                test_value = (test_value_probability > self.best_threshold)
+                actual_value = self.tester.query_articles[(query, article)]
+                test_values.append(test_value)
+                actual_values.append(actual_value)
+        for i in range(10000):
+            # f1_bucket = round(self.f1_randomized(test_values, actual_values), 2)
+            # f1s[f1_bucket] += 1
+            f1s_array.append(self.f1_randomized(test_values, actual_values))
+        return f1s_array
+
+    def graph_randomization_distribution_f1(self):
+        f1s = self.create_randomization_distribution_f1()
+
+        # the histogram of the data
+        n, bins, patches = plt.hist(f1s, 50, normed=1, facecolor='green', alpha=0.75)
+        plt.grid(True)
+
+        plt.show()
+
+
+    def calculate_p_value(self):
+        f1s = self.create_randomization_distribution_f1()
+        _, _, f1 = self.test()
+        as_extreme = 0
+        for f1_random in f1s:
+            if f1_random >= f1:
+                as_extreme += 1
+        p_value = as_extreme/len(f1s)
+        return p_value
+
+
+
+
+
+
+
     def validate_query_article_left_out(self, article_left_out, query_left_out, threshold):
         test_value_probability = self.algorithm_results[(query_left_out, article_left_out)]
         actual_value = self.tester.query_articles[(query_left_out, article_left_out)]
@@ -181,9 +243,12 @@ class AlgorithmTester:
             return 1
         return true_positives/(true_positives + false_negatives)
 
+
+
 def main():
-    at = AlgorithmTester({"id": 2, "algorithm": "swoogle"}, Tester())
-    at.test("half_and_half")
+    at = AlgorithmTester({"id": 1, "algorithm": "keyword"}, Tester())
+    at.calculate_p_value()
+    # at.test("half_and_half")
 
 if __name__ == "__main__":
     main()
