@@ -2,7 +2,7 @@ import random
 import numpy as np
 import scikits.bootstrap as bootstrap
 from Tester import *
-from collections import  Counter
+from collections import Counter, defaultdict
 import matplotlib.pyplot as plt
 from TestDataSource import  *
 
@@ -39,7 +39,7 @@ class AlgorithmTester:
         Y = []
         for threshold in X:
             # don't leave out any articles or queries by using None
-            f1_measure = self.f1(None, None, self.algorithm_id, threshold)
+            f1_measure = self.f1(None, None, threshold)
             if f1_measure > best_f1:
                 best_f1 = f1_measure
                 best_threshold = threshold
@@ -52,56 +52,62 @@ class AlgorithmTester:
         title = "F1 Measure by Threshold for {} Validator".format(self.algorithm_name)
         return best_threshold
 
-    def test(self, distribution_algorithm=False):
+    def test(self, distribution_algorithm=False, output_full_results=False):
         """
         Performs leave-one-out cross-validation testing on the data
         :param distribution_algorithm: type of "random" distribution to validate with, possible values include
             all_true, all_false, half_and_half, real_distribution,
             DEFAULT False uses actual algorithm results (non-random)
+        :param output_full_results: whether or not you wish to print results
         :return: The f1 measure of the results
         """
         X = np.arange(self.best_threshold - .05, self.best_threshold + .05, .005)
         #X = np.arange(.1,.4,0.005)
         best_f1_measures = []
         best_thresholds = []
-        true_positives = 0
-        false_positives = 0
-        false_negatives = 0
+        results = defaultdict(list)
         for article in self.article_ids:
             for query in self.query_ids:
                 if distribution_algorithm:
-                    t_p, f_p, f_n = self.validate_distribution_algorithm(article, query, distribution_algorithm)
+                    self.validate_query_article_left_out(article, query, results, distribution_algorithm=distribution_algorithm)
                 else:
                     f1_measures = []
                     best_threshold = 0
                     best_f1 = 0
                     for threshold in X:
-                        f1_measure = self.f1(article, query, self.algorithm_id, threshold)
+                        f1_measure = self.f1(article, query, threshold)
                         f1_measures.append(f1_measure)
                         if f1_measure > best_f1:
                             best_f1 = f1_measure
                             best_threshold = threshold
                     best_f1_measures.append(best_f1)
                     best_thresholds.append(best_threshold)
-                    t_p, f_p, f_n = self.validate_query_article_left_out(article, query, self.best_threshold)
+                    self.validate_query_article_left_out(article, query, results, threshold=self.best_threshold)
 
-
-                true_positives += t_p
-                false_positives += f_p
-                false_negatives += f_n
+        true_positives = len(results["true_positives"])
+        false_positives = len(results["false_positives"])
+        false_negatives = len(results["false_negatives"])
         f1 = self.calculate_f1(true_positives, false_positives, false_negatives)
         print(self.algorithm_name, f1)
+        if output_full_results:
+            self.output_results(results)
         return best_thresholds, best_f1_measures, f1
 
 
-    def validate_distribution_algorithm(self, article, query, distribution_algorithm="real_distribution"):
+
+
+    def validate_query_article_left_out(self, article, query, results, threshold=None, distribution_algorithm=None):
         """
         Randomly decides whether a query validates an algorithm
         :param article: article_id to validate
         :param query: query_id to validate
+        :param results dictionary in which to record true positives, false positives, false negatives
+        :param threshold: the threshold to be considered a match
+            DEFAULT None for when we use a random validation technique
         :param distribution_algorithm: the identifier of the random algorithm, possible values are
             all_true, all_false, half_and_half, real_distribution
-        :return: number of true positives, number of false positives, number of false negatives
+            DEFAULT None to to use actual database value
+        :return:
         """
         actual_value = self.query_articles[(query, article)]
 
@@ -120,16 +126,19 @@ class AlgorithmTester:
 
             random_threshold = self.dataSource.get_validation_ratio()
             test_value = (test_value < random_threshold)
+        else:
+            test_value_probability = self.algorithm_results[(query, article)]
+            # get results from query_articles table
+            actual_value = self.query_articles[(query, article)]
+            # check if we pass threshold
+            test_value = (test_value_probability > threshold)
 
-        true_positives, false_positives, false_negatives = 0, 0, 0
         if test_value and actual_value:
-            true_positives = 1
+            results["true_positives"].append((query, article))
         elif test_value and not actual_value:
-            false_positives = 1
+            results["false_positives"].append((query, article))
         elif not test_value and actual_value:
-            false_negatives = 1
-
-        return true_positives, false_positives, false_negatives
+            results["false_negatives"].append((query, article))
 
 
     def f1_bootstrap(self, dataset):
@@ -270,30 +279,27 @@ class AlgorithmTester:
         self.graph_randomization_distribution_f1(randomization_distribution, test_value=test_value)
 
 
-    def validate_query_article_left_out(self, article_left_out, query_left_out, threshold):
-        test_value_probability = self.algorithm_results[(query_left_out, article_left_out)]
-        actual_value = self.query_articles[(query_left_out, article_left_out)]
-        test_value = (test_value_probability > threshold)
-        true_positives, false_positives, false_negatives = 0, 0, 0
-        if test_value and actual_value:
-            true_positives = 1
-        elif test_value and not actual_value:
-            false_positives = 1
-        elif not test_value and actual_value:
-            false_negatives = 1
 
-        return true_positives, false_positives, false_negatives
-
-    #I know this is inneficient we can fix it later
-    def f1(self, article_left_out, query_left_out, algorithm_id, threshold):
+    def f1(self, article_left_out, query_left_out, threshold):
+        """
+        Checks over all queries and articles that are not being left out if the stored validates result of
+        that query-article pair is equal to the result from the algorithm with the given threshold
+        Sums up true positives, false positives, and false negatives, and calculates the f1 measure
+        :param article_left_out: the article to leave out
+        :param query_left_out: the query to leave out
+        :param threshold: the threshold to be considered a match
+        :return: the f1 score
+        """
         true_positives = 0
         false_positives = 0
         false_negatives = 0
         for article_id in self.article_ids:
             for query_id in self.query_ids:
+                # only look at query-article pairs that are not related to those being left our
                 if article_id != article_left_out or query_id != query_left_out:
                     test_value_probability = self.algorithm_results[(query_id, article_id)]
                     actual_value = self.query_articles[(query_id, article_id)]
+                    # check if the value given by the algorithm passes the threshold
                     test_value = (test_value_probability > threshold)
                     if test_value and actual_value:
                         true_positives += 1
@@ -306,6 +312,13 @@ class AlgorithmTester:
         return f1
 
     def calculate_f1(self, true_positives, false_positives, false_negatives):
+        """
+
+        :param true_positives: the number of true positives in the data set
+        :param false_positives: the number of false positives in the data set
+        :param false_negatives: the number of false negatives in the data set
+        :return: the f1 measure
+        """
         recall = self.recall(true_positives, false_negatives)
         precision = self.precision(true_positives, false_positives)
 
@@ -315,17 +328,40 @@ class AlgorithmTester:
 
         return f1
 
+    @staticmethod
+    def precision(true_positives, false_positives):
+        """
 
-    def precision(self, true_positives, false_positives):
+        :param true_positives: the number of true positives in the data set
+        :param false_positives: the number of false positives in the data set
+        :return: the precision measure
+        """
         if true_positives + false_positives == 0:
             return 1
         return true_positives/(true_positives + false_positives)
 
-    def recall(self, true_positives, false_negatives):
+    @staticmethod
+    def recall(true_positives, false_negatives):
+        """
+
+        :param true_positives: the number of true positives in the data set
+        :param false_negatives: the number of false negatives in the data set
+        :return: the recall measure
+        """
         if true_positives + false_negatives == 0:
             return 1
         return true_positives/(true_positives + false_negatives)
 
+    def output_results(self, results):
+        """
+        Outputs query-article pairs for the algorithm that result in true positives, false positives, and false negatives
+        :param results: a dictionary of testing results
+        :return: None
+        """
+        for key in results:
+            print(key)
+            for (query, article) in results[key]:
+                print("{0} -- {1}".format(self.dataSource.get_query_as_string(query), self.dataSource.get_article_title(article)))
 
 
 def main():
