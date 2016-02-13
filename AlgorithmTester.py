@@ -6,23 +6,32 @@ from collections import  Counter
 import matplotlib.pyplot as plt
 
 class AlgorithmTester:
-    def __init__(self, algorithm, tester_datasource=TesterDataSource()):
-        self.algorithm_id = algorithm["id"]
-        self.algorithm_name = algorithm["algorithm"]
+    def __init__(self, algorithm_id, algorithm_name, tester_datasource=TesterDataSource()):
+        """
+        Creates a test environment for a given algorithm
+        :param algorithm_id id of algorithm of interest
+        :param algorithm_name name of algorithm of interest
+        :param tester_datasource: tester datasouce instance to help us get data, default new
+        :return:
+        """
+        self.algorithm_id = algorithm_id
+        self.algorithm_name = algorithm_name
         self.dataSource = tester_datasource
-
         self.query_articles = self.dataSource.get_query_articles()
         self.results = self.dataSource.get_validation_results()
         self.article_ids = self.dataSource.get_articles()
         self.query_ids = self.dataSource.get_queries()
-
-        #TODO: DATASOURCE
         self.algorithm_results = tester_datasource.get_results_by_algorithms(self.algorithm_id)
-
         self.get_best_threshold_for_algorithm()
+
+        #controls for variation in "randomness"
         random.seed(10)
 
     def get_best_threshold_for_algorithm(self):
+        """
+        finds best threshold value for whether or not a query validates an algorithm
+        :return:
+        """
         X = np.arange(.1,.4,0.0001)
         best_threshold = 0
         best_f1 = 0
@@ -40,7 +49,6 @@ class AlgorithmTester:
         x_label = "Threshold"
         y_label = "F1 Measure"
         title = "F1 Measure by Threshold for {} Validator".format(self.algorithm_name)
-        #self.tester.plot_threshold_and_results_multi_algorithm([X], None, [Y], x_label, y_label, title)
         return best_threshold
 
     def test(self, distribution_algorithm=False):
@@ -51,8 +59,8 @@ class AlgorithmTester:
         true_positives = 0
         false_positives = 0
         false_negatives = 0
-        for article in self.tester.article_ids:
-            for query in self.tester.query_ids:
+        for article in self.article_ids:
+            for query in self.query_ids:
                 if distribution_algorithm:
                     t_p, f_p, f_n = self.validate_distribution_algorithm(article, query, distribution_algorithm)
                 else:
@@ -79,7 +87,15 @@ class AlgorithmTester:
 
 
     def validate_distribution_algorithm(self, article, query, distribution_algorithm):
-        actual_value = self.tester.query_articles[(query, article)]
+        """
+        Randomly decides whether a query validates an algorithm
+        :param article: article_id to validate
+        :param query: query_id to validate
+        :param distribution_algorithm: the identifier of the random algorithm, possible values are
+            all_true, all_false, half_and_half, real_distribution
+        :return:
+        """
+        actual_value = self.query_articles[(query, article)]
 
         if distribution_algorithm == "all_true":
             test_value = True
@@ -94,7 +110,7 @@ class AlgorithmTester:
             # weights with the same distribution as
             test_value = random.random()
 
-            random_threshold = self.tester.dataSource.get_validation_ratio()
+            random_threshold = self.dataSource.get_validation_ratio()
             test_value = (test_value < random_threshold)
 
         true_positives, false_positives, false_negatives = 0, 0, 0
@@ -116,7 +132,7 @@ class AlgorithmTester:
             query_id = datum[0][0]
             article_id = datum[0][1]
             test_value_probability = datum[1]
-            actual_value = self.tester.query_articles[(query_id, article_id)]
+            actual_value = self.query_articles[(query_id, article_id)]
 
             test_value = (test_value_probability > self.best_threshold)
             if test_value and actual_value:
@@ -156,11 +172,11 @@ class AlgorithmTester:
         actual_values = []
         f1s = Counter()
         f1s_array =[]
-        for query in self.tester.query_ids:
-            for article in self.tester.article_ids:
+        for query in self.query_ids:
+            for article in self.article_ids:
                 test_value_probability = self.algorithm_results[(query, article)]
                 test_value = (test_value_probability > self.best_threshold)
-                actual_value = self.tester.query_articles[(query, article)]
+                actual_value = self.query_articles[(query, article)]
                 test_values.append(test_value)
                 actual_values.append(actual_value)
         for i in range(10000):
@@ -197,7 +213,7 @@ class AlgorithmTester:
 
     def validate_query_article_left_out(self, article_left_out, query_left_out, threshold):
         test_value_probability = self.algorithm_results[(query_left_out, article_left_out)]
-        actual_value = self.tester.query_articles[(query_left_out, article_left_out)]
+        actual_value = self.query_articles[(query_left_out, article_left_out)]
         test_value = (test_value_probability > threshold)
         true_positives, false_positives, false_negatives = 0, 0, 0
         if test_value and actual_value:
@@ -214,11 +230,11 @@ class AlgorithmTester:
         true_positives = 0
         false_positives = 0
         false_negatives = 0
-        for article_id in self.tester.article_ids:
-            for query_id in self.tester.query_ids:
+        for article_id in self.article_ids:
+            for query_id in self.query_ids:
                 if article_id != article_left_out or query_id != query_left_out:
                     test_value_probability = self.algorithm_results[(query_id, article_id)]
-                    actual_value = self.tester.query_articles[(query_id, article_id)]
+                    actual_value = self.query_articles[(query_id, article_id)]
                     test_value = (test_value_probability > threshold)
                     if test_value and actual_value:
                         true_positives += 1
@@ -254,7 +270,7 @@ class AlgorithmTester:
 
 
 def main():
-    at = AlgorithmTester({"id": 1, "algorithm": "keyword"}, Tester())
+    at = AlgorithmTester(1, "keyword")
     at.calculate_p_value()
     # at.test("half_and_half")
 

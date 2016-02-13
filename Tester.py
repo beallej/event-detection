@@ -17,11 +17,12 @@ class Tester:
         self.article_ids = self.dataSource.get_articles()
         self.query_ids = self.dataSource.get_queries()
         self.algorithms = self.dataSource.get_algorithms()
-        self.results_by_algorithm = self.separate_algorithm_data()
-        self.separate_algorithm_data()
+        self.results_by_algorithm = self.dataSource.separate_algorithm_data()
         self.alg_testers = []
         for algorithm in self.algorithms:
-            self.alg_testers.append(AlgorithmTester(algorithm, self))
+            algorithm_id = algorithm["id"]
+            algorithm_name = algorithm["name"]
+            self.alg_testers.append(AlgorithmTester(algorithm_id, algorithm_name, tester_datasource=self.dataSource))
 
     def test_all(self):
         """
@@ -50,18 +51,7 @@ class Tester:
         for alg_tester in self.alg_testers:
             alg_tester.bootstrap()
 
-    def separate_algorithm_data(self):
-        """
-        Separates out results by algorithm
-        :return: dictionary of separated results by algorithm id
-        """
-        algorithm_datasets = defaultdict(dict)
-        for algorithm in self.algorithms:
-            algorithm_id = algorithm["id"]
-            for query_id in self.query_ids:
-                for article_id in self.article_ids:
-                    algorithm_datasets[algorithm_id][(query_id, article_id)] = self.results[(query_id, article_id, algorithm_id)]
-        return algorithm_datasets
+
 
     @staticmethod
     def plot_threshold_and_results_multi_algorithm(x_vals, data_labels, y_vals, x_label, y_label, title):
