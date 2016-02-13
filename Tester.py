@@ -1,25 +1,33 @@
-
+from collections import defaultdict
+from AlgorithmTester import *
 import matplotlib.pyplot as plot
 import matplotlib.patches as mpatches
-from collections import defaultdict
 from TestDataSource import *
-from AlgorithmTester import *
 
 
 class Tester:
     def __init__(self):
+        """
+        Creates a new tester instance and loads necessary data
+        :return: None
+        """
         self.dataSource = TesterDataSource()
         self.query_articles = self.dataSource.get_query_articles()
         self.results = self.dataSource.get_validation_results()
         self.article_ids = self.dataSource.get_articles()
         self.query_ids = self.dataSource.get_queries()
         self.algorithms = self.dataSource.get_algorithms()
+        self.results_by_algorithm = self.separate_algorithm_data()
         self.separate_algorithm_data()
         self.alg_testers = []
         for algorithm in self.algorithms:
             self.alg_testers.append(AlgorithmTester(algorithm, self))
 
     def test_all(self):
+        """
+        Runs test on all algorithms and plots results
+        :return: None
+        """
         labels = []
         Y_vals = []
         X_vals = []
@@ -31,40 +39,57 @@ class Tester:
             labels.append(alg_tester.algorithm_name)
         x_label = "Best Threshold Found"
         y_label = "F1 Measure"
-        title =  "F1 Measure with different thresholds for different algorithms"
+        title = "F1 Measure with different thresholds for different algorithms"
         self.plot_threshold_and_results_multi_algorithm(X_vals, labels, Y_vals, x_label, y_label, title)
 
-
     def bootstrap_all(self):
+        """
+        Bootstraps data for every algorithm
+        :return:
+        """
         for alg_tester in self.alg_testers:
             alg_tester.bootstrap()
 
-
     def separate_algorithm_data(self):
+        """
+        Separates out results by algorithm
+        :return: dictionary of separated results by algorithm id
+        """
         algorithm_datasets = defaultdict(dict)
         for algorithm in self.algorithms:
             algorithm_id = algorithm["id"]
             for query_id in self.query_ids:
                 for article_id in self.article_ids:
                     algorithm_datasets[algorithm_id][(query_id, article_id)] = self.results[(query_id, article_id, algorithm_id)]
-        self.results_by_algorithm = algorithm_datasets
+        return algorithm_datasets
 
-    def plot_threshold_and_results_multi_algorithm(self, x_vals, data_labels, y_vals, x_label, y_label, title):
+    @staticmethod
+    def plot_threshold_and_results_multi_algorithm(x_vals, data_labels, y_vals, x_label, y_label, title):
+        """
+        Plots threshold and F1 data for multiple algorithms
+        :param x_vals: the X values of the points to plot
+        :param data_labels: the labels for the legend
+        :param y_vals: the Y values of the points to plot
+        :param x_label: the X axis label
+        :param y_label: the Y axis label
+        :param title: the title for the plot
+        :return: None
+        """
         colors = ["red", "blue", "yellow", "green", "orange", "purple", "pink"]
         color_index = 0
         key_legends = []
         for y_i, y in enumerate(y_vals):
             plot.scatter(x_vals[y_i], y, color=colors[color_index])
 
-            #If labels for key legend exist
-            if data_labels != None:
-                legend = mpatches.Patch(color=colors[color_index], label = data_labels[y_i])
+            # If labels for key legend exist
+            if data_labels is not None:
+                legend = mpatches.Patch(color=colors[color_index], label=data_labels[y_i])
                 key_legends.append(legend)
 
-            color_index = (color_index + 1)% len(colors)
+            color_index = (color_index + 1) % len(colors)
 
-        #Only display key legend when we want to
-        if data_labels != None:
+        # Only display key legend when we want to
+        if data_labels is not None:
             plot.legend(handles=key_legends)
         plot.title(title)
         plot.xlabel(x_label)
@@ -72,10 +97,11 @@ class Tester:
         plot.show()
 
 
-
 def main():
     tester = Tester()
+    # bootstrap data
     # tester.bootstrap_all()
+    # test all data
     tester.test_all()
 
 if __name__ == "__main__":
