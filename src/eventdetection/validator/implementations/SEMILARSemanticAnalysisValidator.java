@@ -213,7 +213,38 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         int matchedPerSentence = 0;
         HashSet<String> dependencyMatches = new HashSet<String>();
 
+        // Count how many elements in Query
+        // HashMatch = {Subject: False, Verb:..., Object, Location:}
+        // SentenceMatchPattern: {{SVO}:1,....}
+        // double totalScore = 0;
+        /*
+        For each sentence
+            return the set
+            for each element in the set, add to HashMatch
+            add the set to SentenceMatchPattern HashMap
 
+        for each key of SentenceMatchPattern:
+            totalScore = calSentenceScore(each sentence)
+
+        totalScore = calSentenceScore(title)
+
+        if totalScore > threshold {
+        ...
+        }
+
+    public double calSentenceScore(){
+        if S_Pronoun or O_PRONOUN is in:
+            check if Subject/ Object in HashMatch is true. Add more point if yes. less point if no
+        else:
+            calculate point (more elements -> more point!)
+            3/3, 4/4: a lot a lot point
+            3/4, 2/3, 2/2: good point
+            2/4: less point
+    }
+
+        */
+
+        // ARTICLE CONTENT SCORE
         for (Pair<Double, CoreMap> p : topN){ //for each sentence
             dependencyMatches= validationScore(query, p.getY(), keywordNouns);
             System.out.println("DEPENDENCY MATCHES::");
