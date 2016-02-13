@@ -6,12 +6,12 @@ from TestDataSource import *
 
 
 class Tester:
-    def __init__(self):
+    def __init__(self, queries=None, articles=None):
         """
         Creates a new tester instance and loads necessary data
         :return: None
         """
-        self.dataSource = TesterDataSource()
+        self.dataSource = TesterDataSource(queries=queries, articles=articles)
         self.query_articles = self.dataSource.get_query_articles()
         self.results = self.dataSource.get_validation_results()
         self.article_ids = self.dataSource.get_articles()
