@@ -76,6 +76,8 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
 
     private static int MAX_SENTENCES = 5;
     private double MIN_WORD_TO_WORD_THRESHOLD = 0.70;
+    private static Pattern STOPWORD_RELN_REGEX = Pattern.compile("det|mark|cc|aux|punct|auxpass|cop|expl|goeswith|dep");
+    private static Pattern USEFUL_RELN_REGEX = Pattern.compile("nmod|dobj|iobj|nsubj|nsubjpass|appos");
 
     OptimumComparer optimumComparerWNLin;
     OptimumComparer optimumComparerLSATasa;
@@ -335,97 +337,94 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
             }
         }
         if (matchedPerSentence > 0) {
-            return matchSVO(query, sentence, matchedTokens);
+            if (matchedTokens.containsKey("SUBJECT")) {
+                return matchSVO(query, sentence, matchedTokens, "SUBJECT");
+            }else if (matchedTokens.containsKey("DIROBJECT")) {
+                return matchSVO(query, sentence, matchedTokens, "DIROBJECT");
+            }
         }       
         return new HashSet<String>(); //String could only be SUBJECT, VERB, OBJECT, S_PRONOUN, O_PRONOUN
     }
 
-    public HashSet<String> matchSVO(Query query, CoreMap sentence, HashMap<String, HashSet<CoreLabel>> matchedTokens) {
+    public HashSet<String> matchSVO(Query query, CoreMap sentence, HashMap<String, HashSet<CoreLabel>> matchedTokens, String tokenType) {
         SemanticGraph dependencies = sentence.get(CollapsedCCProcessedDependenciesAnnotation.class);
         // ASSUME verb only has one word
         String verb = query.getVerb();// TODO .get(LemmaAnnotation.class);
         HashSet<String> dependencyMatches = new HashSet<String>();
-        if (matchedTokens.containsKey("SUBJECT")) {
             // TODO think about do we really need to check if subject is pronoun??
-            for (CoreLabel subjectToken : matchedTokens.get("SUBJECT")) {
-                //??????????subjectToken is a CoreLabel, not WordIndex
-                if (subjectToken.tag().equals("WP") || subjectToken.tag().equals("WDT") || subjectToken.tag().equals("PRP")) {
+        for (CoreLabel token : matchedTokens.get(tokenType)) {
+            //??????????token is a CoreLabel, not WordIndex
+            if (token.tag().equals("WP") || token.tag().equals("WDT") || token.tag().equals("PRP")) {
+                if (tokenType.equals("SUBJECT")) {
                     dependencyMatches.add("S_PRONOUN");
                 }
-                else {
-                    dependencyMatches.add("SUBJECT");
+                else if (tokenType.equals("DIROBJECT")) {
+                    dependencyMatches.add("O_PRONOUN");
                 }
-                List<IndexedWord> verbNodes = getVerbNodes(subjectToken, verb, dependencies);
-                System.out.println("HERE"+ verbNodes);
-                for (IndexedWord verbNode : verbNodes){
-                    System.out.println("IN");
-
-                    // TODO: Not only verb to verb, but also verb to adj (e.g) die == was dead
-                    System.out.println("VERB FETCHED from: "+subjectToken+" is "+verbNode);
-                    if (verbNode != null && wnMetricLin.computeWordSimilarityNoPos(verbNode.lemma(), verb) > MIN_WORD_TO_WORD_THRESHOLD) {
+            }
+            else {
+                dependencyMatches.add(tokenType);
+            }
+            List<IndexedWord> verbNodes = getVerbNodes(token, verb, dependencies);
+            for (IndexedWord verbNode : verbNodes){
+                // TODO: Not only verb to verb, but also verb to adj (e.g) die == was dead
+                System.out.println("VERB FETCHED from: "+token+" is "+verbNode);
+                if (verbNode != null) {
+                    //System.out.println("Relns: " + dependencies.childRelns(verbNode));
+                    if (wnMetricLin.computeWordSimilarityNoPos(verbNode.lemma(), verb) > MIN_WORD_TO_WORD_THRESHOLD) {
                         dependencyMatches.add("VERB");
                     }
-                    // TODO don't just look at children, maybe grandchildren, etc?
-                    // TODO maybe don't look at all nodes indiscrimately, only look at indobj, dirobj, amod...?
                     if (matchedTokens.containsKey("DIROBJECT")){
                         for (IndexedWord verbChild : dependencies.getChildren(verbNode)) {
-                            // TODO check which tags are pronouns
-                            if (verbChild.tag().equals("WP") || verbChild.tag().equals("WDT") || verbChild.tag().equals("PRP")) {
-                                dependencyMatches.add("O_PRONOUN");
-                            }
-                            else {
-                                for (CoreLabel objectToken : matchedTokens.get("DIROBJECT")) { // TODO consider INDOBJ tokens too
-                                    if (wnMetricLin.computeWordSimilarityNoPos(verbChild.lemma(), objectToken.get(LemmaAnnotation.class)) > MIN_WORD_TO_WORD_THRESHOLD) {
-                                        dependencyMatches.add("OBJECT");
+                            if (!STOPWORD_RELN_REGEX.matcher(dependencies.reln(verbNode, verbChild).getShortName()).find()){
+                                // TODO double-check which tags are pronouns
+                                if (tokenType.equals("SUBJECT")) {
+                                    if (verbChild.tag().equals("WP") || verbChild.tag().equals("WDT") || verbChild.tag().equals("PRP")) {
+                                            dependencyMatches.add("O_PRONOUN");
                                     }
+                                    else {
+                                        for (CoreLabel objectToken : matchedTokens.get("DIROBJECT")) { // TODO consider INDOBJ tokens too
+                                            if (wnMetricLin.computeWordSimilarityNoPos(verbChild.lemma(), objectToken.get(LemmaAnnotation.class)) > MIN_WORD_TO_WORD_THRESHOLD) {
+                                                dependencyMatches.add("OBJECT");
+                                                break;
+                                            }
+                                        }
+                                        // if (!dependencyMatches.contains("OBJECT")) {
+                                        //     //
+                                        // }
+                                    }
+                                } else if (tokenType.equals("DIROBJECT")) {
+                                    if (verbChild.tag().equals("WP") || verbChild.tag().equals("WDT") || verbChild.tag().equals("PRP")) {
+                                            dependencyMatches.add("S_PRONOUN");
+                                    }                           
                                 }
                             }
-                        }
+                        }                        
                     }
                 }
             }
         }
-        else if (matchedTokens.containsKey("DIROBJECT")) {
-            for (CoreLabel objectToken : matchedTokens.get("DIROBJECT")) {
-                if (objectToken.tag().equals("WP") || objectToken.tag().equals("WDT") || objectToken.tag().equals("PRP")) {
-                    dependencyMatches.add("O_PRONOUN");
-                }
-                else {
-                    dependencyMatches.add("OBJECT");
-                }      
-                List<IndexedWord> verbNodes = getVerbNodes(objectToken, verb, dependencies);
-                for (IndexedWord verbNode : verbNodes){
-                    if (wnMetricLin.computeWordSimilarityNoPos(verbNode.lemma(), verb) > MIN_WORD_TO_WORD_THRESHOLD) {
-                        dependencyMatches.add("VERB");
-                    }  
-                    for (IndexedWord verbChild : dependencies.getChildren(verbNode)) {
-                        // TODO check which tags are pronouns
-                        if (verbChild.tag().equals("WP") || verbChild.tag().equals("WDT") || verbChild.tag().equals("PRP")) {
-                            dependencyMatches.add("S_PRONOUN");
-                        }     
-                    }      
-                }
-            }   
-        }
+          
         return dependencyMatches;
     } 
 
-    public List<IndexedWord> getVerbNodes(CoreLabel subjectToken, String verb, SemanticGraph dependencies) {
+    public List<IndexedWord> getVerbNodes(CoreLabel token, String verb, SemanticGraph dependencies) {
         //Find verb of the matched subject (or object)
 
-        List<IndexedWord> nounNodes = dependencies.getAllNodesByWordPattern(subjectToken.get(LemmaAnnotation.class));
-        System.out.println("NounNodes: "+subjectToken.get(LemmaAnnotation.class)+" result: "+dependencies);
+        List<IndexedWord> nounNodes = dependencies.getAllNodesByWordPattern(token.get(LemmaAnnotation.class));
+        System.out.println("NounNodes: "+token.get(LemmaAnnotation.class)+" result: "+dependencies);
         List<IndexedWord> verbNodes = new ArrayList<IndexedWord>();
         for (IndexedWord nounNode : nounNodes) {
             IndexedWord parent = dependencies.getParent(nounNode);
-            while (parent != null && !parent.tag().substring(0).equals("V")) {
+            while (parent != null && !parent.tag().substring(0,1).equals("V")) {
                 // WE HAVE INFINITE LOOP AS SemanticGraph not recognize Roots as root and hence parent are always not null
                 //Temporary fix
-                if (parent == dependencies.getParent(nounNode)){
+
+                System.out.println("Parent: " + parent + " Tag: " + parent.tag() + "Substring 0: " + parent.tag().substring(0,1));
+                if (parent == dependencies.getParent(parent)){
                     break;
                 }
-                parent = dependencies.getParent(nounNode);
-                System.out.println("Parent: "+parent); 
+                parent = dependencies.getParent(parent);
             }
             verbNodes.add(parent);
         }
