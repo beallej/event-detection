@@ -2,7 +2,7 @@ import random
 import numpy as np
 import scikits.bootstrap as bootstrap
 from Tester import *
-from collections import  Counter
+from collections import Counter, defaultdict
 import matplotlib.pyplot as plt
 
 class AlgorithmTester:
@@ -51,18 +51,16 @@ class AlgorithmTester:
         title = "F1 Measure by Threshold for {} Validator".format(self.algorithm_name)
         return best_threshold
 
-    def test(self, distribution_algorithm=False):
+    def test(self, distribution_algorithm=False, output_full_results=False):
         X = np.arange(self.best_threshold - .05, self.best_threshold + .05, .005)
         #X = np.arange(.1,.4,0.005)
         best_f1_measures = []
         best_thresholds = []
-        true_positives = 0
-        false_positives = 0
-        false_negatives = 0
+        results = defaultdict(list)
         for article in self.article_ids:
             for query in self.query_ids:
                 if distribution_algorithm:
-                    t_p, f_p, f_n = self.validate_distribution_algorithm(article, query, distribution_algorithm)
+                    self.validate_distribution_algorithm(article, query, distribution_algorithm, results)
                 else:
                     f1_measures = []
                     best_threshold = 0
@@ -75,18 +73,19 @@ class AlgorithmTester:
                             best_threshold = threshold
                     best_f1_measures.append(best_f1)
                     best_thresholds.append(best_threshold)
-                    t_p, f_p, f_n = self.validate_query_article_left_out(article, query, self.best_threshold)
+                    self.validate_query_article_left_out(article, query, self.best_threshold, results)
 
-
-                true_positives += t_p
-                false_positives += f_p
-                false_negatives += f_n
+        true_positives = len(results["true_positives"])
+        false_positives = len(results["false_positives"])
+        false_negatives = len(results["false_negatives"])
         f1 = self.calculate_f1(true_positives, false_positives, false_negatives)
         print(self.algorithm_name, f1)
+        if output_full_results:
+            self.output_results(results)
         return best_thresholds, best_f1_measures, f1
 
 
-    def validate_distribution_algorithm(self, article, query, distribution_algorithm):
+    def validate_distribution_algorithm(self, article, query, distribution_algorithm, results):
         """
         Randomly decides whether a query validates an algorithm
         :param article: article_id to validate
@@ -113,15 +112,12 @@ class AlgorithmTester:
             random_threshold = self.dataSource.get_validation_ratio()
             test_value = (test_value < random_threshold)
 
-        true_positives, false_positives, false_negatives = 0, 0, 0
         if test_value and actual_value:
-            true_positives = 1
+            results["true_positives"].append((query, article))
         elif test_value and not actual_value:
-            false_positives = 1
+            results["false_positives"].append((query, article))
         elif not test_value and actual_value:
-            false_negatives = 1
-
-        return true_positives, false_positives, false_negatives
+            results["false_negatives"].append((query, article))
 
 
     def f1_bootstrap(self, dataset):
@@ -211,19 +207,17 @@ class AlgorithmTester:
 
 
 
-    def validate_query_article_left_out(self, article_left_out, query_left_out, threshold):
+    def validate_query_article_left_out(self, article_left_out, query_left_out, threshold, results):
         test_value_probability = self.algorithm_results[(query_left_out, article_left_out)]
         actual_value = self.query_articles[(query_left_out, article_left_out)]
         test_value = (test_value_probability > threshold)
         true_positives, false_positives, false_negatives = 0, 0, 0
         if test_value and actual_value:
-            true_positives = 1
+            results["true_positives"].append((query_left_out, article_left_out))
         elif test_value and not actual_value:
-            false_positives = 1
+            results["false_positives"].append((query_left_out, article_left_out))
         elif not test_value and actual_value:
-            false_negatives = 1
-
-        return true_positives, false_positives, false_negatives
+            results["false_negatives"].append((query_left_out, article_left_out))
 
     #I know this is inneficient we can fix it later
     def f1(self, article_left_out, query_left_out, algorithm_id, threshold):
@@ -266,6 +260,12 @@ class AlgorithmTester:
         if true_positives + false_negatives == 0:
             return 1
         return true_positives/(true_positives + false_negatives)
+
+    def output_results(self, results):
+        for key in results:
+            print(key)
+            for (query, article) in results[key]:
+                print("{0} -- {1}".format(self.dataSource.get_query_as_string(query), self.dataSource.get_article_title(article)))
 
 
 

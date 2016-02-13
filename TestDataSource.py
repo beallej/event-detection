@@ -2,12 +2,22 @@ import psycopg2
 import sys
 from psycopg2.extras import RealDictCursor
 import Globals
-from Collections import defaultdict
+from collections import defaultdict
+
 
 class TesterDataSource:
-    def __init__(self):
+    """
+    A class to get data for testing
+    """
+    def __init__(self, queries=None, articles=None):
+        """
+        Initializes a TesterDataSource
+        :return: None
+        """
+        # grab the current database used in the JSON
         db = Globals.database
         try:
+            # connect to the database and set autocommit to true
             conn = psycopg2.connect(user='root', database=db)
             conn.autocommit = True
         except psycopg2.Error:
@@ -19,17 +29,28 @@ class TesterDataSource:
             print("Error: cannot create cursor")
             sys.exit()
 
+        # initialize all instance variables to None
         self.query_articles = None
         self.validation_results = None
         self.validation_ratio = None
+        self.articles = articles
+        self.queries = queries
+        self.algorithms = None
+        self.results_by_algorithm = None
 
     def get_validation_ratio(self):
+        """
+        Gets the ratio of validated article/query pairs to all article/query pairs
+        :return: the ratio
+        """
         if self.validation_ratio is None:
+            # get count of validated query articles
             self.cursor.execute("SELECT count(*) FROM query_articles where validates = true")
+            # get count of all query articles
             validated = self.cursor.fetchone()
             self.cursor.execute("SELECT count(*) FROM query_articles")
             total = self.cursor.fetchone()
-            self.validation_ratio = validated["count"]/total["count"]
+            self.validation_ratio = validated["count"] / total["count"]
         return self.validation_ratio
 
     def get_algorithms(self):
@@ -62,17 +83,20 @@ class TesterDataSource:
         if self.query_articles is None:
             self.cursor.execute("SELECT query, article, validates FROM query_articles")
             query_articles_list = self.cursor.fetchall()
-            self.query_articles = {(qa["query"], qa["article"]) : qa["validates"] for qa in query_articles_list}
+            self.query_articles = {(qa["query"], qa["article"]): qa["validates"] for qa in query_articles_list}
         return self.query_articles
 
-
     def get_articles(self):
+        """
+        Gets a list of article ids from the database
+        :return: a list of article ids
+        """
         if self.articles is None:
+            # grab all article ids
             self.cursor.execute("SELECT id FROM articles")
             articles = self.cursor.fetchall()
             self.articles = [article["id"] for article in articles]
         return self.articles
-
 
     def get_validation_result(self, query_id, article_id, algorithm_id):
         """
@@ -110,14 +134,16 @@ class TesterDataSource:
         separates out validation data by the algorithm used to validate
         :return: dictionary: {algorithm id: {(query id, article id) : validation value)}}
         """
-        algorithm_datasets = defaultdict(dict)
-        results = self.get_validation_results()
-        for algorithm in self.get_algorithms():
-            algorithm_id = algorithm["id"]
-            for query_id in self.get_queries():
-                for article_id in self.get_articles():
-                    algorithm_datasets[algorithm_id][(query_id, article_id)] = results[(query_id, article_id, algorithm_id)]
-        self.results_by_algorithm = algorithm_datasets
+        if self.results_by_algorithm is None:
+            algorithm_datasets = defaultdict(dict)
+            results = self.get_validation_results()
+            for algorithm in self.get_algorithms():
+                algorithm_id = algorithm["id"]
+                for query_id in self.get_queries():
+                    for article_id in self.get_articles():
+                        algorithm_datasets[algorithm_id][(query_id, article_id)] = results[(query_id, article_id, algorithm_id)]
+            self.results_by_algorithm = algorithm_datasets
+        return self.results_by_algorithm
 
     def get_results_by_algorithms(self, algorithm_id):
         """
@@ -128,3 +154,22 @@ class TesterDataSource:
         if self.results_by_algorithm is None:
             self.separate_algorithm_data()
         return self.results_by_algorithm[algorithm_id]
+
+    def get_query_as_string(self, query_id):
+        """
+        Gets a string with query text for a given query
+        :param query_id: the query's id
+        :return: a string representing the query
+        """
+        self.cursor.execute("SELECT subject, verb, direct_obj, indirect_obj, loc FROM queries WHERE id = %s", (query_id, ))
+        query = self.cursor.fetchone()
+        return "{0} {1} {2} {3} {4}".format(query["subject"], query["verb"], query["direct_obj"], query["indirect_obj"], query["loc"])
+
+    def get_article_title(self, article_id):
+        """
+        Gets the title for a given article
+        :param article_id: the article's id
+        :return: the title
+        """
+        self.cursor.execute("SELECT title FROM articles WHERE id = %s", (article_id, ))
+        return self.cursor.fetchone()["title"]

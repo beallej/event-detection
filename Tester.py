@@ -21,7 +21,7 @@ class Tester:
         self.alg_testers = []
         for algorithm in self.algorithms:
             algorithm_id = algorithm["id"]
-            algorithm_name = algorithm["name"]
+            algorithm_name = algorithm["algorithm"]
             self.alg_testers.append(AlgorithmTester(algorithm_id, algorithm_name, tester_datasource=self.dataSource))
 
     def test_all(self):
@@ -50,8 +50,6 @@ class Tester:
         """
         for alg_tester in self.alg_testers:
             alg_tester.bootstrap()
-
-
 
     @staticmethod
     def plot_threshold_and_results_multi_algorithm(x_vals, data_labels, y_vals, x_label, y_label, title):
