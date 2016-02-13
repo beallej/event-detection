@@ -178,17 +178,14 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
     
     public double postProcess(SortedList<Pair<Double, CoreMap>> topN, Query query, String rawQuery, String articleTitle, double titleScore){
 
-        String subject, dirObject, indirObject, location;
+        String subject, dirObject, indirObject;
         subject = query.getSubject();
         dirObject = "";
         indirObject = "";
-        location = "";
         if (query.getDirectObject() != null && query.getDirectObject().length() > 0)
             dirObject = query.getDirectObject();
         if (query.getIndirectObject() != null && query.getIndirectObject().length() > 0)
             indirObject = query.getIndirectObject();
-        if (query.getLocation() != null && query.getLocation().length() > 0)
-            location = query.getLocation();
 
  
         HashMap<String, String> keywordNouns = new HashMap<String, String>();
@@ -209,21 +206,19 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
                     if (indirObject.contains(token.get(LemmaAnnotation.class))){
                         keywordNouns.put(token.get(LemmaAnnotation.class), "OBJECT"); //We will treat DirObj and IndirObj the same
                     }
-                    if (location.contains(token.get(LemmaAnnotation.class))){
-                        keywordNouns.put(token.get(LemmaAnnotation.class), "LOCATION");
-                    }
                 }
             }
 
         double articleMatchScore = 0.0;
         int matchedPerSentence = 0;
         HashSet<String> dependencyMatches = new HashSet<String>();
+
+
         for (Pair<Double, CoreMap> p : topN){ //for each sentence
             dependencyMatches= validationScore(query, p.getY(), keywordNouns);
             System.out.println("DEPENDENCY MATCHES::");
             System.out.println(dependencyMatches.toString()); 
-            // TO Do: Create a good score system (better than this hack of mine)
-            // NEED a more complex match (what if a S match from this sentence and S_pronoun-V-O match in other?)
+
             if (dependencyMatches.size() > 1){
                 System.out.println("Sentence matched a lot!!!"+p.getY());
                 articleMatchScore += 1.5;
@@ -236,6 +231,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         Annotation annotatedTitle = POSTagger.annotate(articleTitle);
         CoreMap taggedTitle = annotatedTitle.get(SentencesAnnotation.class).get(0);
         
+        //TITLE SCORE
         dependencyMatches = validationScore(query, taggedTitle, keywordNouns);
         System.out.println("DEPENDENCY MATCHES OF TITLE::");
         System.out.println(dependencyMatches.toString());
@@ -248,6 +244,11 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         }  
 
         System.out.println("MATCH SCORE: " + articleMatchScore);
+        System.out.println("die-die: " + wnMetricLin.computeWordSimilarityNoPos("pass away", "death"));
+        System.out.println("die-pass away: "  + wnMetricLin.computeWordSimilarityNoPos("run into", "encounter"));
+        System.out.println("die-pass away: "  + wnMetricLin.computeWordSimilarityNoPos("throw away", "dispose of"));
+
+
 
 
         if (articleMatchScore > 3){
@@ -303,12 +304,12 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
                 return matchSVO(query, sentence, matchedTokens, "OBJECT");
             }
         }       
-        return new HashSet<String>(); //String could only be SUBJECT, VERB, OBJECT, S_PRONOUN, O_PRONOUN
+        return new HashSet<String>(); //String could only be SUBJECT, VERB, OBJECT, S_PRONOUN, O_PRONOUN, LOCATION
     }
+
 
     public HashSet<String> matchSVO(Query query, CoreMap sentence, HashMap<String, HashSet<CoreLabel>> matchedTokens, String tokenType) {
         SemanticGraph dependencies = sentence.get(CollapsedCCProcessedDependenciesAnnotation.class);
-        // ASSUME verb only has one word
         String verb = query.getVerb();// TODO .get(LemmaAnnotation.class);
         HashSet<String> dependencyMatches = new HashSet<String>();
         for (CoreLabel token : matchedTokens.get(tokenType)) {
@@ -339,7 +340,24 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
                     }
                 }
             }
-        }          
+        }
+        // Search sentence for location match as well
+        // Use String Regex method (NOTE: CASE sensitive to avoid unfortunate matching like us - US)
+        String queryLocation = "";
+        if (query.getLocation() != null && query.getLocation().length() > 0) {    
+            queryLocation = query.getLocation();
+            String potentialPrep = queryLocation.substring(0,3);
+            if (potentialPrep.equals("in ") || potentialPrep.equals("on ") || potentialPrep.equals("at ")){
+                queryLocation = queryLocation.substring(3);
+            }
+            System.out.println("CLEANED QUERY: " + queryLocation);
+        }    
+
+        Pattern isLocationMatch = Pattern.compile("^|[\\-\"' \t]"+queryLocation+"[$\\.!?\\-,;\"' \t]");
+        if (!queryLocation.equals("") && isLocationMatch.matcher(sentence.toString()).find()) {
+            System.out.println("MATCHED LOCATION: " + queryLocation);
+            dependencyMatches.add("LOCATION");
+        }
         return dependencyMatches;
     } 
 
@@ -347,9 +365,8 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
 
         for (IndexedWord childNode : dependencies.getChildren(headNode)) {
             if (!STOPWORD_RELN_REGEX.matcher(dependencies.reln(headNode, childNode).getShortName()).find()){
-                // TODO double-check which tags are pronouns
                 if (tokenType.equals("SUBJECT")) {
-                    if (childNode.tag().equals("WP") || childNode.tag().equals("WDT") || childNode.tag().equals("PRP")) {
+                    if (childNode.tag().equals("WP") || childNode.tag().equals("WDT") || childNode.tag().equals("PRP") || childNode.tag().equals("WP$")) {
                             dependencyMatches.add("O_PRONOUN");
                     }
                     else {
@@ -365,7 +382,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
                         }
                     }
                 } else if (tokenType.equals("OBJECT")) {
-                    if (childNode.tag().equals("WP") || childNode.tag().equals("WDT") || childNode.tag().equals("PRP")) {
+                    if (childNode.tag().equals("WP") || childNode.tag().equals("WDT") || childNode.tag().equals("PRP") || childNode.tag().equals("WP$")) {
                             dependencyMatches.add("S_PRONOUN");
                     }                           
                 }
