@@ -6,11 +6,19 @@ from collections import  Counter
 import matplotlib.pyplot as plt
 
 class AlgorithmTester:
-    def __init__(self, algorithm, tester):
+    def __init__(self, algorithm, tester_datasource=TesterDataSource()):
         self.algorithm_id = algorithm["id"]
         self.algorithm_name = algorithm["algorithm"]
-        self.tester = tester
-        self.algorithm_results = tester.results_by_algorithm[self.algorithm_id]
+        self.dataSource = tester_datasource
+
+        self.query_articles = self.dataSource.get_query_articles()
+        self.results = self.dataSource.get_validation_results()
+        self.article_ids = self.dataSource.get_articles()
+        self.query_ids = self.dataSource.get_queries()
+
+        #TODO: DATASOURCE
+        self.algorithm_results = tester_datasource.get_results_by_algorithms(self.algorithm_id)
+
         self.get_best_threshold_for_algorithm()
         random.seed(10)
 

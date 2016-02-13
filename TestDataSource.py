@@ -2,6 +2,7 @@ import psycopg2
 import sys
 from psycopg2.extras import RealDictCursor
 import Globals
+from Collections import defaultdict
 
 class TesterDataSource:
     def __init__(self):
@@ -36,17 +37,21 @@ class TesterDataSource:
         gets a list of algorithm ids
         :return: the list
         """
-        self.cursor.execute("SELECT id, algorithm FROM validation_algorithms WHERE enabled = true")
-        return self.cursor.fetchall()
+        if self.algorithms is None:
+            self.cursor.execute("SELECT id, algorithm FROM validation_algorithms WHERE enabled = true")
+            self.algorithms = self.cursor.fetchall()
+        return self.algorithms
 
     def get_queries(self):
         """
         gets a list of query ids
         :return: the list
         """
-        self.cursor.execute("SELECT id FROM queries")
-        queries = self.cursor.fetchall()
-        return [query["id"] for query in queries]
+        if self.queries is None:
+            self.cursor.execute("SELECT id FROM queries")
+            queries = self.cursor.fetchall()
+            self.queries = [query["id"] for query in queries]
+        return self.queries
 
     def get_query_articles(self):
         """
@@ -62,9 +67,11 @@ class TesterDataSource:
 
 
     def get_articles(self):
-        self.cursor.execute("SELECT id FROM articles")
-        articles = self.cursor.fetchall()
-        return [article["id"] for article in articles]
+        if self.articles is None:
+            self.cursor.execute("SELECT id FROM articles")
+            articles = self.cursor.fetchall()
+            self.articles = [article["id"] for article in articles]
+        return self.articles
 
 
     def get_validation_result(self, query_id, article_id, algorithm_id):
@@ -97,3 +104,27 @@ class TesterDataSource:
             # create dictionary with format (query_id, article_id, algorithm_id) -> validates probability
             self.validation_results = {(r["query"], r["article"], r["algorithm"]): r["validates"] for r in results}
         return self.validation_results
+
+    def separate_algorithm_data(self):
+        """
+        separates out validation data by the algorithm used to validate
+        :return: dictionary: {algorithm id: {(query id, article id) : validation value)}}
+        """
+        algorithm_datasets = defaultdict(dict)
+        results = self.get_validation_results()
+        for algorithm in self.get_algorithms():
+            algorithm_id = algorithm["id"]
+            for query_id in self.get_queries():
+                for article_id in self.get_articles():
+                    algorithm_datasets[algorithm_id][(query_id, article_id)] = results[(query_id, article_id, algorithm_id)]
+        self.results_by_algorithm = algorithm_datasets
+
+    def get_results_by_algorithms(self, algorithm_id):
+        """
+        Gets return validation data for a given algorithms
+        :param algorithm_id: id of algorithm of interest
+        :return: dictionary: {(query id, article id) : validation value)}
+        """
+        if self.results_by_algorithm is None:
+            self.separate_algorithm_data()
+        return self.results_by_algorithm[algorithm_id]
