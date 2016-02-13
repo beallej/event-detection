@@ -2,9 +2,9 @@ import psycopg2
 import sys
 from psycopg2.extras import RealDictCursor
 import Globals
-from Collections import defaultdict
+from collections import defaultdict
 
-class TesterDataSource:
+class TestDataSource:
     def __init__(self):
         db = Globals.database
         try:
@@ -20,6 +20,10 @@ class TesterDataSource:
             sys.exit()
 
         self.query_articles = None
+        self.articles = None
+        self.queries = None
+        self.results_by_algorithm = None
+        self.algorithms = None
         self.validation_results = None
         self.validation_ratio = None
 

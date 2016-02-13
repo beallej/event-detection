@@ -4,9 +4,10 @@ import scikits.bootstrap as bootstrap
 from Tester import *
 from collections import  Counter
 import matplotlib.pyplot as plt
+from TestDataSource import  *
 
 class AlgorithmTester:
-    def __init__(self, algorithm_id, algorithm_name, tester_datasource=TesterDataSource()):
+    def __init__(self, algorithm_id, algorithm_name, tester_datasource=TestDataSource()):
         """
         Creates a test environment for a given algorithm
         :param algorithm_id id of algorithm of interest
@@ -30,7 +31,7 @@ class AlgorithmTester:
     def get_best_threshold_for_algorithm(self):
         """
         finds best threshold value for whether or not a query validates an algorithm
-        :return:
+        :return: the best threshold value
         """
         X = np.arange(.1,.4,0.0001)
         best_threshold = 0
@@ -52,6 +53,13 @@ class AlgorithmTester:
         return best_threshold
 
     def test(self, distribution_algorithm=False):
+        """
+        Performs leave-one-out cross-validation testing on the data
+        :param distribution_algorithm: type of "random" distribution to validate with, possible values include
+            all_true, all_false, half_and_half, real_distribution,
+            DEFAULT False uses actual algorithm results (non-random)
+        :return: The f1 measure of the results
+        """
         X = np.arange(self.best_threshold - .05, self.best_threshold + .05, .005)
         #X = np.arange(.1,.4,0.005)
         best_f1_measures = []
@@ -86,14 +94,14 @@ class AlgorithmTester:
         return best_thresholds, best_f1_measures, f1
 
 
-    def validate_distribution_algorithm(self, article, query, distribution_algorithm):
+    def validate_distribution_algorithm(self, article, query, distribution_algorithm="real_distribution"):
         """
         Randomly decides whether a query validates an algorithm
         :param article: article_id to validate
         :param query: query_id to validate
         :param distribution_algorithm: the identifier of the random algorithm, possible values are
             all_true, all_false, half_and_half, real_distribution
-        :return:
+        :return: number of true positives, number of false positives, number of false negatives
         """
         actual_value = self.query_articles[(query, article)]
 
@@ -125,6 +133,11 @@ class AlgorithmTester:
 
 
     def f1_bootstrap(self, dataset):
+        """
+        bootstraps on f1 measure of a dataset of queries, articles, and validation measures
+        :param dataset: a list of tuples: [((query_id, article_id), validation measure)...]
+        :return: the f1 measure of the results
+        """
         true_positives = 0
         false_positives = 0
         false_negatives = 0
@@ -133,7 +146,6 @@ class AlgorithmTester:
             article_id = datum[0][1]
             test_value_probability = datum[1]
             actual_value = self.query_articles[(query_id, article_id)]
-
             test_value = (test_value_probability > self.best_threshold)
             if test_value and actual_value:
                 true_positives += 1
@@ -145,6 +157,12 @@ class AlgorithmTester:
 
 
     def bootstrap(self):
+        """
+        performs bootrapping of f1 measure on dataset. A narrow confidence interval is more indicative of a sufficient sample size
+        A 95% confidence interval means we are 95% confident that the true f1 measure is between (1) and (2).
+        ( 1 and 2 are values return by bootstrap library).
+        :return:
+        """
         data = list(self.algorithm_results.items())
         CIs = bootstrap.ci(data=data, statfunction=self.f1_bootstrap, n_samples=10000)
         print(self.algorithm_name)
@@ -152,6 +170,13 @@ class AlgorithmTester:
 
 
     def f1_randomized(self, test_values, actual_values):
+        """
+        Generates the f1 measure a dataset, except randomized. The actual validation values are shuffled
+        and randomly paired with a test value before the f1 measure is calculated
+        :param test_values: a list of booleans representing whether or not the algorithm decided if the query validated the article
+        :param actual_values: a list of booleans representing whether or not the query actually validated the article
+        :return: f1 measure
+        """
         random.shuffle(actual_values)
         true_positives = 0
         false_positives = 0
@@ -168,6 +193,10 @@ class AlgorithmTester:
         return self.calculate_f1(true_positives, false_positives, false_negatives)
 
     def create_randomization_distribution_f1(self):
+        """
+        creates a randomized distribution of f1 measures for hypothesis testing purposes
+        :return: array of f1 measures from distribution
+        """
         test_values = []
         actual_values = []
         f1s = Counter()
@@ -180,35 +209,65 @@ class AlgorithmTester:
                 test_values.append(test_value)
                 actual_values.append(actual_value)
         for i in range(10000):
-            # f1_bucket = round(self.f1_randomized(test_values, actual_values), 2)
-            # f1s[f1_bucket] += 1
             f1s_array.append(self.f1_randomized(test_values, actual_values))
         return f1s_array
 
-    def graph_randomization_distribution_f1(self):
-        f1s = self.create_randomization_distribution_f1()
-
+    def graph_randomization_distribution_f1(self, randomization_distribution, test_value=None):
+        """
+        Graphs the randomization distribution of f1 values
+        :return:
+        """
         # the histogram of the data
-        n, bins, patches = plt.hist(f1s, 50, normed=1, facecolor='green', alpha=0.75)
+        n, bins, patches = plt.hist(randomization_distribution, 50, normed=1, facecolor='green', alpha=0.75)
         plt.grid(True)
-
+        if test_value != None:
+            plt.axvline(x=test_value)
+        plt.ylabel("Frequency")
+        plt.xlabel("F1 measure")
+        plt.title("Randomization Distribution of F1 Measures")
+        legend = [mpatches.Patch(color="b", label="Test result")]
+        plt.legend(handles=legend)
         plt.show()
 
 
-    def calculate_p_value(self):
-        f1s = self.create_randomization_distribution_f1()
-        _, _, f1 = self.test()
+    def calculate_p_value(self, randomization_distribution, test_value):
+        """
+        calculates p value of algorithm's results, assuming null hypothesis is true
+        :return:
+        """
         as_extreme = 0
-        for f1_random in f1s:
-            if f1_random >= f1:
+        for f1_random in randomization_distribution:
+            if f1_random >= test_value:
                 as_extreme += 1
-        p_value = as_extreme/len(f1s)
+        p_value = as_extreme/len(randomization_distribution)
         return p_value
 
 
+    def hypothesis_test(self):
+        """
+        Performs a statistical significance test on the data
+        :return:
+        """
+        randomization_distribution = self.create_randomization_distribution_f1()
+        _, _, test_value = self.test()
+        p_value = self.calculate_p_value(randomization_distribution, test_value)
+        h_0 = self.dataSource.get_validation_ratio()
+        print("H_0: Population F1 = {}. {} performs as well as random.".format(h_0, self.algorithm_name))
+        print("H_a: Population F1 > {}. {} performs better than random.".format(h_0, self.algorithm_name))
+        if p_value < 0.01:
+            print("A p value of {} is strong evidence to reject the null hypothesis that {} performs as well as random"\
+            "in favor of the alternative that it performs better than random. Results are highly statistically significant.".format(p_value, self.algorithm_name))
+        elif 0.01 <= p_value < 0.05:
+            print("A p value of {} is evidence to reject the null hypothesis that {} performs as well as random"\
+            "in favor of the alternative that it performs better than random. Results are statistically significant.".format(p_value, self.algorithm_name))
+        elif 0.05 <= p_value < 0.1:
+            print("A p value of {} is weak evidence to reject the null hypothesis that {} performs as well as random"\
+                  "in favor of the alternative that it performs better than random. Results are marginally statistically significant.".format(p_value, self.algorithm_name))
+        else:
+            print("A p value of {} is not sufficient evidence to reject the null hypothesis that {} performs as well as random"\
+                  "in favor of the alternative that it performs better than random. Results are not statistically significant.".format(p_value, self.algorithm_name))
 
-
-
+        self.graph_randomization_distribution_f1(randomization_distribution, test_value=test_value)
 
 
     def validate_query_article_left_out(self, article_left_out, query_left_out, threshold):
@@ -271,7 +330,7 @@ class AlgorithmTester:
 
 def main():
     at = AlgorithmTester(1, "keyword")
-    at.calculate_p_value()
+    at.hypothesis_test()
     # at.test("half_and_half")
 
 if __name__ == "__main__":
