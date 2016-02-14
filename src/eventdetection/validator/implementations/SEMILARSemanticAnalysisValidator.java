@@ -74,7 +74,10 @@ import toberumono.structures.SortingMethods;
  */
 public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
 
-    private static int MAX_SENTENCES = 5;
+    private double FIRST_ROUND_CONTENT_THRESHOLD = 0.15;
+    private double FIRST_ROUND_TITLE_THRESHOLD = 0.20;
+    private double VALIDATION_THRESHOLD = 3;
+    private static int MAX_SENTENCES = 10;
     private double MIN_WORD_TO_WORD_THRESHOLD = 0.70;
     private static Pattern STOPWORD_RELN_REGEX = Pattern.compile("det|mark|cc|aux|punct|auxpass|cop|expl|goeswith|dep");
     private static Pattern USEFUL_RELN_REGEX = Pattern.compile("nmod|dobj|iobj|nsubj|nsubjpass|appos");
@@ -113,10 +116,10 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         Sentence querySentence;
         Sentence articleSentence;
         
-	long startSP = System.nanoTime();
+	   //long startSP = System.nanoTime();
         SentencePreprocessor preprocessor = new SentencePreprocessor(SentencePreprocessor.TokenizerType.STANFORD, SentencePreprocessor.TaggerType.STANFORD, SentencePreprocessor.StemmerType.PORTER, SentencePreprocessor.ParserType.STANFORD);
-	long endSP = System.nanoTime();
-	long spElapsedMillis = (endSP - startSP) / 1000000;
+	   //long endSP = System.nanoTime();
+	   //long spElapsedMillis = (endSP - startSP) / 1000000;
         
         SortedList<Pair<Double, CoreMap>> topN = new SortedList<>((a, b) -> b.getX().compareTo(a.getX()));
         
@@ -151,7 +154,6 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
                 temp = (double) optimumComparerWNLin.computeSimilarity(querySentence, articleSentence);
 		long endComputeSimilarity = System.nanoTime();
 		long computeSimilarityElapsedMillis = (endComputeSimilarity - startComputeSimilarity) / 1000000;
-		//System.out.println("TIMING3: " + computeSimilarityElapsedMillis + " milliseconds to compute similarity between query and article sentence");
                 if (temp.equals(Double.NaN))
                     continue;
                 topN.add(new Pair<>(temp, sentence));
@@ -160,15 +162,32 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
             }
         }
 
+        // System.out.println("size before reducing: "+topN.size()+topN);
+        // //Refine top 10 to top 5
+        // if (topN.size() > 5){
+        //     for (int amount = topN.size(); amount > 5; amount--) {
+        //         topN.remove(topN.size() - 1);
+        //     }
+        // }
+        // System.out.println("size after reducing: "+topN.size()+topN);
 
-  		double average = 0.0;
+        // Average of top 5 similar sentences
+        double average = 0.0;
+        int count = 0;
 		for (Pair<Double, CoreMap> p : topN){
+            count += 1;
+            if (count > 5) {
+                break;
+            }
+            System.out.println("Top 5: " + p.getX());
 			average += p.getX();
             System.out.println(p.getY().toString() + p.getX());
         }
-        average /= (double) topN.size(); 
+
+        average /= (double) count; 
+        System.out.println("AVERAGE: "+average);
         double validation = 0.0;
-        if (average > 0.15 || tempTitle > 0.15) {
+        if (average > FIRST_ROUND_CONTENT_THRESHOLD || tempTitle > FIRST_ROUND_TITLE_THRESHOLD) {
             validation = postProcess(topN, query,phrase1.toString(), title, tempTitle);
         }
         System.out.println("Annotated title: "+ article.getAnnotatedTitle());
@@ -176,6 +195,9 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         return new ValidationResult[]{new ValidationResult(article.getID(), validation)};
     }
     
+
+    /* @author Phuong Dinh & Julia Kroll
+    */
     public double postProcess(SortedList<Pair<Double, CoreMap>> topN, Query query, String rawQuery, String articleTitle, double titleScore){
 
         String subject, dirObject, indirObject;
@@ -275,14 +297,9 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         }  
 
         System.out.println("MATCH SCORE: " + articleMatchScore);
-        System.out.println("die-die: " + wnMetricLin.computeWordSimilarityNoPos("pass away", "death"));
-        System.out.println("die-pass away: "  + wnMetricLin.computeWordSimilarityNoPos("run into", "encounter"));
-        System.out.println("die-pass away: "  + wnMetricLin.computeWordSimilarityNoPos("throw away", "dispose of"));
 
 
-
-
-        if (articleMatchScore > 3){
+        if (articleMatchScore > VALIDATION_THRESHOLD){
             return 1.0;
 
         } 
@@ -431,7 +448,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
 
         for (IndexedWord nounNode : nounNodes) {
             IndexedWord parent = dependencies.getParent(nounNode);
-            while (parent != null && !parent.tag().substring(0,1).equals("V")) {
+            while (parent != null && dependencies.getParent(parent) != null && !parent.tag().substring(0,1).equals("V")) {
                 if (parent == dependencies.getParent(parent)){
                     break;
                 }
@@ -450,7 +467,5 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
 	 */
 	public static void loadStaticProperties(JSONObject properties) {
 		MAX_SENTENCES = (Integer) properties.get("max-sentences").value();
-        System.out.println("MAX SENTENCE " + MAX_SENTENCES);
-
 	}
 }
