@@ -52,6 +52,9 @@ class Cluster:
                         self.keywords.add(kw[0])
         return self.keywords
 
-    def as_dictionary(self):
-        keywords = list(self.get_keywords())
-        return {"keywords": keywords, "articles": self.article_ids}
+    def get_article_ids(self):
+        """
+        Returns the article ids associated with this cluster
+        :return: list of articles ids
+        """
+        return self.article_ids

@@ -5,9 +5,10 @@ from KeywordExtractor import *
 import re
 from collections import Counter
 from sklearn.feature_extraction.text import TfidfTransformer
+import io
+
 
 class MatrixCreator:
-
 
     def __init__(self):
         """
@@ -85,13 +86,15 @@ class MatrixCreator:
         across all articles
         :return: Set of words used in all articles
         """
-        pattern =  re.compile(r'TITLE:(.*)TEXT:(.*)', re.DOTALL)
+        pattern = re.compile(r'TITLE:(.*)TEXT:(.*)', re.DOTALL)
 
         self.article_words_by_article = []
         all_article_words_set = set()
 
         for idx, filename in enumerate(self.filenames):
-            body = open("articles/" + filename).read()
+            # read file in as utf-8
+            file = io.open("articles/" + filename, "r", encoding="utf8")
+            body = file.read()
             tagged_items = re.match(pattern, body)
             title_tagged = tagged_items.group(1)
             body_tagged = tagged_items.group(2)
