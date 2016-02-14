@@ -2,6 +2,8 @@ from HierarchicalAgglomerativeClusterer import *
 import operator
 from AbstractClusterer import *
 from nltk.stem.wordnet import WordNetLemmatizer
+import sys
+import json
 
 class ClusterValidator:
     """
@@ -20,6 +22,9 @@ class ClusterValidator:
         self.clusters = clusterer.cluster()
         self.lemmatizer = WordNetLemmatizer()
 
+    def get_clusters(self):
+        return self.clusters
+
     def add_query(self, query):
         """
         add_query: adds query to queries to be validated, inits empty query_article_list
@@ -36,7 +41,7 @@ class ClusterValidator:
         """
         # if there are no clusters, we can't validate
         if len(self.clusters) == 0:
-            return None, 0
+            return Cluster(), 0
 
         # Need to process query and article formats
         ds = DataSource()
@@ -48,11 +53,10 @@ class ClusterValidator:
         cluster_matches = {}
 
         for cluster in self.clusters:
-
             max_match_value = 0
             match_value = 0
             all_cluster_keywords = cluster.get_keywords()
-            all_cluster_keywords= set(self.normalize_keyword(kw) for kw in  all_cluster_keywords)
+            all_cluster_keywords = set(self.normalize_keyword(kw) for kw in all_cluster_keywords)
 
             subkeywords = set()
             for keyword in all_cluster_keywords:
@@ -71,17 +75,14 @@ class ClusterValidator:
                         if synonym in all_cluster_keywords:
                             match_value += 1
                             break
-            match_percentage = match_value / max_match_value
+            match_percentage = 0 if max_match_value == 0 else (match_value / max_match_value)
             cluster_matches[cluster] = match_percentage
 
         # find the max match_percentage
         max_match_cluster = max(cluster_matches.items(), key=operator.itemgetter(1))[0]
 
         best_value = cluster_matches[max_match_cluster]
-        if best_value >= self.MIN_THRESHOLD:
-            return max_match_cluster, best_value
-        return None, best_value
-
+        return max_match_cluster, best_value
 
     def normalize_keyword(self, word):
         lemma = self.lemmatizer.lemmatize(word.lower())
@@ -90,12 +91,16 @@ class ClusterValidator:
 
 
 def main():
-    clusterValidator = ClusterValidator()
-    result, value = clusterValidator.validate(8)
-    if result is None:
-        print("No clusters found for value " + str(value))
-    else:
-        print(result.article_titles, result.article_ids, value)
+    # run `python ClusterValidator.py query_id_1 query_id_2 query_id_3 ...`
+    cluster_validator = ClusterValidator()
+    query_ids = [int(article_id) for article_id in sys.argv[1:]]
+    validation_results = {}
+    for query_id in query_ids:
+        cluster, match_value = cluster_validator.validate(query_id)
+        validation_results[query_id] = {"articles": cluster.get_article_ids(), "match_value": match_value}
+
+    # prints json to standard out
+    print(json.dumps(validation_results))
 
 if __name__ == "__main__":
     main()
