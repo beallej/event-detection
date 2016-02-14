@@ -313,7 +313,7 @@ class AlgorithmTester:
 
     def calculate_f1(self, true_positives, false_positives, false_negatives):
         """
-
+        Calculates the f1 score, the harmonic mean of precision and recall
         :param true_positives: the number of true positives in the data set
         :param false_positives: the number of false positives in the data set
         :param false_negatives: the number of false negatives in the data set
@@ -331,7 +331,8 @@ class AlgorithmTester:
     @staticmethod
     def precision(true_positives, false_positives):
         """
-
+        Calculates the precision, the number of cases that are and should be labeled as true over the number of cases
+        that are labeled as true
         :param true_positives: the number of true positives in the data set
         :param false_positives: the number of false positives in the data set
         :return: the precision measure
@@ -343,7 +344,8 @@ class AlgorithmTester:
     @staticmethod
     def recall(true_positives, false_negatives):
         """
-
+        Calculates the recall, the number of cases that are and should be labeled as true over the number of cases that
+        should be labeled as true
         :param true_positives: the number of true positives in the data set
         :param false_negatives: the number of false negatives in the data set
         :return: the recall measure
