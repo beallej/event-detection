@@ -390,7 +390,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
             }
             System.out.println("Dependecy Tree: " + dependencies);
             List<IndexedWord> verbNodes = getVerbNodes(token, verb, dependencies);
-            System.out.println("VERB found for "+token+" is "+verbNodes);
+            //System.out.println("VERB found for "+token+" is "+verbNodes);
 
             for (IndexedWord verbNode : verbNodes){
                 // TODO: Not only verb to verb, but also verb to adj (e.g) die == was dead
@@ -418,7 +418,6 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
 
         Pattern isLocationMatch = Pattern.compile("(^|[\\-\"' \t])"+queryLocation+"[$\\.!?\\-,;\"' \t]");
         if (!queryLocation.equals("") && isLocationMatch.matcher(sentence.toString()).find()) {
-            System.out.println("LOCATION is: "+queryLocation + " sentence " + sentence.toString());
             dependencyMatches.add("LOCATION");
         }
 
@@ -470,7 +469,6 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
 
         List<IndexedWord> nounNodes = dependencies.getAllNodesByWordPattern(token.toString().split("-")[0]);
         List<IndexedWord> verbNodes = new ArrayList<IndexedWord>();
-        System.out.println("NOun to find stuff: "+token+ " lemma: "+nounNodes);
         for (IndexedWord nounNode : nounNodes) {
             IndexedWord parent = dependencies.getParent(nounNode);
             while (parent != null && dependencies.getParent(parent) != null && !parent.tag().substring(0,1).equals("V")) {
