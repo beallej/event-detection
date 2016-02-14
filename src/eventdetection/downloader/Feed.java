@@ -14,6 +14,9 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndFeed;
 import com.rometools.rome.io.FeedException;
@@ -41,6 +44,7 @@ import static eventdetection.common.ThreadingUtils.pool;
  */
 public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentable {
 	private static final SyndFeedInput input = new SyndFeedInput();
+	private static final Logger logger = LoggerFactory.getLogger("Feed");
 	
 	private final int id;
 	private final String name;
@@ -312,5 +316,11 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 			json.put("lastSeen", new JSONString(getLastSeen()));
 		if (file != null)
 			JSONSystem.writeJSON(toJSONObject(), file);
+		try {
+			connection.close();
+		}
+		catch (SQLException e) {
+			logger.error("An SQL error occured while closing a Feed's Connection.", e);
+		}
 	}
 }

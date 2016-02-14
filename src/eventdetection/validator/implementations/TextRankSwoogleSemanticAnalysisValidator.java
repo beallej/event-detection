@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import toberumono.json.JSONObject;
+import toberumono.json.JSONString;
 import toberumono.structures.tuples.Pair;
 
 import edu.stanford.nlp.util.CoreMap;
@@ -29,36 +30,20 @@ import eventdetection.validator.types.Validator;
  * @author Joshua Lipstone
  */
 public class TextRankSwoogleSemanticAnalysisValidator extends OneToOneValidator {
-	private static String URL_PREFIX = "http://swoogle.umbc.edu/StsService/GetStsSim?operation=api";
+	private final String urlPrefix;
 	
 	/**
 	 * Constructs a new instance of the {@link Validator} for the given {@code ID}, {@link Query}, and {@link Article}
 	 * 
-	 * @param query
-	 *            the {@link Query} to validate
-	 * @param article
-	 *            the {@link Article} against which the {@link Query} is to be validated
-	 */
-	public TextRankSwoogleSemanticAnalysisValidator(Query query, Article article) {
-		super(query, article);
-	}
-	
-	/**
-	 * Constructs a new instance of the {@link Validator} for the given {@code ID}, {@link Query}, and {@link Article}
-	 * 
-	 * @param json
+	 * @param parameters
 	 *            the {@link JSONObject} containing the instance-specific parameters
-	 * @param query
-	 *            the {@link Query} to validate
-	 * @param article
-	 *            the {@link Article} against which the {@link Query} is to be validated
 	 */
-	public TextRankSwoogleSemanticAnalysisValidator(JSONObject json, Query query, Article article) {
-		this(query, article);
+	public TextRankSwoogleSemanticAnalysisValidator(JSONObject parameters) {
+		urlPrefix = ((JSONString) parameters.get("url-prefix")).value();
 	}
 	
 	@Override
-	public ValidationResult[] call() throws IOException {
+	public ValidationResult[] call(Query query, Article article) throws IOException {
 		StringBuilder phrase1 = new StringBuilder();
 		phrase1.append(query.getSubject()).append(" ").append(query.getVerb());
 		if (query.getDirectObject() != null && query.getDirectObject().length() > 0)
@@ -69,7 +54,7 @@ public class TextRankSwoogleSemanticAnalysisValidator extends OneToOneValidator 
 		List<Pair<CoreMap, Double>> sentences = TextRank.getRankedSentences(article.getAnnotatedText());
 		for (Pair<CoreMap, Double> sentence : sentences) {
 			String sen = POSTagger.reconstructSentence(sentence.getX());
-			String url = String.format("%s&phrase1=%s&phrase2=%s", URL_PREFIX, URLEncoder.encode(phrase1.toString(), StandardCharsets.UTF_8.name()),
+			String url = String.format("%s&phrase1=%s&phrase2=%s", urlPrefix, URLEncoder.encode(phrase1.toString(), StandardCharsets.UTF_8.name()),
 					URLEncoder.encode(sen, StandardCharsets.UTF_8.name()));
 			URLConnection connection = new URL(url).openConnection();
 			connection.setRequestProperty("Accept-Charset", StandardCharsets.UTF_8.name());
@@ -79,15 +64,5 @@ public class TextRankSwoogleSemanticAnalysisValidator extends OneToOneValidator 
 			}
 		}
 		return new ValidationResult[]{new ValidationResult(article.getID(), average / divisor)};
-	}
-	
-	/**
-	 * Hook for loading parameters from the Validator's JSON data
-	 * 
-	 * @param parameters
-	 *            a {@link JSONObject} holding the validator's static parameters
-	 */
-	public static void loadStaticParameters(JSONObject parameters) {
-		URL_PREFIX = (String) parameters.get("url-prefix").value();
 	}
 }

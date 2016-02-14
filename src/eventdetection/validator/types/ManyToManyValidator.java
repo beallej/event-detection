@@ -12,28 +12,18 @@ import eventdetection.validator.ValidationResult;
  * 
  * @author Joshua Lipstone
  */
-public abstract class ManyToManyValidator implements Validator {
-	protected final Collection<Query> queries;
-	protected final Collection<Article> articles;
-	
-	/**
-	 * Constructs a new instance of the {@link Validator} for the given {@link Query Queries} and {@link Article Articles}
-	 * 
-	 * @param queries
-	 *            the {@link Query Queries} to validate
-	 * @param articles
-	 *            the {@link Article Articles} against which the {@link Query Queries} are to be validated
-	 */
-	public ManyToManyValidator(Collection<Query> queries, Collection<Article> articles) {
-		this.queries = queries;
-		this.articles = articles;
-	}
+public abstract class ManyToManyValidator {
 	
 	/**
 	 * Executes the algorithm that the {@link Validator} implements
 	 * 
-	 * @return a {@link ValidationResult} with the appropriate information
+	 * @param queries
+	 *            the {@link Query Queries} to validate
+	 * @param articles
+	 *            the {@link Article Articles} with which to validate them
+	 * @return an array of {@link ValidationResult ValidationResults} with the appropriate information
+	 * @throws Exception
+	 *             if something goes wrong
 	 */
-	@Override
-	public abstract ValidationResult[] call() throws Exception;
+	public abstract ValidationResult[] call(Collection<Query> queries, Collection<Article> articles) throws Exception;
 }

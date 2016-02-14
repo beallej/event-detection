@@ -92,9 +92,9 @@ class MatrixCreator:
         all_article_words_set = set()
 
         for idx, filename in enumerate(self.filenames):
-            # read file in as utf-8
-            file = io.open("articles/" + filename, "r", encoding="utf8")
-            body = file.read()
+            article_file = open("articles/" + filename, "r", encoding="utf8")
+            body = article_file.read()
+            article_file.close()
             tagged_items = re.match(pattern, body)
             title_tagged = tagged_items.group(1)
             body_tagged = tagged_items.group(2)

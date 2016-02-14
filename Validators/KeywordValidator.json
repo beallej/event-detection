@@ -1,11 +1,5 @@
 {
-	"id" : "keyword",
-	"class" : "eventdetection.validator.implementations.KeywordValidator",
-	"type" : "OneToOne",
-	"parameters" : {
-		"static" : {
-			"script-path" : "./JavaCallableKeywordValidator.py"
-		}
-	},
-	"enabled" : true
+	"instance" : {
+		"script-path" : "./JavaCallableKeywordValidator.py"
+	}
 }
