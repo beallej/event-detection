@@ -76,7 +76,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
 
     // Test the following variables:
     private double HIGH_VALIDATION_THRESHOLD = 8.9; //THRESHOLD to accept validation return P = 1.0
-    private double MEDIUM_VALIDATION_THRESHOLD = 3.9; // Considering zone P ranging 0.4 to 0.9
+    private double MEDIUM_VALIDATION_THRESHOLD = 0.0; // Considering zone P ranging 0.0 to 0.9
     private double FIRST_ROUND_CONTENT_THRESHOLD = 0.15;
     private double FIRST_ROUND_TITLE_THRESHOLD = 0.20;
     private double TITLE_MULTIPLIER = 2;
