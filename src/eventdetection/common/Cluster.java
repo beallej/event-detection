@@ -114,7 +114,7 @@ public class Cluster {
 	 *             if an error occurs while executing the subprocess or reading its output
 	 */
 	public static Collection<Cluster> loadClusters(Function<Integer, Article> articleLoader, String... articles) throws IOException {
-		Process p = SubprocessHelpers.executePythonProcess(Paths.get("./ClusterValidator.py"), articles);
+		Process p = SubprocessHelpers.executePythonProcess(Paths.get("./Cluster.py"), articles);
 		Collection<Cluster> out = new LinkedHashSet<>();
 		try {
 			p.waitFor();
