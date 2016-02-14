@@ -13,3 +13,5 @@ event-detection.jar
 *.iml
 validator.jar
 text-rank.jar
+pipeline.jar
+voting.jar

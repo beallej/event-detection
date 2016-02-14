@@ -62,6 +62,7 @@ import java.util.concurrent.Future;
 import toberumono.json.JSONArray;
 import toberumono.json.JSONObject;
 import toberumono.json.JSONSystem;
+import toberumono.json.JSONNumber;
 import toberumono.structures.collections.lists.SortedList;
 import toberumono.structures.tuples.Pair;
 import toberumono.structures.SortingMethods;
@@ -89,7 +90,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
 
 
     // No need to change variable
-    private static int MAX_SENTENCES = 10;
+    private int MAX_SENTENCES = 10;
     private static Pattern STOPWORD_RELN_REGEX = Pattern.compile("det|mark|cc|aux|punct|auxpass|cop|expl|goeswith|dep");
     private static Pattern USEFUL_RELN_REGEX = Pattern.compile("nmod|dobj|iobj|nsubj|nsubjpass|appos|conj|xcomp|ccomp");
 
@@ -100,18 +101,14 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
     
 	/**
 	 * Constructs a new instance of the {@link Validator} for the given {@code ID}, {@link Query}, and {@link Article}
-	 * 
-	 * @param query
-	 *            the {@link Query} to validate
-	 * @param article
-	 *            the {@link Article} against which the {@link Query} is to be validated
+	 * @param config the configuration data
 	 */
-    public SEMILARSemanticAnalysisValidator(Query query, Article article) {
-		super(query, article);
-
+    public SEMILARSemanticAnalysisValidator(JSONObject config) {
+		MAX_SENTENCES = ((JSONNumber<?>) config.get("max-sentences")).value().intValue();
+        HIGH_VALIDATION_THRESHOLD = ((JSONNumber<?>) config.get("HIGH_VALIDATION_THRESHOLD")).value().doubleValue();
         /* Word to word similarity expanded to sentence to sentence .. so we need word metrics */
         boolean wnFirstSenseOnly = false; //applies for WN based methods only.
-        wnMetricLin = new WNWordMetric(WordNetSimilarity.WNSimMeasure.LIN, wnFirstSenseOnly);
+        wnMetricLin = new WNWordMetric(WordNetSimilarity.WNSimMeasure.LIN, false);
 
         optimumComparerWNLin = new OptimumComparer(wnMetricLin, 0.3f, false, WordWeightType.NONE, NormalizeType.AVERAGE);
         //optimumComparerLSATasa = new OptimumComparer(lsaMetricTasa, 0.3f, false, WordWeightType.NONE, NormalizeType.AVERAGE);
@@ -122,7 +119,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
 
     
 	@Override
-	public ValidationResult[] call() throws IOException {
+	public ValidationResult[] call(Query query, Article article) throws IOException {
         
         Sentence querySentence;
         Sentence articleSentence;
@@ -481,14 +478,4 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         }
         return verbNodes;
     }
-
-	/**
-	 * Hook for loading properties from the Validator's JSON data
-	 * 
-	 * @param properties
-	 *            a {@link JSONObject} holding the validator's static properties
-	 */
-	public static void loadStaticProperties(JSONObject properties) {
-		MAX_SENTENCES = (Integer) properties.get("max-sentences").value();
-	}
 }

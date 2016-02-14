@@ -1,5 +1,8 @@
 package eventdetection.validator;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
 import eventdetection.common.Article;
 import eventdetection.common.Query;
 import eventdetection.validator.types.Validator;
@@ -35,7 +38,7 @@ public class ValidationResult {
 	 * @param validates
 	 *            the probability from [0.0, 1.0] that the {@link Article} validates the query
 	 * @param invalidates
-	 *            the probability from [0.0, 1.0] that the {@link Article} invalidates the query
+	 *            the probability from [0.0, 1.0] that the {@link Article} invalidates the query or {@code null}
 	 *            ({@code validates + invalidates} need not equal 1)
 	 */
 	public ValidationResult(Article article, Double validates, Double invalidates) {
@@ -63,7 +66,7 @@ public class ValidationResult {
 	 * @param validates
 	 *            the probability from [0.0, 1.0] that the {@link Article} validates the query
 	 * @param invalidates
-	 *            the probability from [0.0, 1.0] that the {@link Article} invalidates the query
+	 *            the probability from [0.0, 1.0] that the {@link Article} invalidates the query or {@code null}
 	 *            ({@code validates + invalidates} need not equal 1)
 	 */
 	public ValidationResult(Integer articleID, Double validates, Double invalidates) {
@@ -98,7 +101,7 @@ public class ValidationResult {
 	 * @param validates
 	 *            the probability from [0.0, 1.0] that the {@link Article} validates the query
 	 * @param invalidates
-	 *            the probability from [0.0, 1.0] that the {@link Article} invalidates the query
+	 *            the probability from [0.0, 1.0] that the {@link Article} invalidates the query or {@code null}
 	 *            ({@code validates + invalidates} need not equal 1)
 	 */
 	public ValidationResult(Query query, Article article, Double validates, Double invalidates) {
@@ -130,7 +133,7 @@ public class ValidationResult {
 	 * @param validates
 	 *            the probability from [0.0, 1.0] that the {@link Article} validates the query
 	 * @param invalidates
-	 *            the probability from [0.0, 1.0] that the {@link Article} invalidates the query
+	 *            the probability from [0.0, 1.0] that the {@link Article} invalidates the query or {@code null}
 	 *            ({@code validates + invalidates} need not equal 1)
 	 */
 	public ValidationResult(Integer queryID, Integer articleID, Double validates, Double invalidates) {
@@ -138,6 +141,21 @@ public class ValidationResult {
 		this.articleID = articleID;
 		this.validates = validates;
 		this.invalidates = invalidates;
+	}
+	
+	/**
+	 * Constructs a {@link ValidationResult} from the current row in the given {@link ResultSet}.<br>
+	 * <b>Note:</b> This does <i>not</i> advance the {@link ResultSet ResultSet's} cursor at any point.
+	 * 
+	 * @param resultSet
+	 *            the {@link ResultSet} with its cursor on the row from which the {@link ValidationResult} is to be loaded.
+	 *            <br>
+	 *            It <i>must</i> include the columns named, 'query', 'article', 'validates', and 'invalidates'.
+	 * @throws SQLException
+	 *             if an error occurs while accessing any of the required fields from the {@link ResultSet}
+	 */
+	public ValidationResult(ResultSet resultSet) throws SQLException {
+		this(resultSet.getInt("query"), resultSet.getInt("article"), (double) resultSet.getFloat("validates"), (double) resultSet.getFloat("invalidates"));
 	}
 	
 	/**

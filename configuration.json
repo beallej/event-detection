@@ -33,6 +33,10 @@
 		"feeds"			: "feeds",
 		"scrapers"		: null,
 		"articles"		: "articles",
-		"validators"	: "validation_algorithms"
+		"validators"	: "validation_algorithms",
+		"results"		: "validation_results"
+	},
+	"voting" : {
+		"global-threshold" : 0.5
 	}
 }

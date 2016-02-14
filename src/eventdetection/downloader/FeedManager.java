@@ -12,6 +12,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import eventdetection.common.Article;
 import eventdetection.common.DBConnection;
 
@@ -21,6 +24,7 @@ import eventdetection.common.DBConnection;
  * @author Joshua Lipstone
  */
 public class FeedManager extends Downloader {
+	private static final Logger logger = LoggerFactory.getLogger("FeedManager");
 	private final Map<String, Scraper> scrapers;
 	private final Map<Integer, Feed> feeds;
 	private final Connection connection;
@@ -187,5 +191,11 @@ public class FeedManager extends Downloader {
 		closed = true;
 		for (Feed f : feeds.values())
 			f.close();
+		try {
+			connection.close();
+		}
+		catch (SQLException e) {
+			logger.error("An SQL error occured while closing a FeedManager's Connection.", e);
+		}
 	}
 }

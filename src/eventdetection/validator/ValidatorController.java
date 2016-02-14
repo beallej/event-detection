@@ -1,12 +1,13 @@
 package eventdetection.validator;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -24,15 +25,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
+import org.postgresql.util.PGobject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import toberumono.json.JSONArray;
-import toberumono.json.JSONBoolean;
+import toberumono.json.JSONData;
 import toberumono.json.JSONObject;
 import toberumono.json.JSONString;
 import toberumono.json.JSONSystem;
+import toberumono.structures.tuples.Pair;
 import toberumono.structures.tuples.Triple;
 
 import static eventdetection.common.ThreadingUtils.pool;
@@ -42,6 +46,11 @@ import eventdetection.common.ArticleManager;
 import eventdetection.common.DBConnection;
 import eventdetection.common.Query;
 import eventdetection.common.ThreadingUtils;
+import eventdetection.pipeline.PipelineComponent;
+import eventdetection.validator.types.ManyToManyValidator;
+import eventdetection.validator.types.ManyToOneValidator;
+import eventdetection.validator.types.OneToManyValidator;
+import eventdetection.validator.types.OneToOneValidator;
 import eventdetection.validator.types.Validator;
 import eventdetection.validator.types.ValidatorType;
 
@@ -50,59 +59,90 @@ import eventdetection.validator.types.ValidatorType;
  * 
  * @author Joshua Lipstone
  */
-public class ValidatorController {
+public class ValidatorController implements PipelineComponent, Closeable {
 	private final Connection connection;
-	private final Map<ValidatorType, Map<String, ValidatorWrapper>> validators;
+	private final Map<ValidatorType, Map<String, ValidatorWrapper<?>>> validators;
 	private static final Logger logger = LoggerFactory.getLogger("ValidatorController");
 	private final ArticleManager articleManager;
+	private final String validatorsTable, resultsTable;
 	
 	/**
-	 * Constructs a {@link ValidatorController} that uses the given {@link Connection} to connect to the database.
+	 * Constructs a {@link ValidatorController} with the given configuration data.
 	 * 
-	 * @param connection
-	 *            a {@link Connection} to the database to be used
 	 * @param config
 	 *            the {@link JSONObject} holding the configuration data
+	 * @throws SQLException
+	 *             if an error occurs while connecting to the database
 	 */
-	public ValidatorController(Connection connection, JSONObject config) {
-		this.connection = connection;
+	public ValidatorController(JSONObject config) throws SQLException {
+		this.connection = DBConnection.getConnection();
 		this.validators = new EnumMap<>(ValidatorType.class);
 		for (ValidatorType vt : ValidatorType.values())
 			validators.put(vt, new LinkedHashMap<>());
 		JSONObject paths = (JSONObject) config.get("paths");
 		JSONObject articles = (JSONObject) config.get("articles");
 		this.articleManager = new ArticleManager(connection, ((JSONObject) config.get("tables")).get("articles").value().toString(), paths, articles);
-		((JSONArray) paths.get("validators")).value().stream().map(a -> ((JSONString) a).value()).forEach(s -> {
-			try {
-				loadValidators(((JSONObject) config.get("tables")).get("validators").value().toString(), Paths.get(s));
-			}
-			catch (ClassNotFoundException | NoSuchMethodException | SecurityException | SQLException | IOException e) {
-				logger.warn("Unabile to initialize a validator described in " + s, e);
-			}
-		});
+		validatorsTable = ((JSONString) ((JSONObject) config.get("tables")).get("validators")).value();
+		resultsTable = ((JSONString) ((JSONObject) config.get("tables")).get("results")).value();
+		loadValidators(((JSONArray) paths.get("validators")).value().stream().map(a -> Paths.get(((JSONString) a).value())).collect(Collectors.toList()));
 	}
 	
-	private void loadValidators(String table, Path path) throws ClassNotFoundException, NoSuchMethodException, SecurityException, SQLException, IOException {
-		if (Files.isRegularFile(path)) {
-			if (path.getFileName().toString().endsWith(".json")) {
-				JSONObject json = (JSONObject) JSONSystem.loadJSON(path);
-				if (!json.containsKey("enabled") || ((JSONBoolean) json.get("enabled")).value()) {
-					ValidatorWrapper vw = new ValidatorWrapper(connection, table, getClass().getClassLoader(), json);
-					validators.get(vw.getType()).put(vw.getName(), vw);
+	private void loadValidators(Collection<Path> paths) {
+		ClassLoader classloader = new URLClassLoader(paths.stream().map(p -> { //Yes, I swear that the this code converts the Paths into URLs and stores them in an array.
+			try {
+				return p.toUri().toURL();
+			}
+			catch (MalformedURLException e) { //This should never happen because we are generating a URL from a known path
+				logger.error(p + " could not be converted to a valid URL.");
+				return null;
+			}
+		}).collect(Collectors.toList()).toArray(new URL[0]));
+		try (PreparedStatement stmt = connection.prepareStatement("select * from " + validatorsTable); ResultSet rs = stmt.executeQuery()) {
+			while (rs.next()) {
+				try {
+					if (rs.getBoolean("enabled")) {
+						PGobject sqlParameters = (PGobject) rs.getObject("parameters");
+						sqlParameters.setType("jsonb");
+						String pvalue = sqlParameters.getValue();
+						JSONData<?> rawJSON = pvalue == null ? null : JSONSystem.parseJSON(pvalue);
+						JSONObject parameters = null;
+						if (rawJSON instanceof JSONString) { //If it is a JSON String, then it is the path to a JSON file
+							Path loc = null;
+							String filename = ((JSONString) rawJSON).value();
+							for (Path p : paths)
+								if (Files.exists(loc = p.resolve(filename)))
+									break;
+							parameters = (JSONObject) JSONSystem.loadJSON(loc);
+						}
+						else if (rawJSON instanceof JSONObject) //If it is a JSON Object, then it holds the parameters
+							parameters = (JSONObject) rawJSON;
+						else if (rawJSON != null) //If the parameters field is null, then there isn't a problem
+							logger.warn("The parameters column for the validator, " + rs.getString("algorithm") + ", was not null, but could not be interpreted as a JSON Object or JSON String.");
+						ValidatorType type = ValidatorType.valueOf(rs.getString("validator_type"));
+						ValidatorWrapper<?> vw = null;
+						switch (type) {
+							case ManyToMany:
+								break;
+							case ManyToOne:
+								break;
+							case OneToMany:
+								break;
+							case OneToOne:
+								vw = new OneToOneValidatorWrapper(rs, classloader, parameters);
+								break;
+							default:
+								break;
+						}
+						validators.get(type).put(vw.getName(), vw);
+					}
+				}
+				catch (SQLException | ClassCastException | SecurityException | IOException | ReflectiveOperationException e) {
+					logger.error("Unable to initialize the validator, " + rs.getString("algorithm") + ".", e);
 				}
 			}
 		}
-		else {
-			ClassLoader classloader = new URLClassLoader(new URL[]{path.toUri().toURL()});
-			try (DirectoryStream<Path> stream = Files.newDirectoryStream(path, p -> p.getFileName().toString().endsWith(".json"))) {
-				for (Path p : stream) {
-					JSONObject json = (JSONObject) JSONSystem.loadJSON(p);
-					if (!json.containsKey("enabled") || ((JSONBoolean) json.get("enabled")).value()) {
-						ValidatorWrapper vw = new ValidatorWrapper(connection, table, classloader, json);
-						validators.get(vw.getType()).put(vw.getName(), vw);
-					}
-				}
-			}
+		catch (SQLException e) {
+			logger.error("A major SQL error occured while attempting to load the validators from the " + validatorsTable + " table.");
 		}
 	}
 	
@@ -115,11 +155,9 @@ public class ValidatorController {
 	 *             if an I/O error occurs
 	 * @throws SQLException
 	 *             if an SQL error occurs
-	 * @throws ClassNotFoundException
-	 *             if there is an issue loading an {@link Article}
 	 */
-	public static void main(String[] args) throws IOException, SQLException, ClassNotFoundException {
-		Path configPath = null; //The configuration file must be provided
+	public static void main(String[] args) throws IOException, SQLException {
+		Path configPath = Paths.get("./configuration.json"); //The configuration file defaults to "./configuration.json", but can be changed with arguments
 		int action = 0;
 		Collection<Integer> articleIDs = new LinkedHashSet<>();
 		Collection<Integer> queryIDs = new LinkedHashSet<>();
@@ -136,37 +174,18 @@ public class ValidatorController {
 				articleIDs.add(Integer.parseInt(arg));
 			else if (action == 2)
 				queryIDs.add(Integer.parseInt(arg));
-				
 		}
 		JSONObject config = (JSONObject) JSONSystem.loadJSON(configPath);
 		DBConnection.configureConnection((JSONObject) config.get("database"));
-		try (Connection connection = DBConnection.getConnection()) {
-			ValidatorController vc = new ValidatorController(connection, config);
+		try (Connection connection = DBConnection.getConnection(); ValidatorController vc = new ValidatorController(config);) {
 			vc.executeValidators(queryIDs, articleIDs);
 		}
 	}
 	
-	private List<Query> loadQueries(Collection<Integer> ids) throws SQLException {
-		List<Query> queries = new ArrayList<>();
-		try (ResultSet rs = connection.prepareStatement("select * from queries").executeQuery()) {
-			if (ids.size() > 0) {
-				int id = 0;
-				while (ids.size() > 0 && rs.next()) {
-					id = rs.getInt("id");
-					if (ids.contains(id)) {
-						ids.remove(id); //Prevents queries from being loaded more than once
-						queries.add(new Query(rs));
-					}
-				}
-			}
-			else {
-				while (rs.next())
-					queries.add(new Query(rs));
-			}
-		}
-		if (ids.size() > 0)
-			logger.warn("Did not find queries with ids matching " + ids.stream().reduce("", (a, b) -> a + ", " + b.toString(), (a, b) -> a + b).substring(2));
-		return queries;
+	@Override
+	public Pair<Map<Integer, Query>, Map<Integer, Article>> execute(Pair<Map<Integer, Query>, Map<Integer, Article>> inputs) throws IOException, SQLException {
+		execute(inputs.getX(), inputs.getY());
+		return inputs;
 	}
 	
 	/**
@@ -185,7 +204,7 @@ public class ValidatorController {
 	 */
 	public void executeValidators(Collection<Integer> queryIDs, Collection<Integer> articleIDs) throws SQLException, IOException {
 		synchronized (connection) {
-			executeValidatorsUsingObjects(loadQueries(queryIDs), ThreadingUtils.executeTask(() -> articleManager.loadArticles(articleIDs)));
+			execute(ThreadingUtils.loadQueries(queryIDs), ThreadingUtils.loadArticles(articleManager, articleIDs));
 		}
 	}
 	
@@ -201,66 +220,60 @@ public class ValidatorController {
 	 * @throws SQLException
 	 *             if an error occurs while reading from or writing to the database
 	 */
-	public void executeValidatorsUsingObjects(Collection<Query> queries, Collection<Article> articles) throws SQLException {
-		Collection<Integer> queryIDs = null, articleIDs = null;
+	public void execute(Map<Integer, Query> queries, Map<Integer, Article> articles) throws SQLException {
 		synchronized (connection) {
 			List<Triple<Integer, Integer, Future<ValidationResult[]>>> results = new ArrayList<>();
-			for (ValidatorWrapper vw : validators.get(ValidatorType.ManyToMany).values()) {
+			for (ValidatorWrapper<?> vw : validators.get(ValidatorType.ManyToMany).values()) {
 				try {
-					results.add(new Triple<>(null, vw.getID(), pool.submit(vw.construct(queries.toArray(new Query[0]), articles.toArray(new Article[0])))));
+					results.add(new Triple<>(null, vw.getID(), pool.submit(() -> vw.validate(queries.values(), articles.values()))));
 				}
-				catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-					logger.error("Unable to initialize the validator, " + vw.getName() + ", for queries " +
-							(queryIDs == null ? (queryIDs = queries.stream().collect(ArrayList::new, (a, b) -> a.add(b.getID()), ArrayList::addAll)) : queryIDs).toString() + " and articles " +
-							(articleIDs == null ? (articleIDs = articles.stream().collect(ArrayList::new, (a, b) -> a.add(b.getID()), ArrayList::addAll)) : articleIDs).toString(), e);
+				catch (IllegalArgumentException e) {
+					logger.error("Unable to initialize the validator, " + vw.getName() + ", for queries " + queries.keySet().toString() + " and articles " + articles.keySet().toString(), e);
 				}
 			}
-			for (ValidatorWrapper vw : validators.get(ValidatorType.OneToMany).values()) {
-				for (Query query : queries) {
+			for (ValidatorWrapper<?> vw : validators.get(ValidatorType.OneToMany).values()) {
+				for (Query query : queries.values()) {
 					try {
-						results.add(new Triple<>(query.getID(), vw.getID(), pool.submit(vw.construct(query, articles.toArray(new Article[0])))));
+						results.add(new Triple<>(query.getID(), vw.getID(), pool.submit(() -> vw.validate(query, articles))));
 					}
-					catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-						logger.error("Unable to initialize the validator, " + vw.getName() + ", for query " + query.getID() + " and articles " +
-								(articleIDs == null ? (articleIDs = articles.stream().collect(ArrayList::new, (a, b) -> a.add(b.getID()), ArrayList::addAll)) : articleIDs).toString(), e);
+					catch (IllegalArgumentException e) {
+						logger.error("Unable to initialize the validator, " + vw.getName() + ", for query " + query.getID() + " and articles " + articles.keySet().toString(), e);
 					}
 				}
 			}
-			for (ValidatorWrapper vw : validators.get(ValidatorType.ManyToOne).values()) {
-				for (Article article : articles) {
+			for (ValidatorWrapper<?> vw : validators.get(ValidatorType.ManyToOne).values()) {
+				for (Article article : articles.values()) {
 					try {
-						results.add(new Triple<>(null, vw.getID(), pool.submit(vw.construct(queries.toArray(new Query[0]), article))));
+						results.add(new Triple<>(null, vw.getID(), pool.submit(() -> vw.validate(queries.values(), article))));
 					}
-					catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-						logger.error("Unable to initialize the validator, " + vw.getName() + ", for queries " +
-								(articleIDs == null ? (articleIDs = articles.stream().collect(ArrayList::new, (a, b) -> a.add(b.getID()), ArrayList::addAll)) : articleIDs).toString() +
-								" and article " + article.getID(), e);
+					catch (IllegalArgumentException e) {
+						logger.error("Unable to initialize the validator, " + vw.getName() + ", for queries " + queries.keySet().toString() + " and article " + article.getID(), e);
 					}
 				}
 			}
 			//Unfortunately, we can only perform existence checks for one-to-one validation algorithms
-			try (PreparedStatement stmt = connection.prepareStatement("select * from validation_results as vr where vr.query = ? and vr.algorithm = ? and vr.article = ?")) {
-				for (Query query : queries) {
+			try (PreparedStatement stmt = connection.prepareStatement("select * from " + resultsTable + " as vr where vr.query = ? and vr.algorithm = ? and vr.article = ?")) {
+				for (Query query : queries.values()) {
 					stmt.setInt(1, query.getID());
-					for (Article article : articles) {
+					for (Article article : articles.values()) {
 						stmt.setInt(3, article.getID());
-						for (ValidatorWrapper vw : validators.get(ValidatorType.OneToOne).values()) {
+						for (ValidatorWrapper<?> vw : validators.get(ValidatorType.OneToOne).values()) {
 							stmt.setInt(2, vw.getID());
 							try (ResultSet rs = stmt.executeQuery()) {
 								if (rs.next()) //If we've already processed the current article with the current validator for the current query 
 									continue;
 							}
 							try {
-								results.add(new Triple<>(query.getID(), vw.getID(), pool.submit(vw.construct(query, article))));
+								results.add(new Triple<>(query.getID(), vw.getID(), pool.submit(() -> vw.validate(query, article))));
 							}
-							catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+							catch (IllegalArgumentException e) {
 								logger.error("Unable to initialize the validator, " + vw.getName() + ", for query " + query.getID() + " and article " + article.getID(), e);
 							}
 						}
 					}
 				}
 			}
-			String statement = "insert into validation_results as vr (query, algorithm, article, validates, invalidates) values (?, ?, ?, ?, ?) " +
+			String statement = "insert into " + resultsTable + " as vr (query, algorithm, article, validates, invalidates) values (?, ?, ?, ?, ?) " +
 					"ON CONFLICT (query, algorithm, article) DO UPDATE set (validates, invalidates) = (EXCLUDED.validates, EXCLUDED.invalidates)"; //This is valid as of PostgreSQL 9.5
 			try (PreparedStatement stmt = connection.prepareStatement(statement)) {
 				for (Triple<Integer, Integer, Future<ValidationResult[]>> result : results) {
@@ -285,64 +298,67 @@ public class ValidatorController {
 							logger.info("Added " + stringVer + " to the database.");
 						}
 					}
-					catch (InterruptedException | ExecutionException e) {
+					catch (InterruptedException e) {
 						e.printStackTrace();
+					}
+					catch (ExecutionException e) {
+						e.getCause().printStackTrace();
 					}
 				}
 			}
 		}
 	}
+	
+	@Override
+	public void close() throws IOException {
+		articleManager.close();
+		try {
+			connection.close();
+		}
+		catch (SQLException e) {
+			logger.error("An SQL error occured while closing a ValidatorController's Connection.", e);
+		}
+	}
 }
 
-class ValidatorWrapper {
+abstract class ValidatorWrapper<T> {
 	private static final Logger logger = LoggerFactory.getLogger("ValidatorWrapper");
 	
-	private final int algorithmID;
+	private final int id;
 	private final String name;
-	private final Class<? extends Validator> clazz;
-	private final ValidatorType type;
-	private final Constructor<? extends Validator> constructor;
-	private final JSONObject instanceParameters;
-	private final boolean useInstanceParameters;
+	protected final T instance;
 	
 	@SuppressWarnings("unchecked")
-	public ValidatorWrapper(Connection connection, String table, ClassLoader classloader, JSONObject validator) throws SQLException, ClassNotFoundException, NoSuchMethodException, SecurityException {
-		clazz = (Class<? extends Validator>) classloader.loadClass(validator.get("class").value().toString());
-		name = validator.get("id").value().toString();
-		type = ValidatorType.valueOf(validator.get("type").value().toString());
+	public ValidatorWrapper(ResultSet rs, ClassLoader classloader, JSONObject parameters) throws SQLException, ReflectiveOperationException {
+		id = rs.getInt("id");
+		name = rs.getString("algorithm");
+		Class<? extends T> clazz = (Class<? extends T>) classloader.loadClass(rs.getString("base_class"));
+		if (parameters != null && parameters.containsKey("parameters")) //Backwards compatibility
+			parameters = (JSONObject) parameters.get("parameters");
+		JSONObject instanceParameters = parameters != null ? (JSONObject) parameters.get("instance") : null;
 		
-		JSONObject parameters = (JSONObject) validator.get("parameters");
-		instanceParameters = parameters != null ? (JSONObject) parameters.get("instance") : null;
-		
-		Class<?>[][] constructorTypes = type.getConstructorArgTypes();
-		Constructor<? extends Validator> temp = null;
+		Constructor<? extends T> constructor = null;
 		if (instanceParameters != null)
 			try {
-				temp = clazz.getConstructor(constructorTypes[0]);
+				constructor = clazz.getConstructor(JSONObject.class);
 			}
 			catch (NoSuchMethodException e) {
 				if (instanceParameters != null)
 					logger.warn("Validator " + name + " has declared instance parameters but no constructor for them.");
-				temp = clazz.getConstructor(constructorTypes[1]);
+				constructor = clazz.getConstructor();
 			}
 		else
-			temp = clazz.getConstructor(constructorTypes[1]);
-		constructor = temp;
+			constructor = clazz.getConstructor();
 		constructor.setAccessible(true);
-		useInstanceParameters = constructor.getParameterCount() > 2;
-		
-		try (PreparedStatement stmt = connection.prepareStatement("select id from " + table + " as va where va.algorithm = ?")) {
-			stmt.setString(1, name);
-			try (ResultSet rs = stmt.executeQuery()) {
-				rs.next();
-				algorithmID = rs.getInt("id");
-			}
-		}
 		if (parameters.containsKey("static"))
-			loadStaticProperties(((JSONObject) parameters.get("static")));
+			loadStaticProperties(clazz, (JSONObject) parameters.get("static"));
+		if (constructor.getParameterCount() > 0)
+			instance = constructor.newInstance(instanceParameters);
+		else
+			instance = constructor.newInstance();
 	}
 	
-	private void loadStaticProperties(JSONObject properties) {
+	private void loadStaticProperties(Class<? extends T> clazz, JSONObject properties) {
 		try {
 			Method staticInit = clazz.getMethod("loadStaticParameters", JSONObject.class);
 			staticInit.setAccessible(true);
@@ -359,23 +375,63 @@ class ValidatorWrapper {
 	}
 	
 	public int getID() {
-		return algorithmID;
+		return id;
 	}
 	
 	public String getName() {
 		return name;
 	}
 	
-	public ValidatorType getType() {
-		return type;
+	public abstract ValidationResult[] validate(Object... args) throws Exception;
+}
+
+class OneToOneValidatorWrapper extends ValidatorWrapper<OneToOneValidator> {
+	
+	public OneToOneValidatorWrapper(ResultSet rs, ClassLoader classloader, JSONObject parameters) throws SQLException, ReflectiveOperationException {
+		super(rs, classloader, parameters);
 	}
 	
-	public Validator construct(Object... args) throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-		Object[] params;
-		if (useInstanceParameters)
-			params = new Object[]{instanceParameters, args[0], args[1]};
-		else
-			params = args;
-		return constructor.newInstance(params);
+	@Override
+	public ValidationResult[] validate(Object... args) throws Exception {
+		return instance.call((Query) args[0], (Article) args[1]);
+	}
+}
+
+class OneToManyValidatorWrapper extends ValidatorWrapper<OneToManyValidator> {
+	
+	public OneToManyValidatorWrapper(ResultSet rs, ClassLoader classloader, JSONObject parameters) throws SQLException, ReflectiveOperationException {
+		super(rs, classloader, parameters);
+	}
+	
+	@Override
+	@SuppressWarnings("unchecked")
+	public ValidationResult[] validate(Object... args) throws Exception {
+		return instance.call((Query) args[0], (Collection<Article>) args[1]);
+	}
+}
+
+class ManyToOneValidatorWrapper extends ValidatorWrapper<ManyToOneValidator> {
+	
+	public ManyToOneValidatorWrapper(ResultSet rs, ClassLoader classloader, JSONObject parameters) throws SQLException, ReflectiveOperationException {
+		super(rs, classloader, parameters);
+	}
+	
+	@Override
+	@SuppressWarnings("unchecked")
+	public ValidationResult[] validate(Object... args) throws Exception {
+		return instance.call((Collection<Query>) args[0], (Article) args[1]);
+	}
+}
+
+class ManyToManyValidatorWrapper extends ValidatorWrapper<ManyToManyValidator> {
+	
+	public ManyToManyValidatorWrapper(ResultSet rs, ClassLoader classloader, JSONObject parameters) throws SQLException, ReflectiveOperationException {
+		super(rs, classloader, parameters);
+	}
+	
+	@Override
+	@SuppressWarnings("unchecked")
+	public ValidationResult[] validate(Object... args) throws Exception {
+		return instance.call((Collection<Query>) args[0], (Collection<Article>) args[1]);
 	}
 }
