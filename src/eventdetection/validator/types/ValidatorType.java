@@ -1,9 +1,5 @@
 package eventdetection.validator.types;
 
-import java.util.List;
-
-import toberumono.json.JSONObject;
-
 import eventdetection.common.Article;
 import eventdetection.common.Query;
 
@@ -16,42 +12,25 @@ public enum ValidatorType {
 	/**
 	 * A {@link Validator} that takes one {@link Query} and one {@link Article}
 	 */
-	OneToOne {
-		@Override
-		public Class<?>[][] getConstructorArgTypes() {
-			return new Class<?>[][]{{JSONObject.class, Query.class, Article.class}, {Query.class, Article.class}};
-		}
-	},
+	OneToOne,
 	/**
 	 * A {@link Validator} that takes one {@link Query} and multiple {@link Article Articles}
 	 */
-	OneToMany {
-		@Override
-		public Class<?>[][] getConstructorArgTypes() {
-			return new Class<?>[][]{{JSONObject.class, Query.class, List.class}, {Query.class, List.class}};
-		}
-	},
+	OneToMany,
 	/**
 	 * A {@link Validator} that takes multiple {@link Query Queries} and one {@link Article}
 	 */
-	ManyToOne {
-		@Override
-		public Class<?>[][] getConstructorArgTypes() {
-			return new Class<?>[][]{{JSONObject.class, List.class, Article.class}, {List.class, Article.class}};
-		}
-	},
+	ManyToOne,
 	/**
 	 * A {@link Validator} that takes multiple {@link Query Queries} and multiple {@link Article Articles}
 	 */
-	ManyToMany {
-		@Override
-		public Class<?>[][] getConstructorArgTypes() {
-			return new Class<?>[][]{{JSONObject.class, List.class, List.class}, {List.class, List.class}};
-		}
-	};
-	
+	ManyToMany,
 	/**
-	 * @return the {@link Class} objects representing the types for the {@link Validator Validator's} constructor
+	 * A {@link Validator} that takes one {@link Query}
 	 */
-	public abstract Class<?>[][] getConstructorArgTypes();
+	QueryOnly,
+	/**
+	 * A {@link Validator} that takes one {@link Article}
+	 */
+	ArticleOnly;
 }

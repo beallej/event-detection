@@ -47,10 +47,12 @@ import eventdetection.common.DBConnection;
 import eventdetection.common.Query;
 import eventdetection.common.ThreadingUtils;
 import eventdetection.pipeline.PipelineComponent;
+import eventdetection.validator.types.ArticleOnlyValidator;
 import eventdetection.validator.types.ManyToManyValidator;
 import eventdetection.validator.types.ManyToOneValidator;
 import eventdetection.validator.types.OneToManyValidator;
 import eventdetection.validator.types.OneToOneValidator;
+import eventdetection.validator.types.QueryOnlyValidator;
 import eventdetection.validator.types.Validator;
 import eventdetection.validator.types.ValidatorType;
 
@@ -134,6 +136,12 @@ public class ValidatorController implements PipelineComponent, Closeable {
 								break;
 							case OneToOne:
 								vw = new OneToOneValidatorWrapper(rs, classloader, parameters);
+								break;
+							case QueryOnly:
+								vw = new QueryOnlyValidatorWrapper(rs, classloader, parameters);
+								break;
+							case ArticleOnly:
+								vw = new ArticleOnlyValidatorWrapper(rs, classloader, parameters);
 								break;
 							default:
 								break;
@@ -438,5 +446,29 @@ class ManyToManyValidatorWrapper extends ValidatorWrapper<ManyToManyValidator> {
 	@SuppressWarnings("unchecked")
 	public ValidationResult[] validate(Object... args) throws Exception {
 		return instance.call((Collection<Query>) args[0], (Collection<Article>) args[1]);
+	}
+}
+
+class QueryOnlyValidatorWrapper extends ValidatorWrapper<QueryOnlyValidator> {
+	
+	public QueryOnlyValidatorWrapper(ResultSet rs, ClassLoader classloader, JSONObject parameters) throws SQLException, ReflectiveOperationException {
+		super(rs, classloader, parameters);
+	}
+	
+	@Override
+	public ValidationResult[] validate(Object... args) throws Exception {
+		return instance.call((Query) args[0]);
+	}
+}
+
+class ArticleOnlyValidatorWrapper extends ValidatorWrapper<ArticleOnlyValidator> {
+	
+	public ArticleOnlyValidatorWrapper(ResultSet rs, ClassLoader classloader, JSONObject parameters) throws SQLException, ReflectiveOperationException {
+		super(rs, classloader, parameters);
+	}
+	
+	@Override
+	public ValidationResult[] validate(Object... args) throws Exception {
+		return instance.call((Article) args[0]);
 	}
 }
