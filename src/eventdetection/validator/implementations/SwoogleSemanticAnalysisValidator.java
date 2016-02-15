@@ -9,7 +9,9 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import toberumono.json.JSONNumber;
 import toberumono.json.JSONObject;
+import toberumono.json.JSONString;
 import toberumono.structures.collections.lists.SortedList;
 import toberumono.structures.tuples.Pair;
 
@@ -31,37 +33,22 @@ import eventdetection.validator.types.Validator;
  * @author Joshua Lipstone
  */
 public class SwoogleSemanticAnalysisValidator extends OneToOneValidator {
-	private static String URL_PREFIX = "http://swoogle.umbc.edu/StsService/GetStsSim?operation=api";
-	private static int MAX_SENTENCES = 5;
+	private final String urlPrefix;
+	private final int maxSentences;
 	
 	/**
 	 * Constructs a new instance of the {@link Validator} for the given {@code ID}, {@link Query}, and {@link Article}
 	 * 
-	 * @param query
-	 *            the {@link Query} to validate
-	 * @param article
-	 *            the {@link Article} against which the {@link Query} is to be validated
+	 * @param parameters
+	 *            a {@link JSONObject} containing the instance-specific parameters
 	 */
-	public SwoogleSemanticAnalysisValidator(Query query, Article article) {
-		super(query, article);
-	}
-	
-	/**
-	 * Constructs a new instance of the {@link Validator} for the given {@code ID}, {@link Query}, and {@link Article}
-	 * 
-	 * @param json
-	 *            the {@link JSONObject} containing the instance-specific parameters
-	 * @param query
-	 *            the {@link Query} to validate
-	 * @param article
-	 *            the {@link Article} against which the {@link Query} is to be validated
-	 */
-	public SwoogleSemanticAnalysisValidator(JSONObject json, Query query, Article article) {
-		this(query, article);
+	public SwoogleSemanticAnalysisValidator(JSONObject parameters) {
+		urlPrefix = ((JSONString) parameters.get("url-prefix")).value();
+		maxSentences = ((JSONNumber<?>) parameters.get("max-sentences")).value().intValue();
 	}
 	
 	@Override
-	public ValidationResult[] call() throws IOException {
+	public ValidationResult[] call(Query query, Article article) throws IOException {
 		StringBuilder phrase1 = new StringBuilder();
 		phrase1.append(query.getSubject()).append(" ").append(query.getVerb());
 		if (query.getDirectObject() != null && query.getDirectObject().length() > 0)
@@ -73,13 +60,13 @@ public class SwoogleSemanticAnalysisValidator extends OneToOneValidator {
 			List<CoreMap> sentences = paragraph.get(SentencesAnnotation.class);
 			for (CoreMap sentence : sentences) {
 				String sen = POSTagger.reconstructSentence(sentence);
-				String url = String.format("%s&phrase1=%s&phrase2=%s", URL_PREFIX, URLEncoder.encode(phrase1.toString(), StandardCharsets.UTF_8.name()),
+				String url = String.format("%s&phrase1=%s&phrase2=%s", urlPrefix, URLEncoder.encode(phrase1.toString(), StandardCharsets.UTF_8.name()),
 						URLEncoder.encode(sen, StandardCharsets.UTF_8.name()));
 				URLConnection connection = new URL(url).openConnection();
 				connection.setRequestProperty("Accept-Charset", StandardCharsets.UTF_8.name());
 				try (BufferedReader response = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
 					topN.add(new Pair<>(Double.parseDouble(response.readLine().trim()), sen));
-					if (topN.size() > MAX_SENTENCES)
+					if (topN.size() > maxSentences)
 						topN.remove(topN.size() - 1);
 				}
 			}
@@ -89,16 +76,5 @@ public class SwoogleSemanticAnalysisValidator extends OneToOneValidator {
 			average += p.getX();
 		average /= (double) topN.size();
 		return new ValidationResult[]{new ValidationResult(article.getID(), average)};
-	}
-	
-	/**
-	 * Hook for loading parameters from the Validator's JSON data
-	 * 
-	 * @param parameters
-	 *            a {@link JSONObject} holding the validator's static parameters
-	 */
-	public static void loadStaticParameters(JSONObject parameters) {
-		URL_PREFIX = (String) parameters.get("url-prefix").value();
-		MAX_SENTENCES = (Integer) parameters.get("max-sentences").value();
 	}
 }

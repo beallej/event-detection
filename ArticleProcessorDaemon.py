@@ -33,7 +33,9 @@ class ArticleProcessorDaemon:
             for article in unprocessed_articles:
                 try:
                     extractor = KeywordExtractor()
-                    body = open("{0}{1}".format(path, article[2])).read()
+                    article_file = open("articles/{0}".format(article[2]), "r", encoding="utf8")
+                    body = article_file.read()
+                    article_file.close()
                     article_with_body = Article(article[1], body, article[3], article[4])
                     keywords = extractor.extract_keywords(article_with_body)
                     keyword_string = json.dumps(keywords)

@@ -15,3 +15,5 @@ event-detection.jar
 validator.jar
 text-rank.jar
 pipeline.jar
+=======
+voting.jar

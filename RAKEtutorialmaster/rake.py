@@ -231,4 +231,3 @@ if test:
 
     rake = Rake("SmartStoplist.txt")
     keywords = rake.run(text)
-    print(keywords)

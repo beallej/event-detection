@@ -32,6 +32,7 @@ import eventdetection.pipeline.PipelineComponent;
 public class DownloaderController extends DownloaderCollection implements PipelineComponent {
 	private final ArticleManager am;
 	private final Instant oldest;
+	private boolean closed;
 	
 	/**
 	 * Constructs a new {@link DownloaderController} with the given configuration data. This is for use with
@@ -117,5 +118,14 @@ public class DownloaderController extends DownloaderCollection implements Pipeli
 		JSONObject articles = (JSONObject) config.get("articles");
 		JSONSystem.transferField("enable-pos-tagging", new JSONBoolean(true), articles, (JSONObject) articles.get("pos-tagging"));
 		JSONSystem.transferField("enable-tag-simplification", new JSONBoolean(false), (JSONObject) articles.get("pos-tagging"));
+	}
+	
+	@Override
+	public void close() throws IOException {
+		if (closed)
+			return;
+		closed = true;
+		am.close();
+		super.close();
 	}
 }

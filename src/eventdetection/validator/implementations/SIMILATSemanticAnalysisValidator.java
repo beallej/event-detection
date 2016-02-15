@@ -68,6 +68,7 @@ import java.util.concurrent.Future;
 
 
 import toberumono.json.JSONArray;
+import toberumono.json.JSONNumber;
 import toberumono.json.JSONObject;
 import toberumono.json.JSONSystem;
 
@@ -78,8 +79,7 @@ import toberumono.json.JSONSystem;
  * @author Anmol and Phuong
  */
 public class SIMILATSemanticAnalysisValidator extends OneToOneValidator {
-
-    private static int MAX_SENTENCES = 5;
+    private final int maxSentences;
     
         
 
@@ -119,15 +119,14 @@ public class SIMILATSemanticAnalysisValidator extends OneToOneValidator {
 	
     
 	/**
-	 * Constructs a new instance of the {@link Validator} for the given {@code ID}, {@link Query}, and {@link Article}
+	 * Constructs a new instance of the {@link Validator} with the given {@code parameters}
 	 * 
-	 * @param query
-	 *            the {@link Query} to validate
-	 * @param article
-	 *            the {@link Article} against which the {@link Query} is to be validated
+	 * @param parameters
+	 *            a {@link JSONObject} containing the instance-specific parameters
 	 */
-    public SIMILATSemanticAnalysisValidator(Query query, Article article) {
-		super(query, article);
+    public SIMILATSemanticAnalysisValidator(JSONObject parameters) {
+		maxSentences = ((JSONNumber<?>) parameters.get("max-sentences")).value().intValue();
+		
 	//}
 //    public articleSentenceSentenceSimilarityTest() {
 
@@ -169,23 +168,9 @@ public class SIMILATSemanticAnalysisValidator extends OneToOneValidator {
         //for LDA based method.. please see the different example file.
     }
 
-	/**
-	 * Constructs a new instance of the {@link Validator} for the given {@code ID}, {@link Query}, and {@link Article}
-	 * 
-	 * @param json
-	 *            the {@link JSONObject} containing the instance-specific parameters
-	 * @param query
-	 *            the {@link Query} to validate
-	 * @param article
-	 *            the {@link Article} against which the {@link Query} is to be validated
-	 */
-	public SIMILATSemanticAnalysisValidator(JSONObject json, Query query, Article article) {
-		this(query, article);
-	}
-
     
 	@Override
-	public ValidationResult[] call() throws IOException {
+	public ValidationResult[] call(Query query, Article article) throws IOException {
         //ConfigManager.setSemilarDataRootFolder("../semilar-data/");
         
         Sentence querySentence;
@@ -219,7 +204,7 @@ public class SIMILATSemanticAnalysisValidator extends OneToOneValidator {
                 if (temp.equals(Double.NaN))
                     continue;
                 topN.add(new Pair<>(temp, sen));
-                if (topN.size() > MAX_SENTENCES)
+                if (topN.size() > maxSentences)
                     topN.remove(topN.size() - 1);
             }
         }
@@ -234,14 +219,4 @@ public class SIMILATSemanticAnalysisValidator extends OneToOneValidator {
         //System.out.println("AVERGARE OF SEMILAR = " + average);
         return new ValidationResult[]{new ValidationResult(article.getID(), average)};
     }
-
-	/**
-	 * Hook for loading parameters from the Validator's JSON data
-	 * 
-	 * @param parameters
-	 *            a {@link JSONObject} holding the validator's static parameters
-	 */
-	public static void loadStaticParameters(JSONObject parameters) {
-		MAX_SENTENCES = (Integer) parameters.get("max-sentences").value();
-	}
 }

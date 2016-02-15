@@ -4,8 +4,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -13,9 +11,6 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import toberumono.json.JSONObject;
 import toberumono.json.JSONSystem;
@@ -29,6 +24,7 @@ import eventdetection.common.SubprocessHelpers;
 import eventdetection.common.ThreadingUtils;
 import eventdetection.downloader.DownloaderController;
 import eventdetection.validator.ValidatorController;
+import eventdetection.voting.VotingController;
 
 /**
  * Implements an easily-expanded pipeline system for the project.
@@ -59,17 +55,19 @@ public class Pipeline implements PipelineComponent, Closeable {
 	 *             if an error occurs while connecting to the database
 	 */
 	public Pipeline(JSONObject config, Collection<Integer> queryIDs, Collection<Integer> articleIDs, boolean addDefaultComponents) throws IOException, SQLException {
-		final Collection<Integer> qIDs = queryIDs == null ? Collections.EMPTY_LIST : queryIDs, aIDs = articleIDs == null ? Collections.EMPTY_LIST : articleIDs;
-		Connection connection = DBConnection.getConnection();
-		JSONObject paths = (JSONObject) config.get("paths");
-		JSONObject articles = (JSONObject) config.get("articles");
-		JSONObject tables = (JSONObject) config.get("tables");
-		articleManager = new ArticleManager(connection, tables.get("articles").value().toString(), paths, articles);
+		final Collection<Integer> qIDs = queryIDs == null ? Collections.emptyList() : queryIDs, aIDs = articleIDs == null ? Collections.emptyList() : articleIDs;
+		articleManager = new ArticleManager(config);
 		
 		components = new ArrayList<>();
 		if (addDefaultComponents) {
-			addComponent(inputs -> Pipeline.loadQueries(qIDs, inputs));
-			addComponent(inputs -> Pipeline.loadArticles(articleManager, aIDs, inputs));
+			addComponent(inputs -> {
+				ThreadingUtils.loadQueries(qIDs, inputs.getX());
+				return inputs;
+			});
+			addComponent(inputs -> {
+				ThreadingUtils.loadArticles(articleManager, aIDs, inputs.getY());
+				return inputs;
+			});
 			if (articleIDs.size() == 0) { //Only run the downloader if no articles are specified.
 				addComponent(new DownloaderController(config));
 				addComponent(inputs -> {
@@ -82,6 +80,7 @@ public class Pipeline implements PipelineComponent, Closeable {
 				});
 			}
 			addComponent(new ValidatorController(config));
+			addComponent(new VotingController(config));
 		}
 	}
 	
@@ -121,39 +120,6 @@ public class Pipeline implements PipelineComponent, Closeable {
 		}
 	}
 	
-	private static Pair<Map<Integer, Query>, Map<Integer, Article>> loadArticles(ArticleManager am, Collection<Integer> ids, Pair<Map<Integer, Query>, Map<Integer, Article>> inputs)
-			throws IOException, SQLException {
-		Map<Integer, Article> articles = inputs.getY();
-		for (Article a : ThreadingUtils.executeTask(() -> am.loadArticles(ids)))
-			articles.put(a.getID(), a);
-		return inputs;
-	}
-	
-	private static Pair<Map<Integer, Query>, Map<Integer, Article>> loadQueries(Collection<Integer> ids, Pair<Map<Integer, Query>, Map<Integer, Article>> inputs)
-			throws SQLException {
-		final Logger logger = LoggerFactory.getLogger("QueryLoader");
-		Map<Integer, Query> queries = inputs.getX();
-		try (ResultSet rs = DBConnection.getConnection().prepareStatement("select * from queries").executeQuery()) {
-			if (ids.size() > 0) {
-				int id = 0;
-				while (ids.size() > 0 && rs.next()) {
-					id = rs.getInt("id");
-					if (ids.contains(id)) {
-						ids.remove(id); //Prevents queries from being loaded more than once
-						queries.put(id, new Query(rs));
-					}
-				}
-			}
-			else {
-				while (rs.next())
-					queries.put(rs.getInt("id"), new Query(rs));
-			}
-		}
-		if (ids.size() > 0)
-			logger.warn("Did not find queries with ids matching " + ids.stream().reduce("", (a, b) -> a + ", " + b.toString(), (a, b) -> a + b).substring(2));
-		return inputs;
-	}
-	
 	/**
 	 * Adds a {@link PipelineComponent} to the {@link Pipeline}
 	 * 
@@ -178,6 +144,7 @@ public class Pipeline implements PipelineComponent, Closeable {
 		if (closed)
 			return;
 		closed = true;
+		articleManager.close();
 		IOException except = null;
 		for (PipelineComponent comp : components) {
 			try {

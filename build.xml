@@ -181,6 +181,13 @@
 				<attribute name="Class-Path" value="${jar.classpath}" />
 			</manifest>
 		</jar>
+		<property name="voting-jar" location="${prefix}voting.jar" />
+		<jar destfile="${voting-jar}" filesetmanifest="mergewithoutmain">
+			<manifest>
+				<attribute name="Main-Class" value="eventdetection.voting.VotingController" />
+				<attribute name="Class-Path" value="${jar.classpath}" />
+			</manifest>
+		</jar>
 	</target>
 
 	<target name="clean" description="Remove all files created by the build process.">

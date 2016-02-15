@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS sources (
 	id serial primary key unique not null,
 	source_name varchar(255) unique not null,
 	reliability real default 1.0,
-	check (reliability <= 1.0)
+	check (reliability >= 0.0 and reliability <= 1.0)
 );
 
 CREATE TABLE IF NOT EXISTS feeds (
@@ -62,9 +62,15 @@ CREATE TABLE IF NOT EXISTS query_articles (
 	primary key (query, article)
 );
 
+CREATE TYPE validator_type AS ENUM ('OneToOne', 'OneToMany', 'ManyToOne', 'ManyToMany', 'QueryOnly', 'ArticleOnly'); --This corresponds to ValidatorType in the Java code.
+
 CREATE TABLE IF NOT EXISTS validation_algorithms (
 	id serial primary key unique not null,
 	algorithm varchar(255) unique not null,
+	base_class text not null,
+	validator_type validator_type not null default 'OneToOne',
+	threshold real not null default 0.50,
+	parameters jsonb default null,
 	enabled boolean not null default true
 );
 
