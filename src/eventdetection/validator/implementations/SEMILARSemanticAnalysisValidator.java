@@ -419,10 +419,12 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         String queryLocation = "";
         if (query.getLocation() != null && query.getLocation().length() > 0) {    
             queryLocation = query.getLocation();
-            String potentialPrep = queryLocation.substring(0,3);
-            if (potentialPrep.equals("in ") || potentialPrep.equals("on ") || potentialPrep.equals("at ")){
-                queryLocation = queryLocation.substring(3);
-            }
+            if (queryLocation.length() > 3) {
+	            String potentialPrep = queryLocation.substring(0,3);
+	            if (potentialPrep.equals("in ") || potentialPrep.equals("on ") || potentialPrep.equals("at ")){
+	                queryLocation = queryLocation.substring(3);
+	            }
+	        }
         }    
         //System.out.println("LOCATION is: "+queryLocation + " sentence " + sentence.toString());
 
