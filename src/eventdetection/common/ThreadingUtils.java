@@ -180,6 +180,21 @@ public class ThreadingUtils {
 	}
 	
 	/**
+	 * A thread-safe method deleting old {@link Article Articles} from disk.<br>
+	 * 
+	 * @param articleManager
+	 *            the {@link ArticleManager} to use
+	 * @return the IDs of the deleted articles
+	 * @throws IOException
+	 *             if an error occurs while interacting with the interprocess lock
+	 * @throws SQLException
+	 *             if an SQL error occurs while reading the {@link Article Article's} metadata from the SQL database
+	 */
+	public static Collection<Integer> cleanUpArticles(ArticleManager articleManager) throws IOException, SQLException {
+		return executeTask(() -> articleManager.cleanUp());
+	}
+	
+	/**
 	 * A thread-safe method for loading {@link Article Articles} from disk into an existing {@link Map}.<br>
 	 * <b>Note:</b> the {@link Map} is modified directly - it is <i>not</i> cloned.
 	 * 

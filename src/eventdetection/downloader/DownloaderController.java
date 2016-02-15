@@ -5,8 +5,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.time.Instant;
-import java.util.Calendar;
 import java.util.Map;
 
 import toberumono.json.JSONArray;
@@ -31,7 +29,6 @@ import eventdetection.pipeline.PipelineComponent;
  */
 public class DownloaderController extends DownloaderCollection implements PipelineComponent {
 	private final ArticleManager am;
-	private final Instant oldest;
 	private boolean closed;
 	
 	/**
@@ -53,7 +50,6 @@ public class DownloaderController extends DownloaderCollection implements Pipeli
 		JSONObject articles = (JSONObject) config.get("articles");
 		JSONObject tables = (JSONObject) config.get("tables");
 		am = new ArticleManager(connection, tables.get("articles").value().toString(), paths, articles);
-		oldest = computeOldest((JSONObject) articles.get("deletion-delay")).toInstant();
 		Downloader.loadSource(connection, tables.get("sources").value().toString());
 		for (JSONData<?> str : ((JSONArray) paths.get("sources")).value())
 			Downloader.loadSource(Paths.get(str.toString()));
@@ -93,25 +89,12 @@ public class DownloaderController extends DownloaderCollection implements Pipeli
 	public Pair<Map<Integer, Query>, Map<Integer, Article>> execute(Pair<Map<Integer, Query>, Map<Integer, Article>> inputs) throws IOException, SQLException {
 		Map<Integer, Article> articles = inputs.getY();
 		ThreadingUtils.executeTask(() -> {
-			am.removeArticlesBefore(oldest);
 			for (Article article : get()) {
 				article = am.store(article);
 				articles.put(article.getID(), article);
 			}
 		});
 		return inputs;
-	}
-	
-	private static Calendar computeOldest(JSONObject deletionDelay) {
-		Calendar oldest = Calendar.getInstance();
-		oldest.add(Calendar.YEAR, -((Number) deletionDelay.get("years").value()).intValue());
-		oldest.add(Calendar.MONTH, -((Number) deletionDelay.get("months").value()).intValue());
-		oldest.add(Calendar.WEEK_OF_MONTH, -((Number) deletionDelay.get("weeks").value()).intValue());
-		oldest.add(Calendar.DAY_OF_MONTH, -((Number) deletionDelay.get("days").value()).intValue());
-		oldest.add(Calendar.HOUR_OF_DAY, -((Number) deletionDelay.get("hours").value()).intValue());
-		oldest.add(Calendar.MINUTE, -((Number) deletionDelay.get("minutes").value()).intValue());
-		oldest.add(Calendar.SECOND, -((Number) deletionDelay.get("seconds").value()).intValue());
-		return oldest;
 	}
 	
 	private static void updateJSONConfiguration(JSONObject config) {
