@@ -11,7 +11,7 @@ INSERT INTO validation_algorithms (algorithm, base_class, validator_type, parame
 	('keyword', 'eventdetection.validator.implementations.KeywordValidator', 'OneToOne', '"KeywordValidator.json"'),
 	('Swoogle Semantic Analysis', 'eventdetection.validator.implementations.SwoogleSemanticAnalysisValidator', 'OneToOne',
 		'{"instance" : {"url-prefix" : "http://swoogle.umbc.edu/StsService/GetStsSim?operation=api", "max-sentences" : 5}}'),
-	('SEMILAR Semantic Analysis', 'eventdetection.validator.implementations.SIMILATSemanticAnalysisValidator', 'OneToOne', '"SIMILATSemanticAnalysisValidator.json"'),
+	('SEMILAR Semantic Analysis', 'eventdetection.validator.implementations.SEMILARSemanticAnalysisValidator', 'OneToOne', '"SEMILARSemanticAnalysisValidator.json"'),
 	('TextRank Swoogle Semantic Analysis', 'eventdetection.validator.implementations.TextRankSwoogleSemanticAnalysisValidator', 'OneToOne',
 		'{"instance" : {"url-prefix" : "http://swoogle.umbc.edu/StsService/GetStsSim?operation=api"}}')
 	ON CONFLICT (algorithm) DO UPDATE set (base_class, validator_type, parameters) = (EXCLUDED.base_class, EXCLUDED.validator_type, EXCLUDED.parameters);

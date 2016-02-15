@@ -65,6 +65,10 @@ public class Pipeline implements PipelineComponent, Closeable {
 				return inputs;
 			});
 			addComponent(inputs -> {
+				ThreadingUtils.cleanUpArticles(articleManager);
+				return inputs;
+			});
+			addComponent(inputs -> {
 				ThreadingUtils.loadArticles(articleManager, aIDs, inputs.getY());
 				return inputs;
 			});

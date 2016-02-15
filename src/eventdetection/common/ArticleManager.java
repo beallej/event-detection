@@ -32,7 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import toberumono.json.JSONArray;
-import toberumono.json.JSONBoolean;
 import toberumono.json.JSONObject;
 
 import static eventdetection.common.ThreadingUtils.pool;
@@ -48,7 +47,7 @@ public class ArticleManager implements Closeable {
 	private final Connection connection;
 	private final String table;
 	private final Collection<Path> storage;
-	private final boolean posTaggingEnabled;
+	private final Instant articleTimeLimit;
 	private static final ReadWriteLock fsLock = new ReentrantReadWriteLock();
 	private boolean closed;
 	
@@ -94,27 +93,34 @@ public class ArticleManager implements Closeable {
 		this.connection = connection;
 		this.table = articleTable;
 		this.storage = ((JSONArray) paths.get("articles")).stream().collect(LinkedHashSet::new, (s, p) -> s.add(Paths.get(p.toString())), LinkedHashSet::addAll);
-		JSONObject posTagging = (JSONObject) articles.get("pos-tagging");
-		this.posTaggingEnabled = ((JSONBoolean) posTagging.get("enable-pos-tagging")).value();
+		this.articleTimeLimit = computeOldest((JSONObject) articles.get("deletion-delay")).toInstant();
+	}
+	
+	private static Calendar computeOldest(JSONObject deletionDelay) {
+		Calendar oldest = Calendar.getInstance();
+		oldest.add(Calendar.YEAR, -((Number) deletionDelay.get("years").value()).intValue());
+		oldest.add(Calendar.MONTH, -((Number) deletionDelay.get("months").value()).intValue());
+		oldest.add(Calendar.WEEK_OF_MONTH, -((Number) deletionDelay.get("weeks").value()).intValue());
+		oldest.add(Calendar.DAY_OF_MONTH, -((Number) deletionDelay.get("days").value()).intValue());
+		oldest.add(Calendar.HOUR_OF_DAY, -((Number) deletionDelay.get("hours").value()).intValue());
+		oldest.add(Calendar.MINUTE, -((Number) deletionDelay.get("minutes").value()).intValue());
+		oldest.add(Calendar.SECOND, -((Number) deletionDelay.get("seconds").value()).intValue());
+		return oldest;
 	}
 	
 	/**
-	 * Initializes an {@link ArticleManager}.
+	 * Removes all articles with a file creation date earlier than the oldest allowable time specified in the configuration
+	 * file.
 	 * 
-	 * @param connection
-	 *            a {@link Connection} to the database in use
-	 * @param articleTable
-	 *            the name of the table holding the {@link Article Articles}
-	 * @param articleStorage
-	 *            the places where {@link Article Articles} are stored
-	 * @param posTaggingEnabled
-	 *            whether the {@link Article Articles} should POS tagged
+	 * @return the IDs of the removed articles
+	 * @throws SQLException
+	 *             if an SQL error occurs
+	 * @throws IOException
+	 *             if an I/O error occurs
+	 * @see #removeArticlesBefore(Instant)
 	 */
-	public ArticleManager(Connection connection, String articleTable, Collection<Path> articleStorage, boolean posTaggingEnabled) {
-		this.connection = connection;
-		this.table = articleTable;
-		this.storage = articleStorage;
-		this.posTaggingEnabled = posTaggingEnabled;
+	public Collection<Integer> cleanUp() throws SQLException, IOException {
+		return removeArticlesBefore(articleTimeLimit);
 	}
 	
 	/**
@@ -122,13 +128,14 @@ public class ArticleManager implements Closeable {
 	 * 
 	 * @param oldest
 	 *            a {@link Calendar} containing the oldest date from which {@link Article Articles} should be kept
+	 * @return the IDs of the removed articles
 	 * @throws SQLException
 	 *             if an SQL error occurs
 	 * @throws IOException
 	 *             if an I/O error occurs
 	 */
-	public void removeArticlesBefore(Calendar oldest) throws SQLException, IOException {
-		removeArticlesBefore(oldest.toInstant());
+	public Collection<Integer> removeArticlesBefore(Calendar oldest) throws SQLException, IOException {
+		return removeArticlesBefore(oldest.toInstant());
 	}
 	
 	/**
@@ -136,18 +143,18 @@ public class ArticleManager implements Closeable {
 	 * 
 	 * @param oldest
 	 *            an {@link Instant} containing the oldest date from which {@link Article Articles} should be kept
+	 * @return the IDs of the removed articles
 	 * @throws SQLException
 	 *             if an SQL error occurs
 	 * @throws IOException
 	 *             if an I/O error occurs
 	 */
-	public void removeArticlesBefore(Instant oldest) throws SQLException, IOException {
+	public Collection<Integer> removeArticlesBefore(Instant oldest) throws SQLException, IOException {
 		String statement = "select * from " + table;
+		Collection<Integer> removed = new LinkedHashSet<>();
 		try (PreparedStatement stmt = connection.prepareStatement(statement)) {
 			ResultSet rs = stmt.executeQuery();
-			if (!rs.next()) //Set the pointer to the first row and test if it is not valid
-				return;
-			do {
+			while (rs.next()) { //While the next row is valid
 				boolean deleted = false;
 				for (Path store : storage) {
 					if (!Files.exists(store))
@@ -168,11 +175,13 @@ public class ArticleManager implements Closeable {
 				}
 				if (deleted) {
 					try (Statement stm = connection.createStatement()) {
+						removed.add(rs.getInt("id"));
 						stm.executeUpdate("delete from " + table + " where id = " + rs.getLong("id"));
 					}
 				}
-			} while (rs.next()); //While the next row is valid
+			}
 		}
+		return removed;
 	}
 	
 	/**
@@ -424,13 +433,6 @@ public class ArticleManager implements Closeable {
 	 */
 	public String getTable() {
 		return table;
-	}
-	
-	/**
-	 * @return {@code true} if POS tagging is enabled
-	 */
-	public boolean isPOSTaggingEnabled() {
-		return posTaggingEnabled;
 	}
 	
 	@Override

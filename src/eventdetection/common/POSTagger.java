@@ -33,7 +33,7 @@ public class POSTagger {
 			// creates a StanfordCoreNLP object, with POS tagging, lemmatization,
 			// NER, parsing, and coreference resolution
 			Properties props = new Properties();
-			props.setProperty("annotators", "tokenize, ssplit, pos, lemma, ner, parse, dcoref");
+			props.setProperty("annotators", "tokenize, ssplit, pos, lemma, ner, parse, dcoref, depparse");
 			pipeline = new StanfordCoreNLP(props);
 		}
 		return pipeline;
