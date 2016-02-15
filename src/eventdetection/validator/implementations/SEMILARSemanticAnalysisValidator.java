@@ -76,7 +76,11 @@ import toberumono.structures.SortingMethods;
 public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
 
     // Test the following variables:
-    private double HIGH_VALIDATION_THRESHOLD = 8.9; //THRESHOLD to accept validation return P = 1.0
+    private double HIGH_VALIDATION_THRESHOLD = 10; //THRESHOLD to accept validation return P = 1.0
+                                                    // The max score depending on the HIGH_MATCH_SCORE, MEDIUM_MATCH_SCORE, TITLE_MULTIPLIER...
+                                                    // 10 might be plenty for high HIGH_MATCH_SCORE, MEDIUM_MATCH_SCORE, TITLE_MULTIPLIER...
+                                                    // but too low for low HIGH_MATCH_SCORE, MEDIUM_MATCH_SCORE, TITLE_MULTIPLIER...
+                                                    // Sorrym but these variables are correlate
     private double MEDIUM_VALIDATION_THRESHOLD = 0.0; // Considering zone P ranging 0.0 to 0.9
     private double FIRST_ROUND_CONTENT_THRESHOLD = 0.10;
     private double FIRST_ROUND_TITLE_THRESHOLD = 0.15;
@@ -95,37 +99,48 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
     private static Pattern USEFUL_RELN_REGEX = Pattern.compile("nmod|dobj|iobj|nsubj|nsubjpass|appos|conj|xcomp|ccomp");
 
     OptimumComparer optimumComparerWNLin;
-    OptimumComparer optimumComparerLSATasa;
-    LexicalOverlapComparer lexicalOverlapComparer; // Just see the lexical overlap.
+    
     WNWordMetric wnMetricLin;
+    SentencePreprocessor preprocessor;
     
 	/**
 	 * Constructs a new instance of the {@link Validator} for the given {@code ID}, {@link Query}, and {@link Article}
 	 * @param config the configuration data
 	 */
     public SEMILARSemanticAnalysisValidator(JSONObject config) {
-		MAX_SENTENCES = ((JSONNumber<?>) config.get("max-sentences")).value().intValue();
+		//MAX_SENTENCES = ((JSONNumber<?>) config.get("max-sentences")).value().intValue();
         HIGH_VALIDATION_THRESHOLD = ((JSONNumber<?>) config.get("HIGH_VALIDATION_THRESHOLD")).value().doubleValue();
+        MEDIUM_VALIDATION_THRESHOLD = ((JSONNumber<?>) config.get("MEDIUM_VALIDATION_THRESHOLD")).value().doubleValue();
+        FIRST_ROUND_CONTENT_THRESHOLD = ((JSONNumber<?>) config.get("FIRST_ROUND_CONTENT_THRESHOLD")).value().doubleValue();
+        FIRST_ROUND_TITLE_THRESHOLD = ((JSONNumber<?>) config.get("FIRST_ROUND_TITLE_THRESHOLD")).value().doubleValue();
+        TITLE_MULTIPLIER = ((JSONNumber<?>) config.get("TITLE_MULTIPLIER")).value().doubleValue();
+        PRONOUN_SCORE = ((JSONNumber<?>) config.get("PRONOUN_SCORE")).value().doubleValue();
+        HIGH_MATCH_SCORE = ((JSONNumber<?>) config.get("HIGH_MATCH_SCORE")).value().doubleValue();
+        MEDIUM_MATCH_SCORE = ((JSONNumber<?>) config.get("MEDIUM_MATCH_SCORE")).value().doubleValue();
+        LOW_MATCH_SCORE = ((JSONNumber<?>) config.get("LOW_MATCH_SCORE")).value().doubleValue();
+        MIN_WORD_TO_WORD_THRESHOLD = ((JSONNumber<?>) config.get("MIN_WORD_TO_WORD_THRESHOLD")).value().doubleValue();
+        RELIABLE_TITLE_THRESHOLD = ((JSONNumber<?>) config.get("RELIABLE_TITLE_THRESHOLD")).value().doubleValue();
+        
         /* Word to word similarity expanded to sentence to sentence .. so we need word metrics */
-        boolean wnFirstSenseOnly = false; //applies for WN based methods only.
         wnMetricLin = new WNWordMetric(WordNetSimilarity.WNSimMeasure.LIN, false);
-
         optimumComparerWNLin = new OptimumComparer(wnMetricLin, 0.3f, false, WordWeightType.NONE, NormalizeType.AVERAGE);
-        //optimumComparerLSATasa = new OptimumComparer(lsaMetricTasa, 0.3f, false, WordWeightType.NONE, NormalizeType.AVERAGE);
+        //wnMetricWup = new WNWordMetric(WordNetSimilarity.WNSimMeasure.WUP, false);
 
-        //lexicalOverlapComparer = new LexicalOverlapComparer(false);  // use base form of words? - No/false. 
+        
+        preprocessor = new SentencePreprocessor(SentencePreprocessor.TokenizerType.STANFORD, SentencePreprocessor.TaggerType.STANFORD, SentencePreprocessor.StemmerType.PORTER, SentencePreprocessor.ParserType.STANFORD);
+
     }
 
 
     
 	@Override
 	public ValidationResult[] call(Query query, Article article) throws IOException {
-        
+
         Sentence querySentence;
         Sentence articleSentence;
         
 	   //long startSP = System.nanoTime();
-        SentencePreprocessor preprocessor = new SentencePreprocessor(SentencePreprocessor.TokenizerType.STANFORD, SentencePreprocessor.TaggerType.STANFORD, SentencePreprocessor.StemmerType.PORTER, SentencePreprocessor.ParserType.STANFORD);
+        
 	   //long endSP = System.nanoTime();
 	   //long spElapsedMillis = (endSP - startSP) / 1000000;
         
@@ -157,7 +172,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
                 articleSentence = preprocessor.preprocessSentence(sen);
 		long endPPSentence = System.nanoTime();
 		long ppSentenceElapsedMillis = (endPPSentence - startPPSentence) / 1000000;
-		//System.out.println("TIMING2: " + ppSentenceElapsedMillis + " milliseconds to preprocess sentence"); 
+		////System.out.println("TIMING2: " + ppSentenceElapsedMillis + " milliseconds to preprocess sentence"); 
 		long startComputeSimilarity = System.nanoTime();
                 temp = (double) optimumComparerWNLin.computeSimilarity(querySentence, articleSentence);
 		long endComputeSimilarity = System.nanoTime();
@@ -186,8 +201,8 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         if (average > FIRST_ROUND_CONTENT_THRESHOLD || tempTitle > FIRST_ROUND_TITLE_THRESHOLD) {
             validation = postProcess(topN, query,phrase1.toString(), title, tempTitle);
         }
-        System.out.println("Annotated title: "+ article.getAnnotatedTitle());
-        System.out.println("ARTICLE  ID " + article.getID() + " average: "+average + " title: "+tempTitle);
+        //System.out.println("Annotated title: "+ article.getAnnotatedTitle());
+        //System.out.println("ARTICLE  ID " + article.getID() + " average: "+average + " title: "+tempTitle);
         return new ValidationResult[]{new ValidationResult(article.getID(), validation)};
     }
     
@@ -225,7 +240,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
 
         for (CoreLabel token: taggedQuery.get(TokensAnnotation.class)){
                 String pos = token.get(PartOfSpeechAnnotation.class);
-                System.out.println("Query tag: "+token + pos);
+                //System.out.println("Query tag: "+token + pos);
                 if (pos.length() > 1 && pos.substring(0,2).equals("NN")){
                     if (subject.contains(token.get(LemmaAnnotation.class))){
                         keywordNouns.put(token.get(LemmaAnnotation.class), "SUBJECT");
@@ -247,8 +262,8 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         // ARTICLE CONTENT SCORE
         for (Pair<Double, CoreMap> p : topN){ //for each sentence
             dependencyMatches= validationScore(query, p.getY(), keywordNouns);
-            System.out.println("DEPENDENCY MATCHES::");
-            System.out.println(dependencyMatches.toString()); 
+            //System.out.println("DEPENDENCY MATCHES::");
+            //System.out.println(dependencyMatches.toString()); 
             for (String matchPart:dependencyMatches) {
                 if (!svolMatches.contains(matchPart)) {
                     svolMatches.add(matchPart);
@@ -260,7 +275,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
             else {
                 svolMatchCombinations.put(dependencyMatches, svolMatchCombinations.get(dependencyMatches) + 1);
             }
-            System.out.println("SVOLCOMBI: "+svolMatchCombinations);
+            //System.out.println("SVOLCOMBI: "+svolMatchCombinations);
         }
 
         for (HashSet<String> combi : svolMatchCombinations.keySet()) {
@@ -268,22 +283,22 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
             totalScore = totalScore + calSentenceScore(combi, count, svolMatches, userQueryParts);
         }
 
-        System.out.println("TOTAL SCORE: " + totalScore);
+        //System.out.println("TOTAL SCORE: " + totalScore);
 
         Annotation annotatedTitle = POSTagger.annotate(articleTitle);
         CoreMap taggedTitle = annotatedTitle.get(SentencesAnnotation.class).get(0);
         
         //TITLE SCORE
         dependencyMatches = validationScore(query, taggedTitle, keywordNouns);
-        System.out.println("DEPENDENCY MATCHES OF TITLE::");
-        System.out.println(dependencyMatches.toString());
+        //System.out.println("DEPENDENCY MATCHES OF TITLE::");
+        //System.out.println(dependencyMatches.toString());
         double creditToSEMILARTitleScore = 0.0;
         if (titleScore > RELIABLE_TITLE_THRESHOLD) {
             creditToSEMILARTitleScore = TITLE_MULTIPLIER * MEDIUM_MATCH_SCORE;
         }
         totalScore += Math.max(creditToSEMILARTitleScore, calSentenceScore(dependencyMatches, 1, svolMatches, userQueryParts) * TITLE_MULTIPLIER);
 
-        System.out.println("MATCH TOTAL SCORE: " + totalScore);
+        ////System.out.println("MATCH TOTAL SCORE: " + totalScore);
 
 
         if (totalScore > HIGH_VALIDATION_THRESHOLD){
@@ -328,8 +343,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         for (CoreLabel token: sentence.get(TokensAnnotation.class)){ //each word in sentence
             String pos = token.get(PartOfSpeechAnnotation.class);
             String lemma = token.get(LemmaAnnotation.class);
-            // WE NEED Better Lemmatization
-            ///
+
             if (pos.length() > 1 && pos.substring(0,2).equals("NN")){
                 for (String imptNoun:keywordNouns.keySet()){
                     double matched = 0.0;
@@ -340,8 +354,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
                     } else {
                         matched = wnMetricLin.computeWordSimilarityNoPos(lemma.toLowerCase(), imptNoun.toLowerCase());
 
-                        // TODO::: HACK for now to account for the stupid library which does not know what mosque is!
-                        // This only fixes identical word. i need LEMMATISATION here!
+                        // This only fixes identical word. i need stem here!
                         if (lemma.toLowerCase().equals(imptNoun.toLowerCase())) {
                             matched = 1;
                         }
@@ -385,9 +398,9 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
             else {
                 dependencyMatches.add(tokenType);
             }
-            System.out.println("Dependecy Tree: " + dependencies);
+            //System.out.println("Dependecy Tree: " + dependencies);
             List<IndexedWord> verbNodes = getVerbNodes(token, verb, dependencies);
-            //System.out.println("VERB found for "+token+" is "+verbNodes);
+            ////System.out.println("VERB found for "+token+" is "+verbNodes);
 
             for (IndexedWord verbNode : verbNodes){
                 // TODO: Not only verb to verb, but also verb to adj (e.g) die == was dead
@@ -411,7 +424,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
                 queryLocation = queryLocation.substring(3);
             }
         }    
-        System.out.println("LOCATION is: "+queryLocation + " sentence " + sentence.toString());
+        //System.out.println("LOCATION is: "+queryLocation + " sentence " + sentence.toString());
 
         Pattern isLocationMatch = Pattern.compile("(^|[\\-\"' \t])"+queryLocation+"[$\\.!?\\-,;\"' \t]");
         if (!queryLocation.equals("") && isLocationMatch.matcher(sentence.toString()).find()) {
