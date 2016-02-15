@@ -8,4 +8,5 @@ INSERT INTO validation_algorithms (algorithm, base_class, validator_type, parame
 		'{"instance" : {"url-prefix" : "http://swoogle.umbc.edu/StsService/GetStsSim?operation=api", "max-sentences" : 5}}'),
 	('SEMILAR Semantic Analysis', 'eventdetection.validator.implementations.SIMILATSemanticAnalysisValidator', 'OneToOne', '"SIMILATSemanticAnalysisValidator.json"'),
 	('TextRank Swoogle Semantic Analysis', 'eventdetection.validator.implementations.TextRankSwoogleSemanticAnalysisValidator', 'OneToOne',
-		'{"instance" : {"url-prefix" : "http://swoogle.umbc.edu/StsService/GetStsSim?operation=api"}}');
+		'{"instance" : {"url-prefix" : "http://swoogle.umbc.edu/StsService/GetStsSim?operation=api"}}'),
+	('Clustering', 'eventdetection.validator.implementations.ClusteringValidator', 'ManyToMany', null);

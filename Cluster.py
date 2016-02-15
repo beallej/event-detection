@@ -1,6 +1,5 @@
 from DataSource import *
 import json
-from collections import defaultdict
 
 class Cluster:
     ds = DataSource()
@@ -52,3 +51,10 @@ class Cluster:
                     for kw in kw_dict[pos]:
                         self.keywords.add(kw[0])
         return self.keywords
+
+    def get_article_ids(self):
+        """
+        Returns the article ids associated with this cluster
+        :return: list of articles ids
+        """
+        return self.article_ids

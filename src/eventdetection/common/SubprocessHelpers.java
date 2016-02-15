@@ -3,6 +3,7 @@ package eventdetection.common;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.ProcessBuilder.Redirect;
 import java.nio.file.Path;
 import java.util.Arrays;
 
@@ -90,6 +91,7 @@ public class SubprocessHelpers {
 			command[i + 5] = args[i];
 		
 		ProcessBuilder pb = new ProcessBuilder(command);
+		pb.redirectError(Redirect.INHERIT);
 		pb.directory(directory.toFile());
 		return pb.start();
 	}

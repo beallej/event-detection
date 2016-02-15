@@ -257,8 +257,9 @@ class Query:
         self.location = QueryElement("location", query_parts["location"])
         self.query = query_parts["query"]
 
-
-        self.stop_list = set(open(KeywordExtractor.stoplist_file).readlines())
+        stoplist_file  = open(KeywordExtractor.stoplist_file)
+        self.stop_list = set(stoplist_file.readlines())
+        stoplist_file.close()
 
         self.query_tagged = self.tag_query() # [('Beyonce', 'NN'), ('releases', 'NNS'), ('song', 'NN')]
         self.synonyms_with_tag = {} # {'NNS': {'releases': []}, 'NN': {'Beyonce': [], 'song': []}}

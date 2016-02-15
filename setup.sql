@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS sources (
 	id serial primary key unique not null,
 	source_name varchar(255) unique not null,
 	reliability real default 1.0,
-	check (reliability <= 1.0)
+	check (reliability >= 0.0 and reliability <= 1.0)
 );
 
 CREATE TABLE IF NOT EXISTS feeds (

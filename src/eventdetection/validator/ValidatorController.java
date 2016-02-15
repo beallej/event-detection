@@ -102,9 +102,11 @@ public class ValidatorController implements PipelineComponent, Closeable {
 				try {
 					if (rs.getBoolean("enabled")) {
 						PGobject sqlParameters = (PGobject) rs.getObject("parameters");
-						sqlParameters.setType("jsonb");
-						String pvalue = sqlParameters.getValue();
-						JSONData<?> rawJSON = pvalue == null ? null : JSONSystem.parseJSON(pvalue);
+						JSONData<?> rawJSON = null;
+						if (sqlParameters != null) {
+							sqlParameters.setType("jsonb");
+							rawJSON = JSONSystem.parseJSON(sqlParameters.getValue());
+						}
 						JSONObject parameters = null;
 						if (rawJSON instanceof JSONString) { //If it is a JSON String, then it is the path to a JSON file
 							Path loc = null;
@@ -122,10 +124,13 @@ public class ValidatorController implements PipelineComponent, Closeable {
 						ValidatorWrapper<?> vw = null;
 						switch (type) {
 							case ManyToMany:
+								vw = new ManyToManyValidatorWrapper(rs, classloader, parameters);
 								break;
 							case ManyToOne:
+								vw = new ManyToOneValidatorWrapper(rs, classloader, parameters);
 								break;
 							case OneToMany:
+								vw = new OneToManyValidatorWrapper(rs, classloader, parameters);
 								break;
 							case OneToOne:
 								vw = new OneToOneValidatorWrapper(rs, classloader, parameters);
@@ -350,7 +355,7 @@ abstract class ValidatorWrapper<T> {
 		else
 			constructor = clazz.getConstructor();
 		constructor.setAccessible(true);
-		if (parameters.containsKey("static"))
+		if (parameters != null && parameters.containsKey("static"))
 			loadStaticProperties(clazz, (JSONObject) parameters.get("static"));
 		if (constructor.getParameterCount() > 0)
 			instance = constructor.newInstance(instanceParameters);
