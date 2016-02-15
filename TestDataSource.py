@@ -145,7 +145,10 @@ class TestDataSource:
                 algorithm_id = algorithm["id"]
                 for query_id in self.get_queries():
                     for article_id in self.get_articles():
-                        algorithm_datasets[algorithm_id][(query_id, article_id)] = results[(query_id, article_id, algorithm_id)]
+                        if (query_id, article_id, algorithm_id) in results:
+                            algorithm_datasets[algorithm_id][(query_id, article_id)] = results[(query_id, article_id, algorithm_id)]
+                        else:
+                            algorithm_datasets[algorithm_id][(query_id, article_id)] = 0
             self.results_by_algorithm = algorithm_datasets
         return self.results_by_algorithm
 
