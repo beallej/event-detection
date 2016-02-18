@@ -154,8 +154,8 @@ public class Scraper implements IDAble<String>, JSONRepresentable {
 		StringBuilder sb = new StringBuilder();
 		while (sc.hasNext())
 			sb.append(sc.next());
-		String separated = separate(sb.toString(), sectioning).trim();
-		if (separated == null || separated.length() < 1) //We don't want Strings of length 0
+		String separated = separate(sb.toString(), sectioning);
+		if (separated == null || (separated = separated.trim()).length() < 1) //We don't want Strings of length 0
 			return null;
 		String filtered = filter(separated, filtering);
 		if (filtered == null || filtered.length() < 1) //We don't want Strings of length 0

@@ -36,7 +36,7 @@
 		"validators"	: "validation_algorithms",
 		"results"		: "validation_results"
 	},
-	"voting" : {
+	"aggregator" : {
 		"global-threshold" : 0.5
 	}
 }
