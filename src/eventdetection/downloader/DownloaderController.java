@@ -24,17 +24,17 @@ import eventdetection.pipeline.PipelineComponent;
 
 /**
  * Main class of the downloader. Controls startup and and article management.
- * 
+ *
  * @author Joshua Lipstone
  */
 public class DownloaderController extends DownloaderCollection implements PipelineComponent {
 	private final ArticleManager am;
 	private boolean closed;
-	
+
 	/**
 	 * Constructs a new {@link DownloaderController} with the given configuration data. This is for use with
 	 * {@link Pipeline}.
-	 * 
+	 *
 	 * @param config
 	 *            the configuration data
 	 * @throws SQLException
@@ -53,7 +53,7 @@ public class DownloaderController extends DownloaderCollection implements Pipeli
 		Downloader.loadSource(connection, tables.get("sources").value().toString());
 		for (JSONData<?> str : ((JSONArray) paths.get("sources")).value())
 			Downloader.loadSource(Paths.get(str.toString()));
-		
+
 		FeedManager fm = new FeedManager(connection);
 		for (JSONData<?> str : ((JSONArray) paths.get("scrapers")).value())
 			fm.addScraper(Paths.get(str.toString()));
@@ -62,10 +62,10 @@ public class DownloaderController extends DownloaderCollection implements Pipeli
 		fm.addFeed(connection, tables.get("feeds").value().toString());
 		addDownloader(fm);
 	}
-	
+
 	/**
 	 * The main method.
-	 * 
+	 *
 	 * @param args
 	 *            command line arguments
 	 * @throws SQLException
@@ -76,6 +76,9 @@ public class DownloaderController extends DownloaderCollection implements Pipeli
 	public static void main(String[] args) throws IOException, SQLException {
 		Path configPath = Paths.get(args.length > 0 ? args[0] : "configuration.json");
 		JSONObject config = (JSONObject) JSONSystem.loadJSON(configPath);
+		if (config.get("test-downloader") != null && ((JSONBoolean) config.get("test-downloader")).value()) {
+			return;
+		}
 		updateJSONConfiguration(config);
 		if (config.isModified())
 			JSONSystem.writeJSON(config, configPath);
@@ -84,7 +87,7 @@ public class DownloaderController extends DownloaderCollection implements Pipeli
 			dc.execute();
 		}
 	}
-	
+
 	@Override
 	public Pair<Map<Integer, Query>, Map<Integer, Article>> execute(Pair<Map<Integer, Query>, Map<Integer, Article>> inputs) throws IOException, SQLException {
 		Map<Integer, Article> articles = inputs.getY();
@@ -96,13 +99,13 @@ public class DownloaderController extends DownloaderCollection implements Pipeli
 		});
 		return inputs;
 	}
-	
+
 	private static void updateJSONConfiguration(JSONObject config) {
 		JSONObject articles = (JSONObject) config.get("articles");
 		JSONSystem.transferField("enable-pos-tagging", new JSONBoolean(true), articles, (JSONObject) articles.get("pos-tagging"));
 		JSONSystem.transferField("enable-tag-simplification", new JSONBoolean(false), (JSONObject) articles.get("pos-tagging"));
 	}
-	
+
 	@Override
 	public void close() throws IOException {
 		if (closed)
