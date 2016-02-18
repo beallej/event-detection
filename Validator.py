@@ -84,23 +84,22 @@ class KeywordValidator(AbstractValidator):
         query_synonyms = {}
 
         for w in query_synonyms_raw:
-            query_synonyms[self.normalize_keyword(w[0])] = w[3]
+            query_synonyms[self.normalize_keyword(w[0])] = [self.normalize_keyword(synonym) for synonym in w[3]]
         article_keyword = json.loads(ds.get_article_keywords(article_id)[0]) #{NN: [list of keywords], VB:[list of verb keywords]}
 
         article_keywords_flat = set()
         for pos in article_keyword:
             for item in article_keyword[pos]:
-                article_keywords_flat.add(item[0])
+                article_keywords_flat.add(self.normalize_keyword(item[0]))
 
         match_value = 0
         # find matches
-        for query_word_raw in query_synonyms:
-            query_word = self.normalize_keyword(query_word_raw)
+        for query_word in query_synonyms:
             max_match_value += 2
             if query_word in article_keywords_flat:
                 match_value += 2
             else:
-                for synonym in query_synonyms[query_word_raw]:
+                for synonym in query_synonyms[query_word]:
                     if synonym in article_keywords_flat:
                         match_value += 1
                         break
