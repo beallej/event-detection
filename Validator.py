@@ -7,6 +7,8 @@ import re
 from DataSource import *
 import wordnet
 import json
+from nltk.stem.wordnet import WordNetLemmatizer
+from nltk.stem.snowball import SnowballStemmer
 
 
 class AbstractValidator:
@@ -40,6 +42,7 @@ class KeywordValidator(AbstractValidator):
         :return: nothing
         """
         self.query_article_lists = []
+        self.lemmatizer = WordNetLemmatizer()
 
     def add_query(self, query):
         """
@@ -79,31 +82,39 @@ class KeywordValidator(AbstractValidator):
         # Need to process query and article formats
         ds = DataSource()
         query_synonyms_raw = ds.get_query_synonyms(query_id) # [('and', 'CC', 'Random', []), ('julia', 'NN', 'Random', []), ('phuong', 'JJ', 'Random', []), ('test', 'NN', 'Random', ['trial', 'run', 'mental_test', 'test', 'tryout', 'trial_run', 'exam', 'examination', 'mental_testing', 'psychometric_test']), ('validator', 'NN', 'Random', [])]
-		# Convert into {NN: {word1: [list of synonym], word2: [list of synonym],...}, VB..}
         query_synonyms = {}
+
         for w in query_synonyms_raw:
-            if w[1] not in query_synonyms:
-                query_synonyms[w[1]] = {}
-            query_synonyms[w[1]][w[0]]=w[3]
+            query_synonyms[self.normalize_keyword(w[0])] = w[3]
         #print(ds.get_article_keywords(article_id))
         article_keyword = json.loads(ds.get_article_keywords(article_id)[0]) #{NN: [list of keywords], VB:[list of verb keywords]}
         #print(query_synonyms)
         #print(article_keyword)
-        for pos in query_synonyms:
-            for query_word in query_synonyms[pos]:
-                max_match_value += 2
-                if pos in article_keyword:
-                    article_keyword_with_same_tag = article_keyword[pos][0]
-                    #Compare main key. If match, match_value += 2
-                    if query_word in article_keyword_with_same_tag:
-                        match_value += 2
-                    else:
-                        for synonym in query_synonyms[pos][query_word]:
-                            if synonym in article_keyword_with_same_tag:
-                                match_value += 1
-                                break
-        match_percentage = match_value/max_match_value
+        article_keywords_flat = set()
+        for pos in article_keyword:
+            for item in article_keyword[pos]:
+                article_keywords_flat.add(item[0])
+
+        match_value = 0
+        # find matches
+        for query_word_raw in query_synonyms:
+            query_word = self.normalize_keyword(query_word_raw)
+            max_match_value += 2
+            if query_word in article_keywords_flat:
+                match_value += 2
+            else:
+                for synonym in query_synonyms[query_word_raw]:
+                    if synonym in article_keywords_flat:
+                        match_value += 1
+                        break
+        match_percentage = 0 if max_match_value == 0 else (match_value / max_match_value)
         return match_percentage
+
+    def normalize_keyword(self, word):
+        lemma = self.lemmatizer.lemmatize(word.lower())
+        stem = (SnowballStemmer("english").stem(lemma))
+        return stem
+
 
 
 class Source:
