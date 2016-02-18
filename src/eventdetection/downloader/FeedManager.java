@@ -103,8 +103,9 @@ public class FeedManager extends Downloader {
 	 *             if an error occurs while loading the JSON files
 	 */
 	public List<String> addScraper(Path path) throws IOException {
-		ClassLoader cl = new URLClassLoader(new URL[]{path.toUri().toURL()});
-		return loadItemsFromFile(p -> Scraper.loadFromJSON(p, cl), p -> p.toString().endsWith(".json"), path, scrapers::put);
+		//If path is a directory, create a new ClassLoader so that .class files in the directory pointed to by path can be loaded
+		ClassLoader cl = !Files.isDirectory(path) ? FeedManager.class.getClassLoader() : new URLClassLoader(new URL[]{path.toUri().toURL()});
+		return loadItemsFromFile(p -> Scraper.loadFromJSON(p, cl), JSON_FILE_FILTER, path, scrapers::put);
 	}
 	
 	/**
