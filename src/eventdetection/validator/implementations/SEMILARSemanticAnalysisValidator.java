@@ -30,6 +30,7 @@ import eventdetection.validator.types.OneToOneValidator;
 import eventdetection.validator.types.Validator;
 import eventdetection.common.ArticleManager;
 import eventdetection.common.DBConnection;
+import eventdetection.validator.SemilarComputations;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -56,6 +57,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.text.*;
 import java.util.Properties;
+import java.util.concurrent.locks.ReentrantLock;
 
 import toberumono.json.JSONArray;
 import toberumono.json.JSONObject;
@@ -73,6 +75,10 @@ import toberumono.structures.SortingMethods;
  */
 public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
     
+    static HashMap<String, SemilarComputations> semilarCombinations = new HashMap<String, SemilarComputations>();
+    static HashMap<String, ReentrantLock> combinationLocks = new HashMap<String, ReentrantLock>();
+
+
     // Various thresholds and constants for post processing
     // Test the following variables:
     private double HIGH_VALIDATION_THRESHOLD = 10; //THRESHOLD to accept validation return P = 1.0
@@ -121,6 +127,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         MIN_WORD_TO_WORD_THRESHOLD = ((JSONNumber<?>) config.get("MIN_WORD_TO_WORD_THRESHOLD")).value().doubleValue();
         RELIABLE_TITLE_THRESHOLD = ((JSONNumber<?>) config.get("RELIABLE_TITLE_THRESHOLD")).value().doubleValue();
         
+
         // Initializing an instance of the wnMetricLin algorithm 
         // wnMetricLin is a word-word comparison algorithm. Returns a double in range [0,1], where a higher number signifies higher similarity
         wnMetricLin = new WNWordMetric(WordNetSimilarity.WNSimMeasure.LIN, false);
@@ -144,60 +151,117 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
     */
 	@Override
 	public ValidationResult[] call(Query query, Article article) throws IOException {
+        String key = (String) query.id + "_" + (String) article.id + "_" + (String) FIRST_ROUND_CONTENT_THRESHOLD + "_" + (String) FIRST_ROUND_TITLE_THRESHOLD
+            + "_" + (String) TITLE_MULTIPLIER + "_" + (String) MIN_WORD_TO_WORD_THRESHOLD;
 
-        Sentence querySentence;
-        Sentence articleSentence;
-        
-        SortedList<Pair<Double, CoreMap>> topN = new SortedList<>((a, b) -> b.getX().compareTo(a.getX()));
-        
-        StringBuilder phrase1 = new StringBuilder();
-		phrase1.append(query.getSubject()).append(" ").append(query.getVerb());
-		if (query.getDirectObject() != null && query.getDirectObject().length() > 0)
-			phrase1.append(" ").append(query.getDirectObject());
-		if (query.getIndirectObject() != null && query.getIndirectObject().length() > 0)
-			phrase1.append(" ").append(query.getIndirectObject());
-        if (query.getLocation() != null && query.getLocation().length() > 0)
-			phrase1.append(" ").append(query.getLocation());       
+        SemilarComputations combination;
 
-        querySentence = preprocessor.preprocessSentence(phrase1.toString());
-        
-        Double tempScore;
+        String title;
+        Double titleScore;
+        double average;
+        SortedList<Pair<Double, CoreMap>> topN;
+        String completePhrase;
 
-        String title = article.getAnnotatedTitle().toString();
-        Sentence articleTitle = preprocessor.preprocessSentence(title);
-        Double tempTitle = (double) optimumComparerWNLin.computeSimilarity(querySentence, articleTitle);
-
-        // Go through each sentence in the given article and compare it to the query. Store the number of articles specified by 
-        // MAX_SENTENCES and their scores in a list
-        for (Annotation paragraph : article.getAnnotatedText()) {
-			List<CoreMap> sentences = paragraph.get(SentencesAnnotation.class);
-			for (CoreMap sentence : sentences) {
-                String sen = POSTagger.reconstructSentence(sentence);
-                articleSentence = preprocessor.preprocessSentence(sen);
-                tempScore = (double) optimumComparerWNLin.computeSimilarity(querySentence, articleSentence);
-                if (tempScore.equals(Double.NaN))
-                    continue;
-                topN.add(new Pair<>(tempScore, sentence));
-                if (topN.size() > MAX_SENTENCES)
-                    topN.remove(topN.size() - 1);
+        if (semilarCombinations.contains(key)) {
+            combination = semilarCombinations.get(key);
+            topN = combination.getTopN;
+            completePhrase = combination.getRawQuery;
+            title = combination.getArticleTitle;
+            titleScore = combination.getTitleScore;
+            average = combination.getAverage;
+        }
+        else {
+            if (!combinationLocks.contains(key)) {
+                ReentrantLock lock = new ReentrantLock();
+                lock.lock();
+                if (!combinationLocks.contains(key)){
+                    combinationLocks.put(key, lock);
+                    //put stuff in
+                    lock.unlock;
+                }
+                else
+                    combination = semilarCombinations.get(key);
+                    topN = combination.getTopN;
+                    completePhrase = combination.getRawQuery;
+                    title = combination.getArticleTitle;
+                    titleScore = combination.getTitleScore;
+                    average = combination.getAverage;
+                
+                    lock.unlock()
             }
+
         }
 
-        // Average of top 5 similar sentences
-        double average = 0.0;
-        int count = 0;
-		for (Pair<Double, CoreMap> p : topN){
-            count += 1;
-            if (count > 5) {
-                break;
+            try{ 
+                Sentence querySentence;
+                Sentence articleSentence;
+                Sentence articleTitle;
+
+                
+                topN = new SortedList<>((a, b) -> b.getX().compareTo(a.getX()));
+                
+                StringBuilder phrase1 = new StringBuilder();
+        		phrase1.append(query.getSubject()).append(" ").append(query.getVerb());
+        		if (query.getDirectObject() != null && query.getDirectObject().length() > 0)
+        			phrase1.append(" ").append(query.getDirectObject());
+        		if (query.getIndirectObject() != null && query.getIndirectObject().length() > 0)
+        			phrase1.append(" ").append(query.getIndirectObject());
+                if (query.getLocation() != null && query.getLocation().length() > 0)
+        			phrase1.append(" ").append(query.getLocation());       
+
+                querySentence = preprocessor.preprocessSentence(phrase1.toString());
+                
+                Double tempScore;
+
+                title = article.getAnnotatedTitle().toString();
+                articleTitle = preprocessor.preprocessSentence(title);
+                titleScore = (double) optimumComparerWNLin.computeSimilarity(querySentence, articleTitle);
+
+                // Go through each sentence in the given article and compare it to the query. Store the number of articles specified by 
+                // MAX_SENTENCES and their scores in a list
+                for (Annotation paragraph : article.getAnnotatedText()) {
+        			List<CoreMap> sentences = paragraph.get(SentencesAnnotation.class);
+        			for (CoreMap sentence : sentences) {
+                        String sen = POSTagger.reconstructSentence(sentence);
+                        articleSentence = preprocessor.preprocessSentence(sen);
+                        tempScore = (double) optimumComparerWNLin.computeSimilarity(querySentence, articleSentence);
+                        if (tempScore.equals(Double.NaN))
+                            continue;
+                        topN.add(new Pair<>(tempScore, sentence));
+                        if (topN.size() > MAX_SENTENCES)
+                            topN.remove(topN.size() - 1);
+                    }
+                }
+
+                
+
+                // Average of top 5 similar sentences
+                average = 0.0;
+                int count = 0;
+        		for (Pair<Double, CoreMap> p : topN){
+                    count += 1;
+                    if (count > 5) {
+                        break;
+                    }
+        			average += p.getX();
+                }
+                average /= (double) count; 
+                completePhrase = phrase1.toString();
+                combination = new SemilarComputations(topN, query,completePhrase, title, titleScore, average)
+                semilarCombinations.put(key, combination);
             }
-			average += p.getX();
+            catch (Exception e) {
+                System.out.println("Locking failed because: "+ e.getMessage());
+            }
+            finally{
+                lock.unlock();
+            }
         }
-        average /= (double) count; 
-        
+        //else if lock exists but is locked : wait, when unlocked get result
+
         double validation = 0.0;
-        if (average > FIRST_ROUND_CONTENT_THRESHOLD || tempTitle > FIRST_ROUND_TITLE_THRESHOLD) {
-            validation = postProcess(topN, query,phrase1.toString(), title, tempTitle);
+        if (average > FIRST_ROUND_CONTENT_THRESHOLD || titleScore > FIRST_ROUND_TITLE_THRESHOLD) {
+            validation = postProcess(topN, query,completePhrase, title, titleScore);
         }
 
         return new ValidationResult[]{new ValidationResult(article.getID(), validation)};
@@ -282,6 +346,8 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
                 svolMatchCombinations.put(dependencyMatches, svolMatchCombinations.get(dependencyMatches) + 1);
             }
         }
+
+
 
         // Use counts of SVOL matches to calculate an article's sentences score
         for (HashSet<String> combi : svolMatchCombinations.keySet()) {
