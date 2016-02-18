@@ -55,6 +55,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.text.*;
 import java.util.Properties;
 import java.util.concurrent.locks.ReentrantLock;
@@ -75,8 +76,8 @@ import toberumono.structures.SortingMethods;
  */
 public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
     
-    static HashMap<String, SemilarComputations> semilarCombinations = new HashMap<String, SemilarComputations>();
-    static HashMap<String, ReentrantLock> combinationLocks = new HashMap<String, ReentrantLock>();
+    static Map<String, SemilarComputations> semilarCombinations = new HashMap<String, SemilarComputations>();
+    static Map<String, ReentrantLock> combinationLocks = new HashMap<String, ReentrantLock>();
 
 
     // Various thresholds and constants for post processing
@@ -151,8 +152,8 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
     */
 	@Override
 	public ValidationResult[] call(Query query, Article article) throws IOException {
-        String key = (String) query.id + "_" + (String) article.id + "_" + (String) FIRST_ROUND_CONTENT_THRESHOLD + "_" + (String) FIRST_ROUND_TITLE_THRESHOLD
-            + "_" + (String) TITLE_MULTIPLIER + "_" + (String) MIN_WORD_TO_WORD_THRESHOLD;
+        String key = query.getID() + "_" + article.getID() + "_" + FIRST_ROUND_CONTENT_THRESHOLD + "_" + FIRST_ROUND_TITLE_THRESHOLD
+            + "_" + TITLE_MULTIPLIER + "_" + MIN_WORD_TO_WORD_THRESHOLD;
 
         SemilarComputations combination;
 
@@ -162,37 +163,19 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         SortedList<Pair<Double, CoreMap>> topN;
         String completePhrase;
 
-        if (semilarCombinations.contains(key)) {
-            combination = semilarCombinations.get(key);
-            topN = combination.getTopN;
-            completePhrase = combination.getRawQuery;
-            title = combination.getArticleTitle;
-            titleScore = combination.getTitleScore;
-            average = combination.getAverage;
-        }
-        else {
-            if (!combinationLocks.contains(key)) {
-                ReentrantLock lock = new ReentrantLock();
-                lock.lock();
-                if (!combinationLocks.contains(key)){
-                    combinationLocks.put(key, lock);
-                    //put stuff in
-                    lock.unlock;
-                }
-                else
-                    combination = semilarCombinations.get(key);
-                    topN = combination.getTopN;
-                    completePhrase = combination.getRawQuery;
-                    title = combination.getArticleTitle;
-                    titleScore = combination.getTitleScore;
-                    average = combination.getAverage;
-                
-                    lock.unlock()
+        ReentrantLock lock;
+        synchronized (combinationLocks) {
+            if (!combinationLocks.containsKey(key)) {
+                lock = new ReentrantLock();
+                combinationLocks.put(key, lock);
             }
-
+            else
+                lock = combinationLocks.get(key);
         }
-
-            try{ 
+        lock.lock();
+        try {
+            if (!semilarCombinations.containsKey(key)) {
+                //TODO compute the value and put it in the map
                 Sentence querySentence;
                 Sentence articleSentence;
                 Sentence articleTitle;
@@ -201,13 +184,13 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
                 topN = new SortedList<>((a, b) -> b.getX().compareTo(a.getX()));
                 
                 StringBuilder phrase1 = new StringBuilder();
-        		phrase1.append(query.getSubject()).append(" ").append(query.getVerb());
-        		if (query.getDirectObject() != null && query.getDirectObject().length() > 0)
-        			phrase1.append(" ").append(query.getDirectObject());
-        		if (query.getIndirectObject() != null && query.getIndirectObject().length() > 0)
-        			phrase1.append(" ").append(query.getIndirectObject());
+                phrase1.append(query.getSubject()).append(" ").append(query.getVerb());
+                if (query.getDirectObject() != null && query.getDirectObject().length() > 0)
+                    phrase1.append(" ").append(query.getDirectObject());
+                if (query.getIndirectObject() != null && query.getIndirectObject().length() > 0)
+                    phrase1.append(" ").append(query.getIndirectObject());
                 if (query.getLocation() != null && query.getLocation().length() > 0)
-        			phrase1.append(" ").append(query.getLocation());       
+                    phrase1.append(" ").append(query.getLocation());       
 
                 querySentence = preprocessor.preprocessSentence(phrase1.toString());
                 
@@ -220,8 +203,8 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
                 // Go through each sentence in the given article and compare it to the query. Store the number of articles specified by 
                 // MAX_SENTENCES and their scores in a list
                 for (Annotation paragraph : article.getAnnotatedText()) {
-        			List<CoreMap> sentences = paragraph.get(SentencesAnnotation.class);
-        			for (CoreMap sentence : sentences) {
+                    List<CoreMap> sentences = paragraph.get(SentencesAnnotation.class);
+                    for (CoreMap sentence : sentences) {
                         String sen = POSTagger.reconstructSentence(sentence);
                         articleSentence = preprocessor.preprocessSentence(sen);
                         tempScore = (double) optimumComparerWNLin.computeSimilarity(querySentence, articleSentence);
@@ -238,25 +221,29 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
                 // Average of top 5 similar sentences
                 average = 0.0;
                 int count = 0;
-        		for (Pair<Double, CoreMap> p : topN){
+                for (Pair<Double, CoreMap> p : topN){
                     count += 1;
                     if (count > 5) {
                         break;
                     }
-        			average += p.getX();
+                    average += p.getX();
                 }
                 average /= (double) count; 
                 completePhrase = phrase1.toString();
-                combination = new SemilarComputations(topN, query,completePhrase, title, titleScore, average)
+                combination = new SemilarComputations(topN, query,completePhrase, title, titleScore, average);
                 semilarCombinations.put(key, combination);
             }
-            catch (Exception e) {
-                System.out.println("Locking failed because: "+ e.getMessage());
-            }
-            finally{
-                lock.unlock();
-            }
+            combination = semilarCombinations.get(key);
+            topN = combination.getTopN();
+            completePhrase = combination.getRawQuery();
+            title = combination.getArticleTitle();
+            titleScore = combination.getTitleScore();
+            average = combination.getAverage();
         }
+        finally {
+            lock.unlock();
+        }
+
         //else if lock exists but is locked : wait, when unlocked get result
 
         double validation = 0.0;
