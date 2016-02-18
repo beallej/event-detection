@@ -78,7 +78,6 @@ class KeywordValidator(AbstractValidator):
         :return: match_percentage (relative measure of how well article validates query)
         """
         max_match_value = 0
-        match_value = 0
         # Need to process query and article formats
         ds = DataSource()
         query_synonyms_raw = ds.get_query_synonyms(query_id) # [('and', 'CC', 'Random', []), ('julia', 'NN', 'Random', []), ('phuong', 'JJ', 'Random', []), ('test', 'NN', 'Random', ['trial', 'run', 'mental_test', 'test', 'tryout', 'trial_run', 'exam', 'examination', 'mental_testing', 'psychometric_test']), ('validator', 'NN', 'Random', [])]
@@ -86,10 +85,8 @@ class KeywordValidator(AbstractValidator):
 
         for w in query_synonyms_raw:
             query_synonyms[self.normalize_keyword(w[0])] = w[3]
-        #print(ds.get_article_keywords(article_id))
         article_keyword = json.loads(ds.get_article_keywords(article_id)[0]) #{NN: [list of keywords], VB:[list of verb keywords]}
-        #print(query_synonyms)
-        #print(article_keyword)
+
         article_keywords_flat = set()
         for pos in article_keyword:
             for item in article_keyword[pos]:
