@@ -153,7 +153,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
 	@Override
 	public ValidationResult[] call(Query query, Article article) throws IOException {
         String key = query.getID() + "_" + article.getID() + "_" + FIRST_ROUND_CONTENT_THRESHOLD + "_" + FIRST_ROUND_TITLE_THRESHOLD
-            + "_" + TITLE_MULTIPLIER + "_" + MIN_WORD_TO_WORD_THRESHOLD;
+            + "_" + RELIABLE_TITLE_THRESHOLD + "_" + MIN_WORD_TO_WORD_THRESHOLD;
 
         SemilarComputations combination;
 
