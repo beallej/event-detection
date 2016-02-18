@@ -2,8 +2,7 @@ package eventdetection.downloader;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.DirectoryStream.Filter;
+import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
@@ -15,7 +14,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import toberumono.utils.functions.IOExceptedFunction;
 
@@ -37,6 +38,11 @@ public abstract class Downloader implements Supplier<List<Article>>, Closeable {
 	public static final Map<Integer, Source> sources = new LinkedHashMap<>();
 	
 	/**
+	 * A {@link Predicate} that returns {@code true} iff the {@link Path} points to a JSON file
+	 */
+	public static final Predicate<Path> JSON_FILE_FILTER = p -> p.toString().toLowerCase().endsWith(".json");
+	
+	/**
 	 * Adds a {@link Source} or a folder of {@link Source Sources} to {@link #sources}.
 	 * 
 	 * @param path
@@ -47,7 +53,7 @@ public abstract class Downloader implements Supplier<List<Article>>, Closeable {
 	 *             if an error occurs while loading the JSON files
 	 */
 	public static List<Integer> loadSource(Path path) throws IOException {
-		return loadItemsFromFile(Source::loadFromJSON, p -> p.toString().endsWith(".json"), path, sources::put);
+		return loadItemsFromFile(Source::loadFromJSON, JSON_FILE_FILTER, path, sources::put);
 	}
 	
 	/**
@@ -109,18 +115,10 @@ public abstract class Downloader implements Supplier<List<Article>>, Closeable {
 	 * @throws IOException
 	 *             if an error occurs while loading from files
 	 */
-	public static <T extends IDAble<V>, V> List<V> loadItemsFromFile(IOExceptedFunction<Path, T> loader, Filter<Path> filter, Path path, BiFunction<V, T, T> store) throws IOException {
+	public static <T extends IDAble<V>, V> List<V> loadItemsFromFile(IOExceptedFunction<Path, T> loader, Predicate<Path> filter, Path path, BiFunction<V, T, T> store) throws IOException {
 		List<V> ids = new ArrayList<>();
-		if (Files.isRegularFile(path)) {
-			if (filter.accept(path)) {
-				T t = loader.apply(path);
-				store.apply(t.getID(), t);
-				ids.add(t.getID());
-			}
-			return ids;
-		}
-		try (DirectoryStream<Path> stream = Files.newDirectoryStream(path, filter)) {
-			for (Path p : stream) {
+		try (Stream<Path> files = Files.walk(path, FileVisitOption.FOLLOW_LINKS).filter(filter)) {
+			files.forEach(p -> {
 				try {
 					T t = loader.apply(p);
 					store.apply(t.getID(), t);
@@ -129,7 +127,7 @@ public abstract class Downloader implements Supplier<List<Article>>, Closeable {
 				catch (IOException e) {
 					e.printStackTrace();
 				}
-			}
+			});
 		}
 		return ids;
 	}
@@ -186,13 +184,11 @@ public abstract class Downloader implements Supplier<List<Article>>, Closeable {
 		String statement = "select * from " + table;
 		try (PreparedStatement stmt = connection.prepareStatement(statement)) {
 			ResultSet rs = stmt.executeQuery();
-			if (!rs.next()) //Set the pointer to the first row and test if it is not valid
-				return ids;
-			do {
+			while (rs.next()) { //While the next row is valid
 				T t = loader.apply(rs);
 				store.apply(t.getID(), t);
 				ids.add(t.getID());
-			} while (rs.next()); //While the next row is valid
+			}
 		}
 		return ids;
 	}
