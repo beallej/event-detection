@@ -12,6 +12,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import toberumono.json.JSONObject;
 import toberumono.json.JSONSystem;
 import toberumono.structures.tuples.Pair;
@@ -32,6 +35,8 @@ import eventdetection.voting.VotingController;
  * @author Joshua Lipstone
  */
 public class Pipeline implements PipelineComponent, Closeable {
+	private static final Logger logger = LoggerFactory.getLogger("Pipeline");
+	
 	private final ArticleManager articleManager;
 	private final List<PipelineComponent> components;
 	private boolean closed;
@@ -72,7 +77,7 @@ public class Pipeline implements PipelineComponent, Closeable {
 				ThreadingUtils.loadArticles(articleManager, aIDs, inputs.getY());
 				return inputs;
 			});
-			if (articleIDs.size() == 0) { //Only run the downloader if no articles are specified.
+			if (articleIDs.size() == 0) { //Only run the Downloader if no articles are specified.
 				addComponent(new DownloaderController(config));
 				addComponent(inputs -> {
 					Process p = SubprocessHelpers.executePythonProcess(Paths.get("./ArticleProcessorDaemon.py"), "--no-lock");
@@ -109,20 +114,36 @@ public class Pipeline implements PipelineComponent, Closeable {
 	public static void main(String[] args) throws IOException, SQLException {
 		Path configPath = Paths.get("./configuration.json"); //The configuration file defaults to "./configuration.json", but can be changed with arguments
 		int action = 0;
+		boolean actionSet = false;
 		final Collection<Integer> articleIDs = new LinkedHashSet<>(), queryIDs = new LinkedHashSet<>();
 		for (String arg : args) {
-			if (arg.equalsIgnoreCase("-c"))
-				action = 0;
-			else if (arg.equalsIgnoreCase("-a"))
-				action = 1;
-			else if (arg.equalsIgnoreCase("-q"))
-				action = 2;
-			else if (action == 0)
-				configPath = Paths.get(arg);
-			else if (action == 1)
-				articleIDs.add(Integer.parseInt(arg));
-			else if (action == 2)
-				queryIDs.add(Integer.parseInt(arg));
+			try {
+				if (arg.equalsIgnoreCase("-c")) {
+					action = 0;
+					actionSet = true;
+				}
+				else if (arg.equalsIgnoreCase("-a")) {
+					action = 1;
+					actionSet = true;
+				}
+				else if (arg.equalsIgnoreCase("-q")) {
+					action = 2;
+					actionSet = true;
+				}
+				else if (action == 0)
+					configPath = Paths.get(arg);
+				else if (action == 1)
+					articleIDs.add(Integer.parseInt(arg));
+				else if (action == 2)
+					queryIDs.add(Integer.parseInt(arg));
+			}
+			catch (NumberFormatException e) {
+				logger.warn(arg + " is not an integer");
+			}
+			if (!actionSet)
+				action++;
+			if (action > 2)
+				break;
 		}
 		JSONObject config = (JSONObject) JSONSystem.loadJSON(configPath);
 		DBConnection.configureConnection((JSONObject) config.get("database"));
