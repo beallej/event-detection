@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Map;
 
 import toberumono.json.JSONArray;
@@ -57,7 +58,7 @@ public class DownloaderController extends DownloaderCollection implements Pipeli
 		FeedManager fm = new FeedManager(connection);
 		for (JSONData<?> str : ((JSONArray) paths.get("scrapers")).value())
 			fm.addScraper(Paths.get(str.toString()));
-		for (JSONData<?> str : ((JSONArray) paths.get("feeds")).value())
+		for (JSONData<?> str : ((JSONArray) paths.get("feeds")).value()) //We can load Feeds from both the file system and the database
 			fm.addFeed(Paths.get(str.toString()));
 		fm.addFeed(connection, tables.get("feeds").value().toString());
 		addDownloader(fm);
@@ -88,8 +89,9 @@ public class DownloaderController extends DownloaderCollection implements Pipeli
 	@Override
 	public Pair<Map<Integer, Query>, Map<Integer, Article>> execute(Pair<Map<Integer, Query>, Map<Integer, Article>> inputs) throws IOException, SQLException {
 		Map<Integer, Article> articles = inputs.getY();
-		ThreadingUtils.executeTask(() -> {
-			for (Article article : get()) {
+		List<Article> downloaded = get();
+		ThreadingUtils.executeTask(() -> { //We need to hold the file system lock before we can store Articles
+			for (Article article : downloaded) {
 				article = am.store(article);
 				articles.put(article.getID(), article);
 			}

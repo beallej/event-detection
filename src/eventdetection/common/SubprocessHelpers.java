@@ -24,7 +24,7 @@ public class SubprocessHelpers {
 	
 	private SubprocessHelpers() {/* This is a static class */}
 	
-	private static final String getBashPath() {
+	private static final String getBashPath() { //This defaults to running from .sh
 		ProcessBuilder pb = new ProcessBuilder();
 		pb.command("which", "bash");
 		try {
@@ -42,6 +42,7 @@ public class SubprocessHelpers {
 	
 	private static final String getPythonPath() {
 		ProcessBuilder pb = new ProcessBuilder();
+		//python 2 outputs its version information to stderr.  Not kidding.
 		pb.command(bashPath, "-l", "-c", "[ \"$(python --version 2>&1 | grep 'Python 3')\" != \"\" ] && echo \"$(which python)\" || echo \"$(which python3)\"");
 		try {
 			Process p = pb.start();
@@ -87,11 +88,11 @@ public class SubprocessHelpers {
 	public static Process executePythonProcess(Path scriptPath, Path directory, String... args) throws IOException {
 		String[] command = {bashPath, "-c", pythonPath.toString() + " \"$@\"", "-", scriptPath.normalize().toString()};
 		command = Arrays.copyOf(command, command.length + args.length);
-		for (int i = 0; i < args.length; i++)
+		for (int i = 0; i < args.length; i++) //The command has 5 components that come before the arguments
 			command[i + 5] = args[i];
 		
 		ProcessBuilder pb = new ProcessBuilder(command);
-		pb.redirectError(Redirect.INHERIT);
+		pb.redirectError(Redirect.INHERIT); //So that errors can be seen
 		pb.directory(directory.toFile());
 		return pb.start();
 	}

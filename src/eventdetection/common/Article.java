@@ -96,7 +96,7 @@ public class Article implements IDAble<Integer>, Serializable {
 		this(new String[]{title, null}, new String[]{text, null}, null, null, url, source, id);
 	}
 	
-	private Article(String[] titles, String[] texts, Annotation title, Annotation[] text, URL url, Source source, Integer id) {
+	private Article(String[] titles, String[] texts, Annotation title, Annotation[] text, URL url, Source source, Integer id) { //Copy constructor
 		this.titles = titles;
 		this.texts = texts;
 		this.title = title;
@@ -104,7 +104,7 @@ public class Article implements IDAble<Integer>, Serializable {
 		this.url = url;
 		this.source = source;
 		this.id = id;
-		hashCode = this.id == null ? null : id.hashCode();
+		hashCode = this.id == null ? null : id.hashCode(); //IDs are unique
 	}
 	
 	/**

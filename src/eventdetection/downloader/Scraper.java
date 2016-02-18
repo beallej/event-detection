@@ -15,6 +15,9 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import toberumono.json.JSONArray;
 import toberumono.json.JSONData;
 import toberumono.json.JSONObject;
@@ -31,16 +34,20 @@ import eventdetection.common.IDAble;
  * @author Joshua Lipstone
  */
 public class Scraper implements IDAble<String>, JSONRepresentable {
-	private final List<Pair<Pattern, String>> sectioning;
-	private final List<Pair<Pattern, String>> filtering;
-	private final String id;
-	private final JSONObject json;
+	private static final Logger logger = LoggerFactory.getLogger("Scraper");
+	
 	private static final Function<Pair<Pattern, String>, JSONData<?>> filterToJSON = e -> {
 		JSONArray arr = new JSONArray();
 		arr.add(new JSONString(e.getX().toString()));
 		arr.add(new JSONString(e.getY()));
 		return arr;
 	};
+	
+	private final List<Pair<Pattern, String>> sectioning;
+	private final List<Pair<Pattern, String>> filtering;
+	private final String id;
+	private final JSONObject json;
+	private int hashCode;
 	
 	/**
 	 * Creates a {@link Scraper} using the given configuration data.
@@ -147,10 +154,13 @@ public class Scraper implements IDAble<String>, JSONRepresentable {
 		StringBuilder sb = new StringBuilder();
 		while (sc.hasNext())
 			sb.append(sc.next());
-		String separated = separate(sb.toString(), sectioning);
-		if (separated == null)
+		String separated = separate(sb.toString(), sectioning).trim();
+		if (separated == null || separated.length() < 1) //We don't want Strings of length 0
 			return null;
-		return filter(separated, filtering);
+		String filtered = filter(separated, filtering);
+		if (filtered == null || filtered.length() < 1) //We don't want Strings of length 0
+			return null;
+		return filtered;
 	}
 	
 	/**
@@ -180,7 +190,8 @@ public class Scraper implements IDAble<String>, JSONRepresentable {
 			int offset = 0, lastEnd = 0;
 			boolean found = false;
 			Matcher m = rule.getX().matcher(page);
-			while (m.find()) {
+			//There is no easy way to "replace" parts of a String into a StringBuffer
+			while (m.find()) { //this is the simplest way I could find
 				found = true;
 				m.appendReplacement(sb, rule.getY());
 				sb.delete(offset, offset + m.start() - lastEnd);
@@ -195,7 +206,7 @@ public class Scraper implements IDAble<String>, JSONRepresentable {
 		}
 		if (!didFind)
 			return null;
-		return page;
+		return page.trim();
 	}
 	
 	/**
@@ -225,11 +236,16 @@ public class Scraper implements IDAble<String>, JSONRepresentable {
 	}
 	
 	/**
-	 * @return the ID
+	 * @return the ID of the {@link Scraper}
 	 */
 	@Override
 	public String getID() {
 		return id;
+	}
+	
+	@Override
+	public JSONObject toJSONObject() {
+		return json;
 	}
 	
 	@Override
@@ -242,7 +258,13 @@ public class Scraper implements IDAble<String>, JSONRepresentable {
 	
 	@Override
 	public int hashCode() {
-		return getID().hashCode();
+		if (hashCode == 0) {
+			hashCode = 17;
+			hashCode = hashCode * 31 + getID().hashCode();
+			hashCode = hashCode * 31 + sectioning.hashCode();
+			hashCode = hashCode * 31 + filtering.hashCode();
+		}
+		return hashCode;
 	}
 	
 	/**
@@ -290,14 +312,9 @@ public class Scraper implements IDAble<String>, JSONRepresentable {
 			constructor.setAccessible(true);
 			return (Scraper) constructor.newInstance(json, config);
 		}
-		catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException | ClassNotFoundException e) {
-			e.printStackTrace();
+		catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | ClassNotFoundException e) {
+			logger.error("Unable to initialize the Scraper defined in " + json.toString(), e);
 			return new Scraper(json, config);
 		}
-	}
-	
-	@Override
-	public JSONObject toJSONObject() {
-		return json;
 	}
 }

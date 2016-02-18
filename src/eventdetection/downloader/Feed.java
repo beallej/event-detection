@@ -115,6 +115,7 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 		this.lastSeen = lastSeen;
 		this.scraperIDs = scraperIDs;
 		this.scrapers = scrapers;
+		this.connection = connection;
 		if (json == null) {
 			json = new JSONObject();
 			json.put("id", new JSONNumber<>(getID()));
@@ -124,7 +125,6 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 			json.put("scraperIDs", JSONArray.wrap(scraperIDs));
 			json.put("lastSeen", new JSONString(lastSeen));
 		}
-		this.connection = connection;
 		this.json = json;
 		this.file = file;
 		closed = false;
@@ -309,7 +309,7 @@ public class Feed extends Downloader implements IDAble<Integer>, JSONRepresentab
 				ps.executeUpdate();
 			}
 			catch (SQLException e) {
-				e.printStackTrace();
+				logger.error("An SQL error occured while writing a Feed's data to the database.", e);
 			}
 		}
 		if (lastSeen != null)
