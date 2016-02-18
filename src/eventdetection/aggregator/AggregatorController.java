@@ -1,4 +1,4 @@
-package eventdetection.voting;
+package eventdetection.aggregator;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -8,12 +8,13 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -22,7 +23,6 @@ import org.slf4j.LoggerFactory;
 import toberumono.json.JSONNumber;
 import toberumono.json.JSONObject;
 import toberumono.json.JSONSystem;
-import toberumono.structures.tuples.Pair;
 
 import eventdetection.common.Article;
 import eventdetection.common.ArticleManager;
@@ -30,18 +30,20 @@ import eventdetection.common.DBConnection;
 import eventdetection.common.IOSQLExceptedRunnable;
 import eventdetection.common.Query;
 import eventdetection.common.ThreadingUtils;
+import eventdetection.pipeline.Pipeline;
 import eventdetection.pipeline.PipelineComponent;
+import eventdetection.validator.ValidationResult;
 import eventdetection.validator.ValidatorController;
 
 /**
- * A class that manages the voting algorithm that combines the results from all of the validation methods to finally
+ * A class that manages the aggregator algorithm that combines the results from all of the validation methods to finally
  * determine whether a {@link Query} has happened.
  * 
  * @author Joshua Lipstone
  */
-public class VotingController implements PipelineComponent, Closeable {
+public class AggregatorController implements PipelineComponent, Closeable {
 	private final Connection connection;
-	private static final Logger logger = LoggerFactory.getLogger("VotingController");
+	private static final Logger logger = LoggerFactory.getLogger("AggregatorController");
 	private final PreparedStatement query;
 	private final double globalThreshold;
 	private boolean closed;
@@ -54,10 +56,10 @@ public class VotingController implements PipelineComponent, Closeable {
 	 * @throws SQLException
 	 *             if an error occurs while connecting to the database
 	 */
-	public VotingController(JSONObject config) throws SQLException {
+	public AggregatorController(JSONObject config) throws SQLException {
 		connection = DBConnection.getConnection();
 		query = constructQuery((JSONObject) config.get("tables"));
-		globalThreshold = ((JSONNumber<?>) ((JSONObject) config.get("voting")).get("global-threshold")).value().doubleValue();
+		globalThreshold = ((JSONNumber<?>) ((JSONObject) config.get("aggregator")).get("global-threshold")).value().doubleValue();
 	}
 	
 	private PreparedStatement constructQuery(JSONObject tables) throws SQLException {
@@ -68,16 +70,12 @@ public class VotingController implements PipelineComponent, Closeable {
 	}
 	
 	@Override
-	public Pair<Map<Integer, Query>, Map<Integer, Article>> execute(Pair<Map<Integer, Query>, Map<Integer, Article>> inputs) throws IOException, SQLException {
-		Map<Integer, Query> queries = inputs.getX();
-		List<Query> notValidated = executeVoting(queries, inputs.getY(), false);
-		for (Query nv : notValidated)
-			queries.remove(nv.getID());
-		return inputs;
+	public void execute(Map<Integer, Query> queries, Map<Integer, Article> articles, Collection<ValidationResult> results) throws IOException, SQLException {
+		executeAggregator(queries, articles, results);
 	}
 	
 	/**
-	 * Runs the voting algorithm using the given {@link Query Queries} and {@link Article Articles}.<br>
+	 * Runs the aggregator algorithm using the given {@link Query Queries} and {@link Article Articles}.<br>
 	 * This method is thread-safe and uses the interprocess lock from
 	 * {@link ThreadingUtils#executeTask(IOSQLExceptedRunnable)}.
 	 * 
@@ -91,12 +89,12 @@ public class VotingController implements PipelineComponent, Closeable {
 	 * @throws SQLException
 	 *             if an SQL error occurs while reading the {@link Query Queries} from the database
 	 */
-	public List<Query> executeVoting(Map<Integer, Query> queries, Map<Integer, Article> articles) throws IOException, SQLException {
-		return executeVoting(queries, articles, true);
+	public List<Query> executeAggregator(Map<Integer, Query> queries, Map<Integer, Article> articles) throws IOException, SQLException {
+		return executeAggregator(queries, articles, new ArrayList<>());
 	}
 	
 	/**
-	 * Runs the voting algorithm using the given {@link Query Queries} and {@link Article Articles}.<br>
+	 * Runs the aggregator algorithm using the given {@link Query Queries} and {@link Article Articles}.<br>
 	 * This method is thread-safe and uses the interprocess lock from
 	 * {@link ThreadingUtils#executeTask(IOSQLExceptedRunnable)}.
 	 * 
@@ -104,42 +102,56 @@ public class VotingController implements PipelineComponent, Closeable {
 	 *            the {@link Query Queries} to validate
 	 * @param articles
 	 *            the {@link Article Articles} on which to validate them
-	 * @param returnValidated
-	 *            if {@code true}, this method will return the {@link Query Queries} that were validated. If {@code false},
-	 *            this method will return the {@link Query Queries} that were not validated
-	 * @return a {@link List} containing the {@link Query Queries} that were either validated or not validated depending on
-	 *         the value of {@code returnValidated}
+	 * @param results
+	 *            a {@link Collection} containing {@link ValidationResult} objects (for chaining within {@link Pipeline})
+	 * @return a {@link List} containing the {@link Query Queries} that were validated
 	 * @throws IOException
 	 *             if an error occurs while interacting with the interprocess lock
 	 * @throws SQLException
 	 *             if an SQL error occurs while reading the {@link Query Queries} from the database
 	 */
-	public List<Query> executeVoting(Map<Integer, Query> queries, Map<Integer, Article> articles, boolean returnValidated) throws IOException, SQLException {
+	public List<Query> executeAggregator(Map<Integer, Query> queries, Map<Integer, Article> articles, Collection<ValidationResult> results) throws IOException, SQLException {
 		Map<Integer, Double> sum = new HashMap<>(), count = new HashMap<>();
+		Map<Integer, Collection<Integer>> validatedBy = new HashMap<>();
 		for (Integer id : queries.keySet()) {
 			sum.put(id, 0.0);
 			count.put(id, 0.0);
 		}
 		ThreadingUtils.executeTask(() -> {
 			try (ResultSet rs = query.executeQuery()) {
-				int query, article;
+				Integer query, article;
 				while (rs.next()) {
 					if (!queries.containsKey(query = rs.getInt("vr.query")) || !articles.containsKey(article = rs.getInt("vr.article")))
 						continue;
 					if (rs.getFloat("vr.validates") >= rs.getFloat("va.threshold")) {
 						sum.put(query, sum.get(query) + 1);
 						logger.info("Article " + article + " validates query " + query);
+						if (!validatedBy.containsKey(query))
+							validatedBy.put(query, new ArrayList<>());
+						validatedBy.get(query).add(article);
 					}
 					count.put(query, count.get(query) + 1);
 				}
 			}
 		});
-		Predicate<Integer> filter = returnValidated ? id -> (sum.get(id) / count.get(id) >= globalThreshold) : id -> (sum.get(id) / count.get(id) < globalThreshold);
-		return sum.keySet().stream().filter(filter).map(id -> queries.get(id)).collect(Collectors.toList());
+		Integer key;
+		for (Iterator<Integer> iter = sum.keySet().iterator(); iter.hasNext();) {
+			key = iter.next();
+			if (sum.get(key) / count.get(key) < globalThreshold)
+				iter.remove();
+		}
+		List<Query> output = sum.keySet().stream().map(id -> queries.get(id)).collect(Collectors.toList());
+		ValidationResult res;
+		for (Iterator<ValidationResult> iter = results.iterator(); iter.hasNext();) {
+			res = iter.next();
+			if (!sum.containsKey(res.getQueryID()) || !validatedBy.get(res.getQueryID()).contains(res.getArticleID()))
+				iter.remove();
+		}
+		return output;
 	}
 	
 	/**
-	 * Main method of the voting program.
+	 * Main method of the aggregator program.
 	 * 
 	 * @param args
 	 *            the command line arguments
@@ -169,8 +181,8 @@ public class VotingController implements PipelineComponent, Closeable {
 		}
 		JSONObject config = (JSONObject) JSONSystem.loadJSON(configPath);
 		DBConnection.configureConnection((JSONObject) config.get("database"));
-		try (Connection connection = DBConnection.getConnection(); VotingController vc = new VotingController(config); ArticleManager articleManager = new ArticleManager(connection, config)) {
-			vc.executeVoting(ThreadingUtils.loadQueries(queryIDs), ThreadingUtils.loadArticles(articleManager, articleIDs));
+		try (Connection connection = DBConnection.getConnection(); AggregatorController vc = new AggregatorController(config); ArticleManager articleManager = new ArticleManager(connection, config)) {
+			vc.executeAggregator(ThreadingUtils.loadQueries(queryIDs), ThreadingUtils.loadArticles(articleManager, articleIDs));
 		}
 	}
 	
@@ -183,7 +195,7 @@ public class VotingController implements PipelineComponent, Closeable {
 			connection.close();
 		}
 		catch (SQLException e) {
-			logger.error("An SQL error occured while closing a VotingController's Connection.", e);
+			logger.error("An SQL error occured while closing a AggregatorController's Connection.", e);
 		}
 	}
 }

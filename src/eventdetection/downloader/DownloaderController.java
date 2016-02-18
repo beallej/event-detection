@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -13,7 +14,6 @@ import toberumono.json.JSONBoolean;
 import toberumono.json.JSONData;
 import toberumono.json.JSONObject;
 import toberumono.json.JSONSystem;
-import toberumono.structures.tuples.Pair;
 
 import eventdetection.common.Article;
 import eventdetection.common.ArticleManager;
@@ -22,6 +22,7 @@ import eventdetection.common.Query;
 import eventdetection.common.ThreadingUtils;
 import eventdetection.pipeline.Pipeline;
 import eventdetection.pipeline.PipelineComponent;
+import eventdetection.validator.ValidationResult;
 
 /**
  * Main class of the downloader. Controls startup and and article management.
@@ -87,8 +88,7 @@ public class DownloaderController extends DownloaderCollection implements Pipeli
 	}
 	
 	@Override
-	public Pair<Map<Integer, Query>, Map<Integer, Article>> execute(Pair<Map<Integer, Query>, Map<Integer, Article>> inputs) throws IOException, SQLException {
-		Map<Integer, Article> articles = inputs.getY();
+	public void execute(Map<Integer, Query> queries, Map<Integer, Article> articles, Collection<ValidationResult> results) throws IOException, SQLException {
 		List<Article> downloaded = get();
 		ThreadingUtils.executeTask(() -> { //We need to hold the file system lock before we can store Articles
 			for (Article article : downloaded) {
@@ -96,7 +96,6 @@ public class DownloaderController extends DownloaderCollection implements Pipeli
 				articles.put(article.getID(), article);
 			}
 		});
-		return inputs;
 	}
 	
 	private static void updateJSONConfiguration(JSONObject config) {
