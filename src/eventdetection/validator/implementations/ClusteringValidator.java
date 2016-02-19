@@ -33,7 +33,9 @@ public class ClusteringValidator extends ManyToManyValidator {
 	@Override
 	public ValidationResult[] call(Collection<Query> queries, Collection<Article> articles) throws Exception {
 		List<ValidationResult> results = new ArrayList<>();
-		Process p = SubprocessHelpers.executePythonProcess(Paths.get("./ClusterValidator.py"), queries.stream().map(q -> q.getID().toString()).toArray(l -> new String[l]));
+		Process p =
+				SubprocessHelpers.executePythonProcess(Paths.get("./PythonValidators/ClusterValidator.py"), Paths.get(ClusteringValidator.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getParent(),
+						queries.stream().map(q -> q.getID().toString()).toArray(l -> new String[l]));
 		p.waitFor();
 		JSONObject res = (JSONObject) JSONSystem.readJSON(p.getInputStream());
 		for (Entry<String, JSONData<?>> e : res.entrySet()) {

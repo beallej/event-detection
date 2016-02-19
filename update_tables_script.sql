@@ -4,6 +4,7 @@ ALTER TABLE validation_algorithms ADD COLUMN base_class text not null default ''
 ALTER TABLE validation_algorithms ADD COLUMN validator_type validator_type not null default 'OneToOne';
 ALTER TABLE validation_algorithms ADD COLUMN threshold real not null default 0.50;
 ALTER TABLE validation_algorithms ADD COLUMN parameters jsonb default null;
+ALTER TABLE validation_algorithms ADD COLUMN enabled boolean not null default true;
 
 ALTER TABLE validation_algorithms ADD CONSTRAINT unqiue_algorithm UNIQUE (algorithm);
 
