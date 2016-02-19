@@ -16,6 +16,7 @@ public class ValidationResult {
 	private final Integer queryID;
 	private final Integer articleID;
 	private final Double validates, invalidates;
+	private ValidationAlgorithm algorithm;
 	
 	/**
 	 * Constructs a {@link ValidationResult} for the given {@link Validator algorithm} and {@link Article} with a
@@ -159,6 +160,23 @@ public class ValidationResult {
 	}
 	
 	/**
+	 * Constructs a {@link ValidationResult} from the current row in the given {@link ResultSet}.<br>
+	 * <b>Note:</b> This does <i>not</i> advance the {@link ResultSet ResultSet's} cursor at any point.
+	 * 
+	 * @param resultSet
+	 *            the {@link ResultSet} with its cursor on the row from which the {@link ValidationResult} is to be loaded.
+	 *            <br>
+	 *            It <i>must</i> include the columns named, 'query', 'article', 'validates', and 'invalidates'.
+	 * @param algorithm
+	 *            the {@link ValidationAlgorithm} that produced the {@link ValidationResult}
+	 * @throws SQLException
+	 *             if an error occurs while accessing any of the required fields from the {@link ResultSet}
+	 */
+	public ValidationResult(ResultSet resultSet, ValidationAlgorithm algorithm) throws SQLException {
+		this(resultSet.getInt("query"), resultSet.getInt("article"), (double) resultSet.getFloat("validates"), (double) resultSet.getFloat("invalidates"));
+	}
+	
+	/**
 	 * @return the {@code ID} of the {@link Article} that produced the {@link ValidationResult} references as it appears in
 	 *         the database
 	 */
@@ -179,6 +197,25 @@ public class ValidationResult {
 	 */
 	public Double getValidates() {
 		return validates;
+	}
+	
+	/**
+	 * @return the {@link ValidationAlgorithm} that produced the {@link ValidationResult}
+	 */
+	public ValidationAlgorithm getAlgorithm() {
+		return algorithm;
+	}
+	
+	void setAlgorithm(ValidationAlgorithm algorithm) {
+		this.algorithm = algorithm;
+	}
+	
+	/**
+	 * @return {@code true} iff the {@link Article} validates the {@link Query} based on the threshold of the algorithm that
+	 *         produced the {@link ValidationResult}
+	 */
+	public boolean doesValidate() {
+		return getAlgorithm().doesValidate(this);
 	}
 	
 	/**

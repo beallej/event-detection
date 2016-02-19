@@ -36,7 +36,6 @@ import toberumono.json.JSONData;
 import toberumono.json.JSONObject;
 import toberumono.json.JSONString;
 import toberumono.json.JSONSystem;
-import toberumono.structures.tuples.Pair;
 import toberumono.structures.tuples.Triple;
 
 import static eventdetection.common.ThreadingUtils.pool;
@@ -195,12 +194,6 @@ public class ValidatorController implements PipelineComponent, Closeable {
 		}
 	}
 	
-	@Override
-	public Pair<Map<Integer, Query>, Map<Integer, Article>> execute(Pair<Map<Integer, Query>, Map<Integer, Article>> inputs) throws IOException, SQLException {
-		execute(inputs.getX(), inputs.getY());
-		return inputs;
-	}
-	
 	/**
 	 * Executes the {@link Validator Validators} registered with the {@link ValidatorController} on the given
 	 * {@link Collection} of {@link Query} IDs and {@link Collection} of {@link Article} IDs after loading them from the
@@ -234,11 +227,16 @@ public class ValidatorController implements PipelineComponent, Closeable {
 	 *             if an error occurs while reading from or writing to the database
 	 */
 	public void execute(Map<Integer, Query> queries, Map<Integer, Article> articles) throws SQLException {
+		execute(queries, articles, new ArrayList<>());
+	}
+		
+	@Override
+	public void execute(Map<Integer, Query> queries, Map<Integer, Article> articles, Collection<ValidationResult> results) throws SQLException {
 		synchronized (connection) {
-			List<Triple<Integer, Integer, Future<ValidationResult[]>>> results = new ArrayList<>();
+			List<Triple<Integer, ValidationAlgorithm, Future<ValidationResult[]>>> futureResults = new ArrayList<>();
 			for (ValidatorWrapper<?> vw : validators.get(ValidatorType.ManyToMany).values()) {
 				try {
-					results.add(new Triple<>(null, vw.getID(), pool.submit(() -> vw.validate(queries.values(), articles.values()))));
+					futureResults.add(new Triple<>(null, vw, pool.submit(() -> vw.validate(queries.values(), articles.values()))));
 				}
 				catch (IllegalArgumentException e) {
 					logger.error("Unable to initialize the validator, " + vw.getName() + ", for queries " + queries.keySet().toString() + " and articles " + articles.keySet().toString(), e);
@@ -247,7 +245,7 @@ public class ValidatorController implements PipelineComponent, Closeable {
 			for (ValidatorWrapper<?> vw : validators.get(ValidatorType.OneToMany).values()) {
 				for (Query query : queries.values()) {
 					try {
-						results.add(new Triple<>(query.getID(), vw.getID(), pool.submit(() -> vw.validate(query, articles))));
+						futureResults.add(new Triple<>(query.getID(), vw, pool.submit(() -> vw.validate(query, articles))));
 					}
 					catch (IllegalArgumentException e) {
 						logger.error("Unable to initialize the validator, " + vw.getName() + ", for query " + query.getID() + " and articles " + articles.keySet().toString(), e);
@@ -257,7 +255,7 @@ public class ValidatorController implements PipelineComponent, Closeable {
 			for (ValidatorWrapper<?> vw : validators.get(ValidatorType.ManyToOne).values()) {
 				for (Article article : articles.values()) {
 					try {
-						results.add(new Triple<>(null, vw.getID(), pool.submit(() -> vw.validate(queries.values(), article))));
+						futureResults.add(new Triple<>(null, vw, pool.submit(() -> vw.validate(queries.values(), article))));
 					}
 					catch (IllegalArgumentException e) {
 						logger.error("Unable to initialize the validator, " + vw.getName() + ", for queries " + queries.keySet().toString() + " and article " + article.getID(), e);
@@ -273,11 +271,13 @@ public class ValidatorController implements PipelineComponent, Closeable {
 						for (ValidatorWrapper<?> vw : validators.get(ValidatorType.OneToOne).values()) {
 							stmt.setInt(2, vw.getID());
 							try (ResultSet rs = stmt.executeQuery()) {
-								if (rs.next()) //If we've already processed the current article with the current validator for the current query 
+								if (rs.next()) { //If we've already processed the current article with the current validator for the current query
+									results.add(new ValidationResult(rs, vw)); //Add the results for (query, article, algorithm) tuples that we have already processed
 									continue;
+								}
 							}
 							try {
-								results.add(new Triple<>(query.getID(), vw.getID(), pool.submit(() -> vw.validate(query, article))));
+								futureResults.add(new Triple<>(query.getID(), vw, pool.submit(() -> vw.validate(query, article))));
 							}
 							catch (IllegalArgumentException e) {
 								logger.error("Unable to initialize the validator, " + vw.getName() + ", for query " + query.getID() + " and article " + article.getID(), e);
@@ -289,18 +289,18 @@ public class ValidatorController implements PipelineComponent, Closeable {
 			String statement = "insert into " + resultsTable + " as vr (query, algorithm, article, validates, invalidates) values (?, ?, ?, ?, ?) " +
 					"ON CONFLICT (query, algorithm, article) DO UPDATE set (validates, invalidates) = (EXCLUDED.validates, EXCLUDED.invalidates)"; //This is valid as of PostgreSQL 9.5
 			try (PreparedStatement stmt = connection.prepareStatement(statement)) {
-				for (Triple<Integer, Integer, Future<ValidationResult[]>> result : results) {
+				for (Triple<Integer, ValidationAlgorithm, Future<ValidationResult[]>> result : futureResults) {
 					try {
 						ValidationResult[] ress = result.getZ().get();
 						for (ValidationResult res : ress) {
-							String stringVer = "(" + result.getX() + ", " + result.getY() + ", " + res.getArticleID() + ") -> (" + res.getValidates() + ", " +
+							String stringVer = "(" + result.getX() + ", " + result.getY().getID() + ", " + res.getArticleID() + ") -> (" + res.getValidates() + ", " +
 									(res.getInvalidates() == null ? "null" : res.getInvalidates()) + ")";
 							if (res.getValidates().isNaN() || (res.getInvalidates() != null && res.getInvalidates().isNaN())) {
 								logger.error("Cannot add " + stringVer + " to the database because it has NaN values.");
 								continue;
 							}
 							stmt.setInt(1, res.getQueryID() == null ? result.getX() : res.getQueryID());
-							stmt.setInt(2, result.getY());
+							stmt.setInt(2, result.getY().getID());
 							stmt.setInt(3, res.getArticleID());
 							stmt.setFloat(4, res.getValidates().floatValue());
 							if (res.getInvalidates() != null)
@@ -309,6 +309,8 @@ public class ValidatorController implements PipelineComponent, Closeable {
 								stmt.setNull(5, Types.REAL);
 							stmt.executeUpdate();
 							logger.info("Added " + stringVer + " to the database.");
+							res.setAlgorithm(result.getY());
+							results.add(res);
 						}
 					}
 					catch (InterruptedException e) {
@@ -334,17 +336,19 @@ public class ValidatorController implements PipelineComponent, Closeable {
 	}
 }
 
-abstract class ValidatorWrapper<T> {
+abstract class ValidatorWrapper<T> implements ValidationAlgorithm { //We're doing this to save memory
 	private static final Logger logger = LoggerFactory.getLogger("ValidatorWrapper");
 	
 	private final int id;
 	private final String name;
 	protected final T instance;
+	private final double threshold;
 	
 	@SuppressWarnings("unchecked")
 	public ValidatorWrapper(ResultSet rs, ClassLoader classloader, JSONObject parameters) throws SQLException, ReflectiveOperationException {
 		id = rs.getInt("id");
 		name = rs.getString("algorithm");
+		threshold = rs.getDouble("threshold");
 		Class<? extends T> clazz = (Class<? extends T>) classloader.loadClass(rs.getString("base_class"));
 		if (parameters != null && parameters.containsKey("parameters")) //Backwards compatibility
 			parameters = (JSONObject) parameters.get("parameters");
@@ -387,12 +391,23 @@ abstract class ValidatorWrapper<T> {
 		}
 	}
 	
-	public int getID() {
+	@Override
+	public Integer getID() {
 		return id;
+	}
+	
+	@Override
+	public String toString() {
+		return getID() + "/" + getName();
 	}
 	
 	public String getName() {
 		return name;
+	}
+
+	@Override
+	public boolean doesValidate(ValidationResult result) {
+		return result.getValidates() >= threshold;
 	}
 	
 	public abstract ValidationResult[] validate(Object... args) throws Exception;

@@ -17,8 +17,8 @@ import org.slf4j.LoggerFactory;
 
 import toberumono.json.JSONObject;
 import toberumono.json.JSONSystem;
-import toberumono.structures.tuples.Pair;
 
+import eventdetection.aggregator.AggregatorController;
 import eventdetection.common.Article;
 import eventdetection.common.ArticleManager;
 import eventdetection.common.DBConnection;
@@ -26,8 +26,8 @@ import eventdetection.common.Query;
 import eventdetection.common.SubprocessHelpers;
 import eventdetection.common.ThreadingUtils;
 import eventdetection.downloader.DownloaderController;
+import eventdetection.validator.ValidationResult;
 import eventdetection.validator.ValidatorController;
-import eventdetection.voting.VotingController;
 
 /**
  * Implements an easily-expanded pipeline system for the project.
@@ -65,18 +65,9 @@ public class Pipeline implements PipelineComponent, Closeable {
 		
 		components = new ArrayList<>();
 		if (addDefaultComponents) {
-			addComponent(inputs -> {
-				ThreadingUtils.loadQueries(qIDs, inputs.getX());
-				return inputs;
-			});
-			addComponent(inputs -> {
-				ThreadingUtils.cleanUpArticles(articleManager);
-				return inputs;
-			});
-			addComponent(inputs -> {
-				ThreadingUtils.loadArticles(articleManager, aIDs, inputs.getY());
-				return inputs;
-			});
+			addComponent((queries, articles, results) -> ThreadingUtils.loadQueries(qIDs, queries));
+			addComponent((queries, articles, results) -> ThreadingUtils.cleanUpArticles(articleManager));
+			addComponent((queries, articles, results) -> ThreadingUtils.loadArticles(articleManager, aIDs, articles));
 			if (articleIDs.size() == 0) { //Only run the Downloader if no articles are specified.
 				addComponent(new DownloaderController(config));
 				addComponent(inputs -> {
@@ -100,8 +91,8 @@ public class Pipeline implements PipelineComponent, Closeable {
 					return inputs;
 				});
 			}
-			//addComponent(new ValidatorController(config));
-			//addComponent(new VotingController(config));
+			addComponent(new ValidatorController(config));
+			addComponent(new VotingController(config));
 		}
 	}
 	
@@ -170,10 +161,9 @@ public class Pipeline implements PipelineComponent, Closeable {
 	}
 	
 	@Override
-	public Pair<Map<Integer, Query>, Map<Integer, Article>> execute(Pair<Map<Integer, Query>, Map<Integer, Article>> inputs) throws IOException, SQLException {
+	public void execute(Map<Integer, Query> queries, Map<Integer, Article> articles, Collection<ValidationResult> results) throws IOException, SQLException {
 		for (PipelineComponent pc : components)
-			inputs = pc.execute(inputs);
-		return inputs;
+			pc.execute(queries, articles, results);
 	}
 	
 	@Override
