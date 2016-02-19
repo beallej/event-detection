@@ -70,29 +70,23 @@ public class Pipeline implements PipelineComponent, Closeable {
 			addComponent((queries, articles, results) -> ThreadingUtils.loadArticles(articleManager, aIDs, articles));
 			if (articleIDs.size() == 0) { //Only run the Downloader if no articles are specified.
 				addComponent(new DownloaderController(config));
-				addComponent(inputs -> {
+				addComponent((queries, articles, results) -> {
 					Process p = SubprocessHelpers.executePythonProcess(Paths.get("./Daemons/ArticleProcessorDaemon.py"), "--no-lock");
 					try {
 						p.waitFor();
 					}
-					catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-					return inputs;
+					catch (InterruptedException e) {}
 				});
-				addComponent(inputs -> {
+				addComponent((queries, articles, results) -> {
 					Process p = SubprocessHelpers.executePythonProcess(Paths.get("./Daemons/QueryProcessorDaemon.py"), "--no-lock");
 					try {
 						p.waitFor();
 					}
-					catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-					return inputs;
+					catch (InterruptedException e) {}
 				});
 			}
 			addComponent(new ValidatorController(config));
-			addComponent(new VotingController(config));
+			addComponent(new AggregatorController(config));
 		}
 	}
 	

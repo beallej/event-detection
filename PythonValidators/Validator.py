@@ -8,7 +8,7 @@ from nltk.corpus import stopwords
 from Keywords_Wordnet.KeywordExtractor import *
 import re
 from Utils.DataSource import *
-import Keywords_Wordnet.wordnet
+from Keywords_Wordnet.wordnet import *
 import json
 
 
