@@ -234,7 +234,7 @@ class AlgorithmTester:
         plt.ylabel("Frequency")
         plt.xlabel("F1 measure")
         plt.title("Randomization Distribution of F1 Measures")
-        legend = [mpatches.Patch(color="b", label="Test result")]
+        legend = [mpatches.Patch(color="b", label="Test result for {}".format(self.algorithm_name))]
         plt.legend(handles=legend)
         plt.show()
 
@@ -367,7 +367,7 @@ class AlgorithmTester:
 
 
 def main():
-    at = AlgorithmTester(1, "keyword")
+    at = AlgorithmTester(1, "Keyword")
     at.hypothesis_test()
     # at.test("half_and_half")
 

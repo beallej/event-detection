@@ -63,7 +63,7 @@ class Tester:
         :param title: the title for the plot
         :return: None
         """
-        colors = ["red", "blue", "yellow", "green", "orange", "purple", "pink"]
+        colors = ["red", "blue", "green", "orange", "purple", "pink", "yellow"]
         color_index = 0
         key_legends = []
         for y_i, y in enumerate(y_vals):

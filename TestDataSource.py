@@ -73,7 +73,7 @@ class TestDataSource:
         :return: the list
         """
         if self.queries is None:
-            self.cursor.execute("SELECT id FROM queries")
+            self.cursor.execute("SELECT id FROM queries WHERE enabled = true")
             queries = self.cursor.fetchall()
             self.queries = [query["id"] for query in queries]
         return self.queries
