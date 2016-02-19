@@ -39,8 +39,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.concurrent.ExecutionException;
@@ -78,6 +76,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
     
     static Map<String, SemilarComputations> semilarCombinations = new HashMap<String, SemilarComputations>();
     static Map<String, ReentrantLock> combinationLocks = new HashMap<String, ReentrantLock>();
+    static Map<String, ReentrantLock> matchesLocks = new HashMap<String, ReentrantLock>();
 
 
     // Various thresholds and constants for post processing
@@ -109,6 +108,8 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
     
     WNWordMetric wnMetricLin;
     SentencePreprocessor preprocessor;
+
+    private String key;
     
 	/**
 	 * Constructs a new instance of the {@link Validator} for the given {@code ID}, {@link Query}, and {@link Article}
@@ -143,7 +144,6 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
 
     }
 
-
     /**
     * Compares query with every sentence in a given article. We store the number of sentences specified by MAX_SENTENCES and compute the average         * score of the top 5 sentences. If the average score of the article sentences or title passes the given thresholds, call the post processing         * function to further validate the articles.
     * @param query
@@ -152,7 +152,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
     */
 	@Override
 	public ValidationResult[] call(Query query, Article article) throws IOException {
-        String key = query.getID() + "_" + article.getID() + "_" + FIRST_ROUND_CONTENT_THRESHOLD + "_" + FIRST_ROUND_TITLE_THRESHOLD
+        key = query.getID() + "_" + article.getID() + "_" + FIRST_ROUND_CONTENT_THRESHOLD + "_" + FIRST_ROUND_TITLE_THRESHOLD
             + "_" + RELIABLE_TITLE_THRESHOLD + "_" + MIN_WORD_TO_WORD_THRESHOLD;
 
         SemilarComputations combination;
@@ -316,37 +316,59 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         HashMap<HashSet<String>, Integer> svolMatchCombinations = new HashMap<HashSet<String>, Integer>();
         double totalScore = 0;
 
-        // ARTICLE CONTENT SCORE
-        // For each sentence, find which query parts match the sentence
-        // Aggregate across the article's top sentences to count how many of each SVOL (sentence/verb/object/location) combination appears.
-        for (Pair<Double, CoreMap> p : topN){
-            dependencyMatches = validationScore(query, p.getY(), keywordNouns);
-            for (String matchPart : dependencyMatches) {
-                if (!svolMatches.contains(matchPart)) {
-                    svolMatches.add(matchPart);
-                }
+       	ReentrantLock lock;
+        synchronized (matchesLocks) {
+            if (!matchesLocks.containsKey(key)) {
+                lock = new ReentrantLock();
+                matchesLocks.put(key, lock);
             }
-            if (!svolMatchCombinations.containsKey(dependencyMatches)) {
-                svolMatchCombinations.put(dependencyMatches, 1);
-            }
-            else {
-                svolMatchCombinations.put(dependencyMatches, svolMatchCombinations.get(dependencyMatches) + 1);
-            }
+            else
+                lock = matchesLocks.get(key);
         }
+        lock.lock();
+        SemilarComputations combination = semilarCombinations.get(key);
+        try {
 
+	        if (!combination.hasMatches()) {
+		        // ARTICLE CONTENT SCORE
+		        // For each sentence, find which query parts match the sentence
+		        // Aggregate across the article's top sentences to count how many of each SVOL (sentence/verb/object/location) combination appears.
+		        for (Pair<Double, CoreMap> p : topN){
+		            dependencyMatches = validationScore(query, p.getY(), keywordNouns);
+		            for (String matchPart : dependencyMatches) {
+		                if (!svolMatches.contains(matchPart)) {
+		                    svolMatches.add(matchPart);
+		                }
+		            }
+		            if (!svolMatchCombinations.containsKey(dependencyMatches)) {
+		                svolMatchCombinations.put(dependencyMatches, 1);
+		            }
+		            else {
+		                svolMatchCombinations.put(dependencyMatches, svolMatchCombinations.get(dependencyMatches) + 1);
+		            }
+		        }
 
+		        Annotation annotatedTitle = POSTagger.annotate(articleTitle);
+		        CoreMap taggedTitle = annotatedTitle.get(SentencesAnnotation.class).get(0);
+		        
+		        // TITLE SCORE
+		        dependencyMatches = validationScore(query, taggedTitle, keywordNouns);
+		        combination.addMatches(svolMatchCombinations,svolMatches,dependencyMatches);
+		    }
+		    
+		    svolMatchCombinations = combination.getSvolMatchCombinations();
+		    svolMatches = combination.getSvolMatches();
+		    dependencyMatches = combination.getDependencyMatches();
+	    }
+	    finally {
+	    	lock.unlock();
+	    }
 
         // Use counts of SVOL matches to calculate an article's sentences score
         for (HashSet<String> combi : svolMatchCombinations.keySet()) {
             int count = svolMatchCombinations.get(combi); 
             totalScore = totalScore + calcSentenceScore(combi, count, svolMatches, userQueryParts);
-        }    
-
-        Annotation annotatedTitle = POSTagger.annotate(articleTitle);
-        CoreMap taggedTitle = annotatedTitle.get(SentencesAnnotation.class).get(0);
-        
-        // TITLE SCORE
-        dependencyMatches = validationScore(query, taggedTitle, keywordNouns);
+        }   
        
         double creditToSEMILARTitleScore = 0.0;
         if (titleScore > RELIABLE_TITLE_THRESHOLD) { // if post-processing title score is unreliably high, lower it
