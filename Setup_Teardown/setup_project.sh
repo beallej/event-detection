@@ -92,4 +92,4 @@ else
 fi
 
 echo '------------------Generating Eclipse User Libraries------------------'
-. "./generate_userlibs.sh"
+. "./Setup_Teardown/generate_userlibs.sh"
