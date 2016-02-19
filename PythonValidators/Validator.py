@@ -8,7 +8,7 @@ from nltk.corpus import stopwords
 from Keywords_Wordnet.KeywordExtractor import *
 import re
 from Utils.DataSource import *
-from Keywords_Wordnet.wordnet import *
+from Keywords_Wordnet.WordnetHelper import *
 import json
 
 
@@ -290,7 +290,7 @@ class Query:
             if tagged_word[0].lower() not in self.stop_list:      # tagged_word[0] = word
                 if tagged_word[1] not in self.synonyms_with_tag:  # tagged_word[1] = tag
                     self.synonyms_with_tag[tagged_word[1]] = {}
-                self.synonyms_with_tag[tagged_word[1]][tagged_word[0]] = wordnet.get_synonyms(tagged_word[0],tagged_word[1])
+                self.synonyms_with_tag[tagged_word[1]][tagged_word[0]] = get_synonyms(tagged_word[0],tagged_word[1])
                 # TODO actually get synonyms
         print(self.synonyms_with_tag)
     def get_synonyms(self):
