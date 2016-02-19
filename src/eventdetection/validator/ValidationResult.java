@@ -174,6 +174,7 @@ public class ValidationResult {
 	 */
 	public ValidationResult(ResultSet resultSet, ValidationAlgorithm algorithm) throws SQLException {
 		this(resultSet.getInt("query"), resultSet.getInt("article"), (double) resultSet.getFloat("validates"), (double) resultSet.getFloat("invalidates"));
+		this.algorithm = algorithm;
 	}
 	
 	/**
@@ -227,6 +228,6 @@ public class ValidationResult {
 	
 	@Override
 	public String toString() {
-		return "(" + getArticleID() + ", " + getValidates() + ", " + (getInvalidates() == null ? "null" : getInvalidates()) + ")";
+		return "(" + getQueryID() + ", " + getArticleID() + ", " + getValidates() + ", " + (getInvalidates() == null ? "null" : getInvalidates()) + ")";
 	}
 }

@@ -117,27 +117,40 @@ public class AggregatorController implements PipelineComponent, Closeable {
 			sum.put(id, 0.0);
 			count.put(id, 0.0);
 		}
-		ThreadingUtils.executeTask(() -> {
-			try (ResultSet rs = query.executeQuery()) {
-				Integer query, article;
-				while (rs.next()) {
-					if (!queries.containsKey(query = rs.getInt("vr.query")) || !articles.containsKey(article = rs.getInt("vr.article")))
-						continue;
-					if (rs.getFloat("vr.validates") >= rs.getFloat("va.threshold")) {
-						sum.put(query, sum.get(query) + 1);
-						logger.info("Article " + article + " validates query " + query);
+		if (results.size() == 0) {
+			ThreadingUtils.executeTask(() -> {
+				try (ResultSet rs = query.executeQuery()) {
+					Integer query, article;
+					while (rs.next()) {
+						if (!queries.containsKey(query = rs.getInt("vr.query")) || !articles.containsKey(article = rs.getInt("vr.article")))
+							continue;
 						if (!validatedBy.containsKey(query))
 							validatedBy.put(query, new ArrayList<>());
-						validatedBy.get(query).add(article);
+						if (rs.getFloat("vr.validates") >= rs.getFloat("va.threshold")) {
+							sum.put(query, sum.get(query) + 1);
+							logger.info("Article " + article + " validates query " + query);
+							validatedBy.get(query).add(article);
+						}
+						count.put(query, count.get(query) + 1);
 					}
-					count.put(query, count.get(query) + 1);
+				}
+			});
+		}
+		else {
+			for (ValidationResult res : results) {
+				if (!validatedBy.containsKey(query))
+					validatedBy.put(res.getQueryID(), new ArrayList<>());
+				if (res.doesValidate()) {
+					sum.put(res.getQueryID(), sum.get(res.getQueryID()) + 1);
+					logger.info("Article " + res.getArticleID() + " validates query " + res.getQueryID());
+					validatedBy.get(res.getQueryID()).add(res.getArticleID());
 				}
 			}
-		});
+		}
 		Integer key;
 		for (Iterator<Integer> iter = sum.keySet().iterator(); iter.hasNext();) {
 			key = iter.next();
-			if (sum.get(key) / count.get(key) < globalThreshold)
+			if (sum.get(key) > globalThreshold)
 				iter.remove();
 		}
 		List<Query> output = sum.keySet().stream().map(id -> queries.get(id)).collect(Collectors.toList());
