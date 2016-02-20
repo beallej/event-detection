@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 working_dir="$(pwd)/"
+[ "$(ls ${working_dir} | grep 'Setup_Teardown')" == "" ] && working_dir="${working_dir}../"
 libs_dir="${working_dir}../"
 semilar_dir="${libs_dir}SEMILAR/"
 key_library="postgresql-9.4.1207.jar"
