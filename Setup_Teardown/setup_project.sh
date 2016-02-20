@@ -4,18 +4,33 @@ libs_dir="${working_dir}../"
 semilar_dir="${libs_dir}SEMILAR/"
 key_library="postgresql-9.4.1207.jar"
 
+[ "$(python --version | grep 'Python 3')" != "" ] && python_path="$(which python)" || python_path="$(which python3)"
+
 if [ "$(which brew)" != "" ] && [ "$(which brew)" != "brew not found" ]; then
-	pip3 install 'psycopg2'
-	pip3 install 'Flask'
-	pip3 install 'twilio'
-	pip3 install 'sendgrid'
-	pip3 install 'sklearn'
-	pip3 install 'scipy'
 	brew update
 	brew tap 'toberumono/tap'
-	brew install 'toberumono/tap/utils' 'toberumono/tap/structures' 'toberumono/tap/lexer' 'toberumono/tap/json-library' 'wget'
-	brew install 'postgresql'
+	brew install 'toberumono/tap/utils' 'toberumono/tap/structures' 'toberumono/tap/lexer' 'toberumono/tap/json-library' 'wget' 'postgresql'
+	if [ "$python_path" == "" ]; then
+		read -p "Unable to find a Python 3 installation.  Would you like it to be installed? [y/N]" yn
+		yn=$(echo "${yn:0:1}" | tr '[:upper:]' '[:lower:]')
+		if [ "$yn" != "y" ]; then
+			>&2 echo "Error: Unable to find the executable for python 3."
+			echo "Please install Python 3 before running this script."
+			exit 1
+		else
+			echo "Beginning to install Python 3.  This may take a bit."
+			brew install 'pyenv'
+			python_version='3.5.1'
+			pyenv install "$python_version"
+			pyenv global "$python_version"
+		fi
+	fi
+	pip3 install 'beautifulsoup4' 'grip' 'nltk' 'psycopg2' 'scipy' 'sendgrid' 'sklearn' 'twilio'
 else
+	if [ "$python_path" == "" ]; then
+		>&2 echo "Error: Unable to find the executable for python 3."
+		exit 1
+	fi
 	cd "${libs_dir}"
 	git clone "https://github.com/Toberumono/JSON-library.git"
 	cd 'JSON-library'
