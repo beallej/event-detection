@@ -135,6 +135,8 @@ public class AggregatorController implements PipelineComponent, Closeable {
 		else {
 			for (ValidationResult res : results) {
 				if (res.doesValidate()) {
+					if (!sum.containsKey(res.getQueryID()))
+						sum.put(res.getQueryID(), 0.0);
 					sum.put(res.getQueryID(), sum.get(res.getQueryID()) + 1);
 					logger.info("Article " + res.getArticleID() + " validates query " + res.getQueryID());
 				}
