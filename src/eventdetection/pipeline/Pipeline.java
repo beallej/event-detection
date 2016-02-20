@@ -1,9 +1,7 @@
 package eventdetection.pipeline;
 
-import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
@@ -21,8 +19,6 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import toberumono.json.JSONArray;
-import toberumono.json.JSONNumber;
 import toberumono.json.JSONObject;
 import toberumono.json.JSONSystem;
 
