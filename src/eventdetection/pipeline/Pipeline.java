@@ -186,8 +186,10 @@ public class Pipeline implements PipelineComponent, Closeable {
 	
 	@Override
 	public void execute(Map<Integer, Query> queries, Map<Integer, Article> articles, Collection<ValidationResult> results) throws IOException, SQLException {
-		for (PipelineComponent pc : components)
-			pc.execute(queries, articles, results);
+		ThreadingUtils.executeTask(() -> {
+			for (PipelineComponent pc : components)
+				pc.execute(queries, articles, results);
+		});
 	}
 	
 	@Override
