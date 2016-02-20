@@ -76,8 +76,6 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
     
     static Map<String, SemilarComputations> semilarCombinations = new HashMap<String, SemilarComputations>();
     static Map<String, ReentrantLock> combinationLocks = new HashMap<String, ReentrantLock>();
-    //static Map<String, ReentrantLock> matchesLocks = new HashMap<String, ReentrantLock>();
-
 
     // Various thresholds and constants for post processing
     // Test the following variables:
@@ -102,7 +100,8 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
     
     private static Pattern STOPWORD_RELN_REGEX = Pattern.compile("det|mark|cc|aux|punct|auxpass|cop|expl|goeswith|dep");
     private static Pattern USEFUL_RELN_REGEX = Pattern.compile("nmod|dobj|iobj|nsubj|nsubjpass|appos|conj|xcomp|ccomp");
-    //private static Pattern PRONOUN_REGEX = Pattern.compile("WP|WDT|PRP|WP\\$"); // TODO pronoun regex instead of string compare
+    private static Pattern PRONOUN_REGEX = Pattern.compile("WP|WDT|PRP|WP\\$"); 
+    	// WP = wh-pronoun, WDT = wh-determiner, PRP = personal pronoun, WP$ = possessive wh-pronoun
 
     OptimumComparer optimumComparerWNLin;
     
@@ -138,12 +137,15 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         // another possible algorithm for word-word comparison
         //wnMetricWup = new WNWordMetric(WordNetSimilarity.WNSimMeasure.WUP, false);
 
-        preprocessor = new SentencePreprocessor(SentencePreprocessor.TokenizerType.STANFORD, SentencePreprocessor.TaggerType.STANFORD, SentencePreprocessor.StemmerType.PORTER, SentencePreprocessor.ParserType.STANFORD);
-
+        preprocessor = new SentencePreprocessor(SentencePreprocessor.TokenizerType.STANFORD, SentencePreprocessor.TaggerType.STANFORD, 
+        				   						SentencePreprocessor.StemmerType.PORTER, SentencePreprocessor.ParserType.STANFORD);
     }
 
     /**
-    * Compares query with every sentence in a given article. We store the number of sentences specified by MAX_SENTENCES and compute the average         * score of the top 5 sentences. If the average score of the article sentences or title passes the given thresholds, call the post processing         * function to further validate the articles.
+    * Compares query with every sentence in a given article. We store the number of sentences specified by MAX_SENTENCES and compute the average
+    * score of the top 5 sentences. If the average score of the article sentences or title passes the given thresholds, call the post processing
+    * function to further validate the articles.
+    * This version also caches the first step of SEMILAR computations to avoid recomputing with the same parameters.
     * @param query
     * @param article
     * @return validation score for the article
@@ -173,7 +175,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         lock.lock();
         try {
             if (!semilarCombinations.containsKey(key)) {
-                //TODO compute the value and put it in the map
+                // Key doesn't exist, so compute the value and put it in the map
                 Sentence querySentence;
                 Sentence articleSentence;
                 Sentence articleTitle;
@@ -214,8 +216,6 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
                     }
                 }
 
-                
-
                 // Average of top 5 similar sentences
                 average = 0.0;
                 int count = 0;
@@ -231,6 +231,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
                 combination = new SemilarComputations(topN, query,completePhrase, title, titleScore, average);
                 semilarCombinations.put(key, combination);
             }
+            // Get all of the needed values, which are stored in the map
             combination = semilarCombinations.get(key);
             topN = combination.getTopN();
             completePhrase = combination.getRawQuery();
@@ -242,8 +243,6 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
             lock.unlock();
         }
 
-        //else if lock exists but is locked : wait, when unlocked get result
-
         double validation = 0.0;
         if (average > FIRST_ROUND_CONTENT_THRESHOLD || titleScore > FIRST_ROUND_TITLE_THRESHOLD) {
             validation = postProcess(topN, query,completePhrase, title, titleScore, key);
@@ -252,23 +251,24 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         return new ValidationResult[]{new ValidationResult(article.getID(), validation)};
     }
     
-
     /* 
     * Post-process validation using semantic dependencies to compare a query's parts (subject, verb, object, location) to parts of 
-    * article sentences and score their semantic and syntactic similarity.
+    * article sentences and score their semantic and syntactic similarity. Caches more results from the SEMILAR computations
+    * to avoid repeating work.
     * @param topN Ordered(by descending) list of N highest matching sentences in an article
     * @param query
     * @param rawQuery
     * @param articleTitle
     * @param titleScore Score for the title based on it's similarity to the query
+    * @param key String key for the hashmaps
     * @return article's validation score
     */
     public double postProcess(SortedList<Pair<Double, CoreMap>> topN, Query query, String rawQuery, String articleTitle, double titleScore, String key){
 
         // Gets query parts and tracks which parts are present (out of subject, verb, object, location)
         String subject, dirObject, indirObject, location;
-        HashSet<String> userQueryParts = new HashSet<String>(); // because subject and verbs are compulsory
-        userQueryParts.add("SUBJECT");
+        HashSet<String> userQueryParts = new HashSet<String>(); 
+        userQueryParts.add("SUBJECT"); // because subject and verbs are compulsory
         userQueryParts.add("VERB");
         subject = query.getSubject();
         dirObject = "";
@@ -288,7 +288,6 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
             location = query.getLocation();
             userQueryParts.add("LOCATION");
         }
-
  
         HashMap<String, String> keywordNouns = new HashMap<String, String>();
         Annotation taggedQuery = POSTagger.annotate(rawQuery);
@@ -328,7 +327,10 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         SemilarComputations combination = semilarCombinations.get(key);
         try {
 
-	        if (!combination.hasMatches()) {
+	        if (!combination.hasMatches()) { 
+	        	// This combination of parameters has not yet been calculated, 
+	        	// so calculate it and store results in the hashmap
+
 		        // ARTICLE CONTENT SCORE
 		        // For each sentence, find which query parts match the sentence
 		        // Aggregate across the article's top sentences to count how many of each SVOL (sentence/verb/object/location) combination appears.
@@ -355,6 +357,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
 		        combination.addMatches(svolMatchCombinations,svolMatches,dependencyMatches);
 		    }
 		    
+		    // Get the needed informatio from the hashmap
 		    svolMatchCombinations = combination.getSvolMatchCombinations();
 		    svolMatches = combination.getSvolMatches();
 		    dependencyMatches = combination.getDependencyMatches();
@@ -453,7 +456,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
                 for (String imptNoun:keywordNouns.keySet()){
                     double matchScore = 0.0;
                     matchScore = wnMetricLin.computeWordSimilarityNoPos(lemma.toLowerCase(), imptNoun.toLowerCase());
-                    // TO DO: Adding stemmer would improve string comparison
+                    // TODO: Adding stemmer would improve string comparison
                     if (lemma.toLowerCase().equals(imptNoun.toLowerCase())) { // for proper nouns and unknown words (eg mosque)
                         matchScore = 1;
                     }
@@ -477,8 +480,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         }       
         return new HashSet<String>(); //String could only be SUBJECT, VERB, OBJECT, S_PRONOUN, O_PRONOUN, LOCATION
     }
-
-
+    
     /* 
      * Given the query nouns found in a sentence, use semantic dependencies to find other related verbs and nouns 
      * and determine which query parts match the sentence.
@@ -493,8 +495,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         String verb = query.getVerb();// TODO .get(LemmaAnnotation.class);
         HashSet<String> dependencyMatches = new HashSet<String>(); // will add SUBJECT, VERB, OBJECT, S_PRONOUN, O_PRONOUN, LOCATION
         for (CoreLabel token : matchedTokens.get(tokenType)) { 
-            // For pronouns: WP = wh-pronoun, WDT = wh-determiner, PRP = personal pronoun, WP$ = possessive wh-pronoun
-            if (token.tag().equals("WP") || token.tag().equals("WDT") || token.tag().equals("PRP") || token.tag().equals("WP$")) {
+            if (PRONOUN_REGEX.matcher(token.tag()).find()) {
                 if (tokenType.equals("SUBJECT")) {
                     dependencyMatches.add("S_PRONOUN");
                 }
@@ -559,14 +560,14 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
      * @param matchedTokens matched nouns
      * @return a hash set of the type of query parts matched (subject pronoun, object pronoun, object)
      */
-    public HashSet<String> recursiveSearchKeyword(IndexedWord headNode, SemanticGraph dependencies, String tokenType, HashSet<String> dependencyMatches, HashMap<String, HashSet<CoreLabel>> matchedTokens){
+    public HashSet<String> recursiveSearchKeyword(IndexedWord headNode, SemanticGraph dependencies, String tokenType, HashSet<String> dependencyMatches, 
+    											  HashMap<String, HashSet<CoreLabel>> matchedTokens){
 
         // Look at a given head node's children to see if they match query nouns
         for (IndexedWord childNode : dependencies.getChildren(headNode)) {
             if (!STOPWORD_RELN_REGEX.matcher(dependencies.reln(headNode, childNode).getShortName()).find()){
                 if (tokenType.equals("SUBJECT")) {
-                    // For pronouns: WP = wh-pronoun, WDT = wh-determiner, PRP = personal pronoun, WP$ = possessive wh-pronoun
-                    if (childNode.tag().equals("WP") || childNode.tag().equals("WDT") || childNode.tag().equals("PRP") || childNode.tag().equals("WP$")) {
+                    if (PRONOUN_REGEX.matcher(childNode.tag()).find()) {
                             dependencyMatches.add("O_PRONOUN");
                     }
                     else {
@@ -584,9 +585,8 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
                         }
                     }
                 } else if (tokenType.equals("OBJECT")) {
-                    // For pronouns: WP = wh-pronoun, WDT = wh-determiner, PRP = personal pronoun, WP$ = possessive wh-pronoun
-                    if (childNode.tag().equals("WP") || childNode.tag().equals("WDT") || childNode.tag().equals("PRP") || childNode.tag().equals("WP$")) {
-                            dependencyMatches.add("S_PRONOUN");
+                    if (PRONOUN_REGEX.matcher(childNode.tag()).find()) {
+                    	dependencyMatches.add("S_PRONOUN");
                     }                           
                 }
             }
