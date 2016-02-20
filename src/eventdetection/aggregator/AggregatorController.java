@@ -138,7 +138,7 @@ public class AggregatorController implements PipelineComponent, Closeable {
 		}
 		else {
 			for (ValidationResult res : results) {
-				if (!validatedBy.containsKey(query))
+				if (!validatedBy.containsKey(res.getQueryID()))
 					validatedBy.put(res.getQueryID(), new ArrayList<>());
 				if (res.doesValidate()) {
 					sum.put(res.getQueryID(), sum.get(res.getQueryID()) + 1);
@@ -150,7 +150,7 @@ public class AggregatorController implements PipelineComponent, Closeable {
 		Integer key;
 		for (Iterator<Integer> iter = sum.keySet().iterator(); iter.hasNext();) {
 			key = iter.next();
-			if (sum.get(key) > globalThreshold)
+			if (sum.get(key) < globalThreshold)
 				iter.remove();
 		}
 		List<Query> output = sum.keySet().stream().map(id -> queries.get(id)).collect(Collectors.toList());

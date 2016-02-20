@@ -82,7 +82,7 @@ public class PythonScraper extends Scraper {
 		if (variableParameters != null)
 			parameters.putAll(variableParameters);
 		Process p = SubprocessHelpers.executePythonProcess(scriptPath, Arrays.copyOfRange(comm, 1, comm.length)); //scriptPath is derived from the first value in the command array
-		try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(p.getOutputStream()))) {
+		try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(p.getOutputStream()))) { //This closes the stream so that the process can continue
 			JSONSystem.writeJSON(parameters, bw);
 		}
 		try {
