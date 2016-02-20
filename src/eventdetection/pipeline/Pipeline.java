@@ -1,7 +1,9 @@
 package eventdetection.pipeline;
 
+import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.SQLException;
@@ -15,6 +17,8 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import toberumono.json.JSONArray;
+import toberumono.json.JSONNumber;
 import toberumono.json.JSONObject;
 import toberumono.json.JSONSystem;
 
@@ -87,6 +91,27 @@ public class Pipeline implements PipelineComponent, Closeable {
 			}
 			addComponent(new ValidatorController(config));
 			addComponent(new AggregatorController(config));
+			addComponent((queries, articles, results) -> {
+				JSONObject res = new JSONObject();
+				String query;
+				for (ValidationResult r : results) { //Builds the results into a JSONObject that maps query -> list of articles that validated it
+					if (!r.doesValidate())
+						continue;
+					if (!res.containsKey(query = r.getQueryID().toString()))
+						res.put(query, new JSONArray());
+					((JSONArray) res.get(query)).add(new JSONNumber<>(r.getArticleID()));
+				}
+				System.out.println(res);;
+				Process p = SubprocessHelpers.executePythonProcess(Paths.get("./Notifier.py"));
+				try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(p.getOutputStream()))) { //This closes the stream so that the process can continue
+					JSONSystem.writeJSON(res, bw);
+				}
+				try {
+					p.waitFor();
+				}
+				catch (InterruptedException e) {}
+			});
+			
 		}
 	}
 	

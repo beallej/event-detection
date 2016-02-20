@@ -1,5 +1,5 @@
 from twilio.rest import TwilioRestClient
-import sendgrid
+import sendgrid, json
 from DataSource import *
 
 class Notifier:
@@ -114,3 +114,17 @@ class Notifier:
             article_url = article[1]
             text += "\n{title}\nLink {url}\n".format(url=article_url, title=article_title)
         return text
+
+def main():
+    notifier = Notifier()
+    json_text = ""
+    with sys.stdin as fileIn:
+        for line in fileIn:
+            json_text = json_text + line
+    json_obj = json.loads(json_text)
+
+    for query, articles in json_obj.items():
+        notifier.on_validation(int(query), articles)
+
+if __name__ == "__main__":
+    main()
