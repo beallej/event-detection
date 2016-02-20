@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 working_dir="$(pwd)/"
+[ "$(ls ${working_dir} | grep 'Setup_Teardown')" == "" ] && working_dir="${working_dir}../"
 java_path="$(which java)"
 line="$java_path -jar ${working_dir}pipeline.jar ${working_dir}configuration.json"
 line="0 * * * * $line"
