@@ -13,4 +13,4 @@ else
 	echo "Writing."
 fi
 unset yn
-(crontab -l; echo "$line") | crontab -
+(crontab -l 2>/dev/null; echo "$line") | crontab -

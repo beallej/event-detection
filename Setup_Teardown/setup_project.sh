@@ -10,7 +10,7 @@ key_library="postgresql-9.4.1207.jar"
 if [ "$(which brew)" != "" ] && [ "$(which brew)" != "brew not found" ]; then
 	brew update
 	brew tap 'toberumono/tap'
-	brew install 'toberumono/tap/utils' 'toberumono/tap/structures' 'toberumono/tap/lexer' 'toberumono/tap/json-library' 'wget' 'postgresql'
+	brew install 'toberumono/tap/utils' 'toberumono/tap/structures' 'toberumono/tap/lexer' 'toberumono/tap/json-library' 'ant' 'wget' 'postgresql'
 	if [ "$python_path" == "" ]; then
 		read -p "Unable to find a Python 3 installation.  Would you like it to be installed? [y/N]" yn
 		yn=$(echo "${yn:0:1}" | tr '[:upper:]' '[:lower:]')
@@ -25,6 +25,7 @@ if [ "$(which brew)" != "" ] && [ "$(which brew)" != "brew not found" ]; then
 			pyenv install "$python_version"
 			pyenv global "$python_version"
 		fi
+		unset yn
 	fi
 	pip3 install 'beautifulsoup4' 'grip' 'nltk' 'psycopg2' 'scipy' 'sendgrid' 'sklearn' 'twilio'
 else
