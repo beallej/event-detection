@@ -226,3 +226,10 @@ class DataSource:
         except psycopg2.IntegrityError:
             return False
         return True
+
+    def add_article_to_query_articles(self, article_id):
+        self.cursor.execute("SELECT id FROM queries;")
+        query_ids = self.cursor.fetchall()
+        for query_id in query_ids:
+            self.cursor.execute("INSERT INTO query_articles (query, article) VALUES (%s, %s)", (query_id, article_id))
+        # query | article | accuracy | processed

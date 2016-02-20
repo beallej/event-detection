@@ -30,13 +30,20 @@ class ArticleProcessorDaemon:
             for article in unprocessed_articles:
                 try:
                     extractor = KeywordExtractor()
-                    article_file = open("articles/{0}".format(article[2]), "r", encoding="utf8")
+                    article_id = article[0]
+                    article_filename = article[2]
+                    article_title = article[1]
+                    article_url = article[3]
+                    article_source = article[4]
+                    article_file = open("articles/{0}".format(article_filename), "r", encoding="utf8")
                     body = article_file.read()
                     article_file.close()
-                    article_with_body = Article(article[1], body, article[3], article[4])
+
+                    article_with_body = Article(article_title, body, article_url, article_source)
                     keywords = extractor.extract_keywords(article_with_body)
                     keyword_string = json.dumps(keywords)
-                    ds.add_keywords_to_article(article[0], keyword_string)
+                    ds.add_keywords_to_article(article_id, keyword_string)
+                    ds.add_article_to_query_articles(article_id)
                 except (FileNotFoundError, IOError):
                         print(article[2])
                         print("Wrong file or file path")
