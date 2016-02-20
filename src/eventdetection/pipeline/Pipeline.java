@@ -98,8 +98,11 @@ public class Pipeline implements PipelineComponent, Closeable {
 	private static void filterUsedArticles(Map<Integer, Query> queries, Map<Integer, Article> articles, Collection<ValidationResult> results) throws IOException, SQLException {
 		Connection connection = DBConnection.getConnection();
 		ValidationResult res;
-		try (PreparedStatement seek = connection.prepareStatement("select * from query_articles where query = ? and article = ?");
-				PreparedStatement update = connection.prepareStatement("insert into query_articles (query, article) values (?, ?)")) {
+		try (PreparedStatement seek = connection.prepareStatement("select * from query_articles where query = ? and article = ? and notification_sent = ?");
+				PreparedStatement update = connection.prepareStatement("insert into query_articles (query, article, notification_sent) values (?, ?, ?) " +
+						"on conflict (query, article) do update set (notification_sent) = (EXCLUDED.notification_sent)")) {
+			seek.setBoolean(3, true);
+			update.setBoolean(3, true);
 			for (Iterator<ValidationResult> iter = results.iterator(); iter.hasNext();) {
 				res = iter.next();
 				seek.setInt(1, res.getQueryID());
