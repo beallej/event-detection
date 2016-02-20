@@ -52,6 +52,12 @@ def query(query_id):
         return render_template("query.html", query=query_formatted, articles=articles_formatted)
     return render_template("404.html"), 404
 
+@app.route("/articles", methods=["GET"])
+def articles():
+    articles = dataSource.articles_route()
+    articles_formatted = [{"title": a[0], "source": a[1], "url": a[2]} for a in articles]
+    return render_template("articles.html", articles=articles_formatted)
+
 
 @app.errorhandler(404)
 def page_not_found(e):

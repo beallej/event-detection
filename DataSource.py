@@ -226,3 +226,8 @@ class DataSource:
         except psycopg2.IntegrityError:
             return False
         return True
+
+    def articles_route(self):
+        self.cursor.execute("SELECT title, s.source_name as source, url FROM articles a \
+                        INNER JOIN sources s on s.id = a.source;")
+        return self.cursor.fetchall()
