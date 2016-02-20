@@ -112,7 +112,6 @@ public class AggregatorController implements PipelineComponent, Closeable {
 	 */
 	public List<Query> executeAggregator(Map<Integer, Query> queries, Map<Integer, Article> articles, Collection<ValidationResult> results) throws IOException, SQLException {
 		Map<Integer, Double> sum = new HashMap<>(), count = new HashMap<>();
-		Map<Integer, Collection<Integer>> validatedBy = new HashMap<>();
 		for (Integer id : queries.keySet()) {
 			sum.put(id, 0.0);
 			count.put(id, 0.0);
@@ -124,12 +123,9 @@ public class AggregatorController implements PipelineComponent, Closeable {
 					while (rs.next()) {
 						if (!queries.containsKey(query = rs.getInt("vr.query")) || !articles.containsKey(article = rs.getInt("vr.article")))
 							continue;
-						if (!validatedBy.containsKey(query))
-							validatedBy.put(query, new ArrayList<>());
 						if (rs.getFloat("vr.validates") >= rs.getFloat("va.threshold")) {
 							sum.put(query, sum.get(query) + 1);
 							logger.info("Article " + article + " validates query " + query);
-							validatedBy.get(query).add(article);
 						}
 						count.put(query, count.get(query) + 1);
 					}
@@ -138,12 +134,9 @@ public class AggregatorController implements PipelineComponent, Closeable {
 		}
 		else {
 			for (ValidationResult res : results) {
-				if (!validatedBy.containsKey(res.getQueryID()))
-					validatedBy.put(res.getQueryID(), new ArrayList<>());
 				if (res.doesValidate()) {
 					sum.put(res.getQueryID(), sum.get(res.getQueryID()) + 1);
 					logger.info("Article " + res.getArticleID() + " validates query " + res.getQueryID());
-					validatedBy.get(res.getQueryID()).add(res.getArticleID());
 				}
 			}
 		}
@@ -157,7 +150,7 @@ public class AggregatorController implements PipelineComponent, Closeable {
 		ValidationResult res;
 		for (Iterator<ValidationResult> iter = results.iterator(); iter.hasNext();) {
 			res = iter.next();
-			if (!sum.containsKey(res.getQueryID()) || !validatedBy.get(res.getQueryID()).contains(res.getArticleID()))
+			if (!sum.containsKey(res.getQueryID()) || !res.doesValidate())
 				iter.remove();
 		}
 		return output;

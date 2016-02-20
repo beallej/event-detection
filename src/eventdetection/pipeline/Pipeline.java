@@ -6,10 +6,14 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -75,43 +79,45 @@ public class Pipeline implements PipelineComponent, Closeable {
 			if (articleIDs.size() == 0) { //Only run the Downloader if no articles are specified.
 				addComponent(new DownloaderController(config));
 				addComponent((queries, articles, results) -> {
-					Process p = SubprocessHelpers.executePythonProcess(Paths.get("./ArticleProcessorDaemon.py"), "--no-lock");
 					try {
-						p.waitFor();
+						SubprocessHelpers.executePythonProcess(Paths.get("./ArticleProcessorDaemon.py"), "--no-lock").waitFor();
 					}
 					catch (InterruptedException e) {}
 				});
 				addComponent((queries, articles, results) -> {
-					Process p = SubprocessHelpers.executePythonProcess(Paths.get("./QueryProcessorDaemon.py"), "--no-lock");
 					try {
-						p.waitFor();
+						SubprocessHelpers.executePythonProcess(Paths.get("./QueryProcessorDaemon.py"), "--no-lock").waitFor();
 					}
 					catch (InterruptedException e) {}
 				});
 			}
 			addComponent(new ValidatorController(config));
 			addComponent(new AggregatorController(config));
-			addComponent((queries, articles, results) -> {
-				JSONObject res = new JSONObject();
-				String query;
-				for (ValidationResult r : results) { //Builds the results into a JSONObject that maps query -> list of articles that validated it
-					if (!r.doesValidate())
-						continue;
-					if (!res.containsKey(query = r.getQueryID().toString()))
-						res.put(query, new JSONArray());
-					((JSONArray) res.get(query)).add(new JSONNumber<>(r.getArticleID()));
-				}
-				System.out.println(res);;
-				Process p = SubprocessHelpers.executePythonProcess(Paths.get("./Notifier.py"));
-				try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(p.getOutputStream()))) { //This closes the stream so that the process can continue
-					JSONSystem.writeJSON(res, bw);
-				}
-				try {
-					p.waitFor();
-				}
-				catch (InterruptedException e) {}
-			});
+			addComponent(Pipeline::filterUsedArticles);
+			addComponent(new Notifier());
 			
+		}
+	}
+	
+	private static void filterUsedArticles(Map<Integer, Query> queries, Map<Integer, Article> articles, Collection<ValidationResult> results) throws IOException, SQLException {
+		Connection connection = DBConnection.getConnection();
+		ValidationResult res;
+		try (PreparedStatement seek = connection.prepareStatement("select * from query_articles where query = ? and article = ?");
+				PreparedStatement update = connection.prepareStatement("insert into query_articles (query, article) values (?, ?)")) {
+			for (Iterator<ValidationResult> iter = results.iterator(); iter.hasNext();) {
+				res = iter.next();
+				seek.setInt(1, res.getQueryID());
+				seek.setInt(2, res.getArticleID());
+				try (ResultSet rs = seek.executeQuery()) {
+					if (rs.next()) //If we've already used it, don't bother
+						iter.remove();
+					else {
+						update.setInt(1, res.getQueryID());
+						update.setInt(2, res.getArticleID());
+						update.executeUpdate();
+					}
+				}
+			}
 		}
 	}
 	
