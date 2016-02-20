@@ -76,7 +76,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
     
     static Map<String, SemilarComputations> semilarCombinations = new HashMap<String, SemilarComputations>();
     static Map<String, ReentrantLock> combinationLocks = new HashMap<String, ReentrantLock>();
-    static Map<String, ReentrantLock> matchesLocks = new HashMap<String, ReentrantLock>();
+    //static Map<String, ReentrantLock> matchesLocks = new HashMap<String, ReentrantLock>();
 
 
     // Various thresholds and constants for post processing
@@ -108,8 +108,6 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
     
     WNWordMetric wnMetricLin;
     SentencePreprocessor preprocessor;
-
-    private String key;
     
 	/**
 	 * Constructs a new instance of the {@link Validator} for the given {@code ID}, {@link Query}, and {@link Article}
@@ -152,7 +150,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
     */
 	@Override
 	public ValidationResult[] call(Query query, Article article) throws IOException {
-        key = query.getID() + "_" + article.getID() + "_" + FIRST_ROUND_CONTENT_THRESHOLD + "_" + FIRST_ROUND_TITLE_THRESHOLD
+        String key = query.getID() + "_" + article.getID() + "_" + FIRST_ROUND_CONTENT_THRESHOLD + "_" + FIRST_ROUND_TITLE_THRESHOLD
             + "_" + RELIABLE_TITLE_THRESHOLD + "_" + MIN_WORD_TO_WORD_THRESHOLD;
 
         SemilarComputations combination;
@@ -248,7 +246,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
 
         double validation = 0.0;
         if (average > FIRST_ROUND_CONTENT_THRESHOLD || titleScore > FIRST_ROUND_TITLE_THRESHOLD) {
-            validation = postProcess(topN, query,completePhrase, title, titleScore);
+            validation = postProcess(topN, query,completePhrase, title, titleScore, key);
         }
 
         return new ValidationResult[]{new ValidationResult(article.getID(), validation)};
@@ -265,7 +263,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
     * @param titleScore Score for the title based on it's similarity to the query
     * @return article's validation score
     */
-    public double postProcess(SortedList<Pair<Double, CoreMap>> topN, Query query, String rawQuery, String articleTitle, double titleScore){
+    public double postProcess(SortedList<Pair<Double, CoreMap>> topN, Query query, String rawQuery, String articleTitle, double titleScore, String key){
 
         // Gets query parts and tracks which parts are present (out of subject, verb, object, location)
         String subject, dirObject, indirObject, location;
@@ -317,13 +315,14 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         double totalScore = 0;
 
        	ReentrantLock lock;
-        synchronized (matchesLocks) {
-            if (!matchesLocks.containsKey(key)) {
+        synchronized (combinationLocks) {
+            if (!combinationLocks.containsKey(key)) {
                 lock = new ReentrantLock();
-                matchesLocks.put(key, lock);
+                combinationLocks.put(key, lock);
+                System.err.println("BAD: combinationLocks should have already contained key " + key);
             }
             else
-                lock = matchesLocks.get(key);
+                lock = combinationLocks.get(key);
         }
         lock.lock();
         SemilarComputations combination = semilarCombinations.get(key);
