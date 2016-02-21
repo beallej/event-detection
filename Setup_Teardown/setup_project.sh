@@ -31,7 +31,6 @@ if [ "$(which brew)" != "" ] && [ "$(which brew)" != "brew not found" ]; then
 		fi
 		unset yn
 	fi
-	pip3 install 'beautifulsoup4' 'grip' 'nltk' 'psycopg2' 'scipy' 'sendgrid' 'sklearn' 'twilio'
 else
 	if [ "$python_path" == "" ]; then
 		>&2 echo "Error: Unable to find the executable for python 3."
@@ -44,6 +43,9 @@ else
 	./build_brewless.sh
 	cd "$working_dir"
 fi
+
+pip3 install 'beautifulsoup4' 'grip' 'nltk' 'psycopg2' 'scipy' 'sendgrid' 'sklearn' 'twilio'
+$python_path -m nltk.downloader 'average_perceptron_tagger' 'punkt' 'stopwords' 'tagsets' 'treebank' 'wordnet' 'wordnet_ic'
 
 export PGDATA="$(brew --prefix)/var/postgres"
 export PGHOST=localhost
@@ -101,7 +103,6 @@ if ( $setup_sql ); then
 	mkdir -p "$HOME/Library/LaunchAgents"
 	ln -sfv "$(brew --prefix)"/opt/postgresql/*.plist "$HOME/Library/LaunchAgents"
 	[ "$(pg_ctl status | grep 'PID:' )" == "" ] && ( pg_ctl start > /dev/null ) && createdb event_detection || createdb event_detection
-	createdb event_detection
 	psql event_detection < "$(pwd)/Setup_Teardown/setup.sql"
 	psql event_detection < "$(pwd)/Setup_Teardown/seeds.sql"
 else
