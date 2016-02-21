@@ -24,6 +24,10 @@ if [ "$(which brew)" != "" ] && [ "$(which brew)" != "brew not found" ]; then
 			python_version='3.5.1'
 			pyenv install "$python_version"
 			pyenv global "$python_version"
+			[ "$(cat $HOME/.bash_profile | grep 'eval "$(pyenv init -)"')" == "" ] && echo "if which pyenv > /dev/null; then eval "$(pyenv init -)"; fi" >> "$HOME/.bash_profile"
+			echo "Done installing Python ${python_version}."
+			echo "Please restart terminal before continuing."
+			exit 1
 		fi
 		unset yn
 	fi
