@@ -37,7 +37,7 @@ else
 	cd "$working_dir"
 fi
 
-pip3 install 'beautifulsoup4' 'grip' 'nltk' 'psycopg2' 'scipy' 'sendgrid' 'sklearn' 'twilio'
+pip3 install 'beautifulsoup4' 'grip' 'nltk' 'psycopg2' 'scipy' 'sendgrid' 'sklearn' 'twilio' 'requests'
 $python_path -m nltk.downloader 'averaged_perceptron_tagger' 'punkt' 'stopwords' 'tagsets' 'treebank' 'wordnet' 'wordnet_ic'
 
 export PGDATA="$(brew --prefix)/var/postgres"
