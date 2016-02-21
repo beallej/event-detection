@@ -7,22 +7,22 @@ import sendgrid, json
 from Utils.DataSource import *
 import requests
 
+
 class Notifier:
     """
     Used to notify user of query detection
     """
 
-    #TODO: MOVE THIS STUFF TO A MORE SECURE LOCATION
+    # TODO: MOVE THIS STUFF TO A MORE SECURE LOCATION
     default_phone = "+15073385228"
     default_email = "event.detection.carleton@gmail.com"
     twilio_number = "+15137269006"
     twilio_account_sid = "AC7b50b072cd7cc54e912eb28dffd3c403"
-    twilio_auth_token  = "3b8e4111c3d10fdeffc666fddd65e6a3"
+    twilio_auth_token = "3b8e4111c3d10fdeffc666fddd65e6a3"
     sendgrid_api_key = "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"
     bitly_api_login = "o_3s58or5kei"
     bitly_api_key = "R_e8af4fe78cc54bcf869837cb2ff1c501"
     bitly_api_url = "https://api-ssl.bitly.com"
-
 
     def __init__(self):
         """
@@ -33,7 +33,6 @@ class Notifier:
         self.phone_client = TwilioRestClient(self.twilio_account_sid, self.twilio_auth_token)
         self.email_client = sendgrid.SendGridClient(self.sendgrid_api_key)
 
-
     def alert_phone(self, text):
         """
         Sends text message
@@ -42,6 +41,7 @@ class Notifier:
         """
         if self.phone != None and self.phone != "+1":
             self.phone_client.messages.create(body=text, to=self.phone, from_=self.twilio_number)
+
     def alert_email(self, text):
         """
         Sends email message
@@ -60,12 +60,11 @@ class Notifier:
             if int(status_code) != 200:
                 print("Error " + str(status_code) + " : " + str(status_message))
 
-
     def on_validation(self, query_id, article_ids):
         """
         Notifies user on validation
-        :param query: query that was validated
-        :param article: article that validated query
+        :param query_id: query that was validated
+        :param article_ids: articles that validated query
         :return: None
         """
         query_string = " ".join(self.datasource.get_query_elements(query_id))
@@ -75,7 +74,6 @@ class Notifier:
             article_title = self.datasource.get_article_title(article_id)
             article_data.append((article_title, article_url))
 
-        
         html = self.format_html(query_string, article_data)
         texts = self.format_plaintext(query_string, article_data)
 
@@ -84,27 +82,28 @@ class Notifier:
         for text in texts:
             self.alert_phone(text)
 
-
-    def format_html(self, query_string, article_data):
+    @staticmethod
+    def format_html(query_string, article_data):
         """
         formats body of email
-        :param query: query that was validated
-        :param article: article that validated query
+        :param query_string: query that was validated
+        :param article_data: article that validated query
         :return: html of email body
         """
         html = "<h1>{query}</h1><p>Articles:</p>".format(query = query_string)
         for article in article_data:
             article_title = article[0]
             article_url = article[1]
-            html+="<p><a href=\"{url}\">{title}</a></p>".format(url=article_url, title=article_title)
+            html += "<p><a href=\"{url}\">{title}</a></p>".format(url=article_url, title=article_title)
         return html
 
-    def format_plaintext(self, query_string, article_data):
+    @staticmethod
+    def format_plaintext(query_string, article_data):
         """
         formats text message
         formats body of email
-        :param query: query that was validated
-        :param article: article that validated query
+        :param query_string: query that was validated
+        :param article_data: article that validated query
         :return: text body
         """
         texts = []
@@ -124,16 +123,17 @@ class Notifier:
         """
         Gets a shortlink from bitly for the article url
         :param article_url: the url to shorten
-        :return: the shortened url if sucessful (otherwise just the article url)
+        :return: the shortened url if successful (otherwise just the article url)
         """
         payload = {"longUrl": article_url, "login": self.bitly_api_login, "apiKey": self.bitly_api_key}
         response = requests.get(self.bitly_api_url + "/v3/shorten", params=payload)
         response_json = response.json()
-        print(response_json)
-        # look for
+        # look for data -> url -> short url in response_json
+        # if it's not there, just return the old url
         if "data" in response_json and "url" in response_json["data"]:
             return response_json["data"]["url"]
         return article_url
+
 
 def main():
     notifier = Notifier()
