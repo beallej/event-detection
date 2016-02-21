@@ -108,14 +108,12 @@ public class ThreadingUtils {
 			logger.warn("A thread that does not own the filesystem lock attempted to release it.");
 			return;
 		}
-		try {
+		lock.unlock();
+		if (!lock.isHeldByCurrentThread()) { //Reentrancy support
 			fsLock.close();
 			chan.close();
 			fsLock = null;
 			chan = null;
-		}
-		finally {
-			lock.unlock();
 		}
 	}
 	

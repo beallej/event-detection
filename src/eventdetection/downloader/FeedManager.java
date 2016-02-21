@@ -42,6 +42,7 @@ public class FeedManager extends Downloader {
 	
 	/**
 	 * Initializes a {@link FeedManager} without any {@link Feed Feeds} or {@link Scraper Scrapers}.
+	 * 
 	 * @param connection
 	 *            a {@link Connection} to the database to use
 	 */
@@ -96,15 +97,17 @@ public class FeedManager extends Downloader {
 	 * Adds a {@link Scraper} or a folder of {@link Scraper Scrapers} to this {@link FeedManager}.
 	 * 
 	 * @param path
-	 *            a {@link Path} to a JSON file defining a {@link Scraper} or a folder of files defining {@link Scraper
-	 *            Scrapers}
+	 *            a {@link Path} to a JSON file defining a {@link Scraper} or a folder containing files defining
+	 *            {@link Scraper Scrapers}; if {@code path} points to a directory, then a {@link URLClassLoader} is created
+	 *            for that directory
 	 * @return the IDs of the added {@link Scraper Scrapers}
 	 * @throws IOException
-	 *             if an error occurs while loading the JSON files
+	 *             if an error occurs while loading the JSON files or creating the {@link URLClassLoader}
 	 */
 	public List<String> addScraper(Path path) throws IOException {
-		ClassLoader cl = new URLClassLoader(new URL[]{path.toUri().toURL()});
-		return loadItemsFromFile(p -> Scraper.loadFromJSON(p, cl), p -> p.toString().endsWith(".json"), path, scrapers::put);
+		//If path is a directory, create a new ClassLoader so that .class files in the directory pointed to by path can be loaded
+		ClassLoader cl = !Files.isDirectory(path) ? FeedManager.class.getClassLoader() : new URLClassLoader(new URL[]{path.toUri().toURL()});
+		return loadItemsFromFile(p -> Scraper.loadFromJSON(p, cl), JSON_FILE_FILTER, path, scrapers::put);
 	}
 	
 	/**
@@ -134,7 +137,7 @@ public class FeedManager extends Downloader {
 	 *             if an error occurs while loading the JSON files
 	 */
 	public List<Integer> addFeed(Path path) throws IOException {
-		return loadItemsFromFile(p -> Feed.loadFromJSON(p, scrapers, connection), p -> p.toString().endsWith(".json"), path, feeds::put);
+		return loadItemsFromFile(p -> Feed.loadFromJSON(p, scrapers, connection), JSON_FILE_FILTER, path, feeds::put);
 	}
 	
 	/**
@@ -179,7 +182,7 @@ public class FeedManager extends Downloader {
 	@Override
 	public List<Article> get() {
 		List<Article> out = new ArrayList<>();
-		for (Downloader downloader : feeds.values())
+		for (Downloader downloader : feeds.values()) //Download Articles the Feeds that the FeedManager managers
 			out.addAll(downloader.get());
 		return out;
 	}

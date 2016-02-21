@@ -306,7 +306,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         if (totalScore > HIGH_VALIDATION_THRESHOLD){
             return 1.0;
         } else if (totalScore > MEDIUM_VALIDATION_THRESHOLD) {
-            return totalScore/10;
+            return totalScore/HIGH_VALIDATION_THRESHOLD;
         }
         return 0.0;
     }

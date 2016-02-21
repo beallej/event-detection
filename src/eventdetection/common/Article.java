@@ -96,7 +96,7 @@ public class Article implements IDAble<Integer>, Serializable {
 		this(new String[]{title, null}, new String[]{text, null}, null, null, url, source, id);
 	}
 	
-	private Article(String[] titles, String[] texts, Annotation title, Annotation[] text, URL url, Source source, Integer id) {
+	private Article(String[] titles, String[] texts, Annotation title, Annotation[] text, URL url, Source source, Integer id) { //Copy constructor
 		this.titles = titles;
 		this.texts = texts;
 		this.title = title;
@@ -104,7 +104,7 @@ public class Article implements IDAble<Integer>, Serializable {
 		this.url = url;
 		this.source = source;
 		this.id = id;
-		hashCode = this.id == null ? null : id.hashCode();
+		hashCode = this.id == null ? null : id.hashCode(); //IDs are unique
 	}
 	
 	/**
@@ -214,7 +214,7 @@ public class Article implements IDAble<Integer>, Serializable {
 		if (!(o instanceof Article))
 			return false;
 		Article other = (Article) o;
-		return (id != other.id || !source.equals(other.source) || (url == null ? other.url != null : !url.equals(other.url)) ||
+		return !(id != other.id || !source.equals(other.source) || (url == null ? other.url != null : !url.equals(other.url)) ||
 				(titles[0] == null ? other.titles[0] != null : !titles[0].equals(other.titles[0])) || !texts[0].equals(other.texts[0]) ||
 				(titles[1] == null ? other.titles[1] != null : !titles[1].equals(other.titles[1])) ||
 				(texts[1] == null ? other.texts[1] != null : !texts[1].equals(other.texts[1])) ||

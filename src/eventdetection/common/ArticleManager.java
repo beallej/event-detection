@@ -310,7 +310,7 @@ public class ArticleManager implements Closeable {
 				logger.info("Starting to deserialize articles");
 				if (ids.size() > 0) {
 					int id = 0;
-					while (rs.next()) {
+					while (ids.size() > 0 && rs.next()) {
 						id = rs.getInt("id");
 						if (ids.contains(id)) {
 							futures.add(pool.submit(loadArticle(rs.getString("title"), rs.getString("filename"))));

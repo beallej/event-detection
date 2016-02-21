@@ -89,7 +89,7 @@ public class DownloaderCollection extends Downloader {
 		if (closed)
 			return;
 		closed = true;
-		for (Downloader d : downloaders)
+		for (Downloader d : getDownloaders()) //Close all downloaders
 			d.close();
 	}
 }

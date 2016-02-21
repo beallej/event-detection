@@ -4,7 +4,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.ProcessBuilder.Redirect;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 
 /**
@@ -21,10 +23,25 @@ public class SubprocessHelpers {
 	 * The path required to run the system's Python 3 executable.
 	 */
 	public static final String pythonPath = getPythonPath();
+	/**
+	 * The default execution directory used when calling {@link #executePythonProcess(Path, String...)}
+	 */
+	public static final Path DEFAULT_PATH;
+	
+	static {
+		Path temp = null;
+		try {
+			temp = Paths.get(SubprocessHelpers.class.getProtectionDomain().getCodeSource().getLocation().toURI()).getParent();
+		}
+		catch (URISyntaxException e) {
+			e.printStackTrace();
+		}
+		DEFAULT_PATH = temp;
+	}
 	
 	private SubprocessHelpers() {/* This is a static class */}
 	
-	private static final String getBashPath() {
+	private static final String getBashPath() { //This defaults to running from .sh
 		ProcessBuilder pb = new ProcessBuilder();
 		pb.command("which", "bash");
 		try {
@@ -42,6 +59,7 @@ public class SubprocessHelpers {
 	
 	private static final String getPythonPath() {
 		ProcessBuilder pb = new ProcessBuilder();
+		//python 2 outputs its version information to stderr.  Not kidding.
 		pb.command(bashPath, "-l", "-c", "[ \"$(python --version 2>&1 | grep 'Python 3')\" != \"\" ] && echo \"$(which python)\" || echo \"$(which python3)\"");
 		try {
 			Process p = pb.start();
@@ -68,7 +86,7 @@ public class SubprocessHelpers {
 	 *             if an error occurs while starting the process
 	 */
 	public static Process executePythonProcess(Path scriptPath, String... args) throws IOException {
-		return executePythonProcess(scriptPath, scriptPath.getParent(), args);
+		return executePythonProcess(scriptPath, DEFAULT_PATH, args);
 	}
 	
 	/**
@@ -85,13 +103,20 @@ public class SubprocessHelpers {
 	 *             if an error occurs while starting the process
 	 */
 	public static Process executePythonProcess(Path scriptPath, Path directory, String... args) throws IOException {
-		String[] command = {bashPath, "-c", pythonPath.toString() + " \"$@\"", "-", scriptPath.normalize().toString()};
+		Path relPath;
+		try {
+			relPath = directory.relativize(scriptPath);
+		}
+		catch (IllegalArgumentException e) {
+			relPath = scriptPath;
+		}
+		String[] command = {bashPath, "-c", pythonPath.toString() + " \"$@\"", "-", relPath.normalize().toString()};
 		command = Arrays.copyOf(command, command.length + args.length);
-		for (int i = 0; i < args.length; i++)
+		for (int i = 0; i < args.length; i++) //The command has 5 components that come before the arguments
 			command[i + 5] = args[i];
 		
 		ProcessBuilder pb = new ProcessBuilder(command);
-		pb.redirectError(Redirect.INHERIT);
+		pb.redirectError(Redirect.INHERIT); //So that errors can be seen
 		pb.directory(directory.toFile());
 		return pb.start();
 	}

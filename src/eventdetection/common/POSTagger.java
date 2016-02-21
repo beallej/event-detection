@@ -218,7 +218,7 @@ public class POSTagger {
 		StringBuilder sb = new StringBuilder();
 		for (CoreMap sentence : paragraph.get(SentencesAnnotation.class))
 			reconstructSentence(sentence, sb).append(" ");
-		return sb.toString().replaceAll("\\s+([!,.;:'\"?%])", "$1").trim();
+		return sb.toString().replaceAll("\\s+([!,.;:'\"?%])", "$1").trim(); //Fixes extra spaces around punctuation
 	}
 	
 	/**
