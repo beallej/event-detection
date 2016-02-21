@@ -12,7 +12,7 @@ if [ "$(which brew)" != "" ] && [ "$(which brew)" != "brew not found" ]; then
 	brew tap 'toberumono/tap'
 	brew install 'toberumono/tap/utils' 'toberumono/tap/structures' 'toberumono/tap/lexer' 'toberumono/tap/json-library' 'ant' 'wget' 'postgresql'
 	if [ "$python_path" == "" ]; then
-		read -p "Unable to find a Python 3 installation.  Would you like it to be installed (this may hide any existing Python installations)? [y/N]" yn
+		read -p "Unable to find a Python 3 installation.  Would you like it to be installed? [y/N]" yn
 		yn=$(echo "${yn:0:1}" | tr '[:upper:]' '[:lower:]')
 		if [ "$yn" != "y" ]; then
 			>&2 echo "Error: Unable to find the executable for python 3."
@@ -20,14 +20,7 @@ if [ "$(which brew)" != "" ] && [ "$(which brew)" != "brew not found" ]; then
 			exit 1
 		else
 			echo "Beginning to install Python 3.  This may take a bit."
-			brew install 'pyenv'
-			python_version='3.5.1'
-			pyenv install "$python_version"
-			pyenv global "$python_version"
-			[ "$(cat $HOME/.bash_profile | grep 'eval "$(pyenv init -)"')" == "" ] && echo 'if which pyenv > /dev/null; then eval "$(pyenv init -)"; fi' >> "$HOME/.bash_profile"
-			echo "Done installing Python ${python_version}."
-			echo "Please restart terminal before continuing."
-			exit 1
+			brew install 'python3'
 		fi
 		unset yn
 	fi
