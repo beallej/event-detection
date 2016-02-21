@@ -36,7 +36,7 @@ public class Notifier implements PipelineComponent {
 				res.put(query, new JSONArray());
 			((JSONArray) res.get(query)).add(new JSONNumber<>(r.getArticleID()));
 		}
-		Process p = SubprocessHelpers.executePythonProcess(Paths.get("./Notifier.py"));
+		Process p = SubprocessHelpers.executePythonProcess(Paths.get("./Utils/Notifier.py"));
 		try (BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(p.getOutputStream()))) { //This closes the stream so that the process can continue
 			JSONSystem.writeJSON(res, bw);
 		}
