@@ -12,7 +12,7 @@ if [ "$(which brew)" != "" ] && [ "$(which brew)" != "brew not found" ]; then
 	brew tap 'toberumono/tap'
 	brew install 'toberumono/tap/utils' 'toberumono/tap/structures' 'toberumono/tap/lexer' 'toberumono/tap/json-library' 'ant' 'wget' 'postgresql'
 	if [ "$python_path" == "" ]; then
-		read -p "Unable to find a Python 3 installation.  Would you like it to be installed? [y/N]" yn
+		read -p "Unable to find a Python 3 installation.  Would you like it to be installed (this may hide any existing Python installations)? [y/N]" yn
 		yn=$(echo "${yn:0:1}" | tr '[:upper:]' '[:lower:]')
 		if [ "$yn" != "y" ]; then
 			>&2 echo "Error: Unable to find the executable for python 3."
@@ -89,7 +89,7 @@ if ( $repackage_corenlp ); then
 	unzip '-u' "${semilar_dir}"'SEMILAR-API-1.0/Semilar-1.0.jar' '-d' "${semilar_dir}"'SEMILAR-API-1.0/Semilar-1.0'
 	perl -i -p0e $'s/Class-Path:.* \\.0\\.jar/Class-Path: lib\/joda-time.jar lib\/xom.jar lib\/opennlp-tools-1.5.0.jar \n lib\/edu.mit.jwi_2.1.5.jar lib\/jwnl-1.3.3.jar lib\/maxent-3.0.0.jar/smg' '../SEMILAR/SEMILAR-API-1.0/Semilar-1.0/META-INF/MANIFEST.MF'
 	jar cfm "${semilar_dir}"'SEMILAR-API-1.0/Semilar-1.0.jar' "${semilar_dir}"'SEMILAR-API-1.0/Semilar-1.0/META-INF/MANIFEST.MF' -C "${semilar_dir}"'SEMILAR-API-1.0/Semilar-1.0/' '.'
-	ant -buildfile 'repackage-corenlp.xml'
+	ant -buildfile "$(pwd)/repackage-corenlp.xml"
 fi
 rm "${semilar_dir}"'SEMILAR-API-1.0.zip'
 rm -r "${semilar_dir}"'SEMILAR-API-1.0/Semilar-1.0'
@@ -102,8 +102,8 @@ if ( $setup_sql ); then
 	ln -sfv "$(brew --prefix)"/opt/postgresql/*.plist "$HOME/Library/LaunchAgents"
 	[ "$(pg_ctl status | grep 'PID:' )" == "" ] && ( pg_ctl start > /dev/null )
 	createdb event_detection
-	psql event_detection < setup.sql
-	psql event_detection < seeds.sql
+	psql event_detection < "$(pwd)/setup.sql"
+	psql event_detection < "$(pwd)/seeds.sql"
 else
 	echo "Skipping."
 fi
