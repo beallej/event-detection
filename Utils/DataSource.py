@@ -182,7 +182,7 @@ class DataSource:
                     INNER JOIN query_articles qa on q.id = qa.query \
                     INNER JOIN articles a on qa.article = a.id \
                     INNER JOIN sources s on s.id = a.source \
-                    WHERE q.id = %s and qa.accuracy > .2;", (query_id,))
+                    WHERE q.id = %s and qa.notification_sent = true;", (query_id,))
         articles = self.cursor.fetchall()
 
         self.cursor.execute("SELECT id, subject, verb, direct_obj, indirect_obj, loc FROM queries where id = %s;", (query_id,))
@@ -197,7 +197,7 @@ class DataSource:
         self.cursor.execute("SELECT q.id, q.subject, q.verb, q.direct_obj, q.indirect_obj, \
                            q.loc, count(qa.article) as article_count \
                     FROM queries q \
-                    LEFT JOIN query_articles qa on q.id = qa.query and qa.accuracy > .2 \
+                    LEFT JOIN query_articles qa on q.id = qa.query and qa.notification_sent = true \
                     GROUP BY(q.id);")
         return self.cursor.fetchall()
 
@@ -228,3 +228,8 @@ class DataSource:
         except psycopg2.IntegrityError:
             return False
         return True
+
+    def articles_route(self):
+        self.cursor.execute("SELECT title, s.source_name as source, url FROM articles a \
+                        INNER JOIN sources s on s.id = a.source;")
+        return self.cursor.fetchall()
