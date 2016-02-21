@@ -103,10 +103,11 @@ class Notifier:
         for article in article_data:
             article_title = article[0]
             article_url = article[1]
-            text += "\n{title}\nLink {url}\n".format(url=article_url, title=article_title)
-            if len(text) > 1600:
+            next_article =  "\n{title}\nLink {url}\n".format(url=article_url, title=article_title)
+            if len(text) + len(next_article) > 1600:
                 texts.append(text)
                 text = "Event Detected!\nQuery: {query}\nArticles: ".format(query = query_string)
+            text +=  next_article
         texts.append(text)
         return texts
 
