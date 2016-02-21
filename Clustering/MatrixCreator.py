@@ -10,7 +10,7 @@ import re
 from collections import Counter
 from sklearn.feature_extraction.text import TfidfTransformer
 import io
-import Globals
+from Utils.Globals import *
 
 
 class MatrixCreator:
@@ -95,7 +95,6 @@ class MatrixCreator:
 
         self.article_words_by_article = []
         all_article_words_set = set()
-        articles_path = Globals.articles_path
 
         for idx, filename in enumerate(self.filenames):
             article_file = open(articles_path + filename, "r", encoding="utf8")

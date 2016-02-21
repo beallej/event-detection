@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.abspath('.'))
 
 import psycopg2
 import re
-import Utils.Globals
+from Utils.Globals import *
 
 
 class DataSource:
@@ -17,7 +17,7 @@ class DataSource:
         Create a DataSource object
         :return: None
         """
-        db = Globals.database
+        db = database
         try:
             # create a connection to event_detection database
             conn = psycopg2.connect(user='root', database=db)

@@ -8,12 +8,8 @@ sys.path.insert(0, os.path.abspath('.'))
 from Utils.DataSource import *
 from Keywords_Wordnet.KeywordExtractor import *
 from PythonValidators.Validator import Article
-import json
 import fcntl
-import os
-import sys
-import Globals
-
+from Utils.Globals import *
 
 class ArticleProcessorDaemon:
     """
@@ -27,7 +23,7 @@ class ArticleProcessorDaemon:
         fd, fo = 0, 0
         try:
             if "--no-lock" not in sys.argv:
-                path = Globals.articles_path
+                path = articles_path
                 fo = open(os.getenv("HOME") + "/.event-detection-active", "wb")
                 fd = fo.fileno()
                 fcntl.lockf(fd, fcntl.LOCK_EX)
