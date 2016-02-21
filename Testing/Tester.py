@@ -1,8 +1,11 @@
+from PythonValidators.Validator import Query
+from Utils.DataSource import *
+
 from collections import defaultdict
-from AlgorithmTester import *
+from Testing.AlgorithmTester import *
 import matplotlib.pyplot as plot
 import matplotlib.patches as mpatches
-from TestDataSource import *
+from Testing.TestDataSource import *
 
 
 class Tester:

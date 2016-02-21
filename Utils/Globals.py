@@ -1,5 +1,8 @@
+import sys; import os
+sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('.'))
+
 import json
-import sys
 
 """
 Holds global information, some of which may be changed at runtime

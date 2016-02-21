@@ -1,7 +1,10 @@
+import sys; import os
+sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('.'))
+
 import psycopg2
-import sys
 from psycopg2.extras import RealDictCursor
-import Globals
+from Utils.Globals import *
 from collections import defaultdict
 
 
@@ -15,7 +18,7 @@ class TestDataSource:
         :return: None
         """
         # grab the current database used in the JSON
-        db = Globals.database
+        db = database
         try:
             # connect to the database and set autocommit to true
             conn = psycopg2.connect(user='root', database=db)

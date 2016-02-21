@@ -1,10 +1,14 @@
+import sys; import os
+sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('.'))
+
 import random
 import numpy as np
 import scikits.bootstrap as bootstrap
 from Tester import *
-from collections import Counter, defaultdict
+from collections import Counter
 import matplotlib.pyplot as plt
-from TestDataSource import  *
+from Testing.TestDataSource import  *
 
 class AlgorithmTester:
     def __init__(self, algorithm_id, algorithm_name, tester_datasource=TestDataSource()):
