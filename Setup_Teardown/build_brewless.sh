@@ -2,6 +2,9 @@
 #A script to download the required libraries for this project from gitHub and then build it.
 #Author: Toberumono (https://github.com/Toberumono)
 
+working_dir="$(pwd)"
+[ "$(ls ${working_dir} | grep 'Setup_Teardown')" == "" ] && working_dir="${working_dir}../"
+
 use_release=true
 if [ "$#" -gt "0" ] && [ "$1" == "use_latest" ]; then
 	use_release=false
@@ -18,14 +21,13 @@ clone_project() {
 }
 
 build_project() {
-	local stored="$(pwd)"
 	cd "../$1"
 	if [ -e "build_brewless.sh" ]; then
 		"$(ps -o comm= -p $$ | sed -e 's/-\{0,1\}\(.*\)/\1/')" build_brewless.sh
 	else
 		ant
 	fi
-	cd "$stored"
+	cd "$working_dir"
 	rm -r "../$1"
 }
 

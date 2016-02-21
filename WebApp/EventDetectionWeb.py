@@ -1,6 +1,11 @@
+import sys; import os
+sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('.'))
+
 from flask import Flask, render_template, request, redirect
-import subprocess, subprocess_helpers
-from DataSource import *
+import subprocess
+from Utils import  subprocess_helpers
+from Utils.DataSource import *
 
 app = Flask(__name__)
 dataSource = DataSource()
@@ -8,7 +13,7 @@ dataSource = DataSource()
 
 def launch_preprocessors():
     process = subprocess.Popen(
-        subprocess_helpers.python_path + " QueryProcessorDaemon.py && " + subprocess_helpers.python_path + " ArticleProcessorDaemon.py",
+        subprocess_helpers.python_path + " Daemons/QueryProcessorDaemon.py && " + subprocess_helpers.python_path + " Daemons/ArticleProcessorDaemon.py",
         executable=subprocess_helpers.executable, shell=True, universal_newlines=True)
 
 

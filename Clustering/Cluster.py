@@ -1,4 +1,8 @@
-from DataSource import *
+import sys; import os
+sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('.'))
+
+from Utils.DataSource import *
 import json
 
 class Cluster:

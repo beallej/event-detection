@@ -1,7 +1,11 @@
+import sys; import os
+sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('.'))
+
 from numpy import zeros
-from DataSource import *
+from Utils.DataSource import *
 import nltk.corpus
-from KeywordExtractor import *
+from Keywords_Wordnet.KeywordExtractor import *
 import re
 from collections import Counter
 from sklearn.feature_extraction.text import TfidfTransformer

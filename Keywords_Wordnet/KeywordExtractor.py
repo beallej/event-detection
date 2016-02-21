@@ -1,10 +1,13 @@
+import sys; import os
+sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('.'))
+
 from nltk.stem.snowball import SnowballStemmer
-import RAKEtutorialmaster.rake as rake
+import Keywords_Wordnet.RAKEtutorialmaster.rake as rake
 from nltk.stem.wordnet import WordNetLemmatizer
 import re
 import math
-from RAKEtutorialmaster.rake  import split_sentences_tagged
-import sys
+from Keywords_Wordnet.RAKEtutorialmaster.rake  import split_sentences_tagged
 from collections import  defaultdict
 
 
@@ -26,7 +29,7 @@ class KeywordExtractor:
     """
     KeywordExtractor: Performs keyword extraction on a text
     """
-    stoplist_file = "RAKEtutorialmaster/SmartStoplist.txt"
+    stoplist_file = "Keywords_Wordnet/RAKEtutorialmaster/SmartStoplist.txt"
     language = "english"
     max_words_in_keyword = 3
     min_letters_in_word_in_keyword = 4

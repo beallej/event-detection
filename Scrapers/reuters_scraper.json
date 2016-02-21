@@ -3,7 +3,7 @@
     "class" : "eventdetection.downloader.PythonScraper",
     "python" : {
     	"scripts" : {
-    		"sectioning" : ["../ReutersScraper.py"]
+    		"sectioning" : ["../PythonScrapers/ReutersScraper.py"]
     	},
     	"parameters" : {
     		"sectioning" : {}

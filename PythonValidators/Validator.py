@@ -1,11 +1,14 @@
 # We use term extraction and clustering methods found in this paper http://nlg18.csie.ntu.edu.tw:8080/lwku/c12.pdf
+import sys; import os
+sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('.'))
 
 from nltk import pos_tag, word_tokenize
 from nltk.corpus import stopwords
-from KeywordExtractor import *
+from Keywords_Wordnet.KeywordExtractor import *
 import re
-from DataSource import *
-import wordnet
+from Utils.DataSource import *
+from Keywords_Wordnet.WordnetHelper import *
 import json
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.stem.snowball import SnowballStemmer
@@ -294,7 +297,7 @@ class Query:
             if tagged_word[0].lower() not in self.stop_list:      # tagged_word[0] = word
                 if tagged_word[1] not in self.synonyms_with_tag:  # tagged_word[1] = tag
                     self.synonyms_with_tag[tagged_word[1]] = {}
-                self.synonyms_with_tag[tagged_word[1]][tagged_word[0]] = wordnet.get_synonyms(tagged_word[0],tagged_word[1])
+                self.synonyms_with_tag[tagged_word[1]][tagged_word[0]] = get_synonyms(tagged_word[0],tagged_word[1])
                 # TODO actually get synonyms
         print(self.synonyms_with_tag)
     def get_synonyms(self):

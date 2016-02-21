@@ -76,13 +76,13 @@ public class Pipeline implements PipelineComponent, Closeable {
 				addComponent(new DownloaderController(config));
 				addComponent((queries, articles, results) -> {
 					try {
-						SubprocessHelpers.executePythonProcess(Paths.get("./ArticleProcessorDaemon.py"), "--no-lock").waitFor();
+						SubprocessHelpers.executePythonProcess(Paths.get("./Daemons/ArticleProcessorDaemon.py"), "--no-lock").waitFor();
 					}
 					catch (InterruptedException e) {}
 				});
 				addComponent((queries, articles, results) -> {
 					try {
-						SubprocessHelpers.executePythonProcess(Paths.get("./QueryProcessorDaemon.py"), "--no-lock").waitFor();
+						SubprocessHelpers.executePythonProcess(Paths.get("./Daemons/QueryProcessorDaemon.py"), "--no-lock").waitFor();
 					}
 					catch (InterruptedException e) {}
 				});

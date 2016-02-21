@@ -1,5 +1,9 @@
-from Validator import Query
-from DataSource import *
+import sys; import os
+sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('.'))
+
+from PythonValidators.Validator import Query
+from Utils.DataSource import *
 import fcntl
 import os, sys
 

@@ -1,5 +1,5 @@
 {
 	"instance" : {
-		"script-path" : "./JavaCallableKeywordValidator.py"
+		"script-path" : "./PythonValidators/JavaCallableKeywordValidator.py"
 	}
 }
