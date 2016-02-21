@@ -68,23 +68,13 @@ class Notifier:
 
         
         html = self.format_html(query_string, article_data)
-        text = self.format_plaintext(query_string, article_data)
+        texts = self.format_plaintext(query_string, article_data)
 
         self.phone, self.email = self.datasource.get_email_and_phone(query_id)
         self.alert_email(html)
-        self.alert_phone(text)
+        for text in texts:
+            self.alert_phone(text)
 
-    def format_query(self, query_id):
-        """
-        formats query for email or text
-        :param query: query to format
-        :return: query as string
-        """
-        query_elements = [query.subject.word, query.verb.word]
-        for element in [query.direct_obj.word, query.indirect_obj.word, query.location.word]:
-            if element != None and element != "":
-                query_elements.append(element)
-        return " ".join(query_elements)
 
     def format_html(self, query_string, article_data):
         """
@@ -108,12 +98,19 @@ class Notifier:
         :param article: article that validated query
         :return: text body
         """
+        texts = []
         text = "Event Detected!\nQuery: {query}\nArticles: ".format(query = query_string)
         for article in article_data:
             article_title = article[0]
             article_url = article[1]
-            text += "\n{title}\nLink {url}\n".format(url=article_url, title=article_title)
-        return text
+            next_article =  "\n{title}\nLink {url}\n".format(url=article_url, title=article_title)
+            if len(text) + len(next_article) > 1600:
+                texts.append(text)
+                text = "Event Detected!\nQuery: {query}\nArticles: ".format(query = query_string)
+            text +=  next_article
+        texts.append(text)
+        return texts
+
 
 def main():
     notifier = Notifier()
