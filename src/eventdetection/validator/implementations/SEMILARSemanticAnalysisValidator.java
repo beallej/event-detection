@@ -96,7 +96,8 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
     
     private static Pattern STOPWORD_RELN_REGEX = Pattern.compile("det|mark|cc|aux|punct|auxpass|cop|expl|goeswith|dep");
     private static Pattern USEFUL_RELN_REGEX = Pattern.compile("nmod|dobj|iobj|nsubj|nsubjpass|appos|conj|xcomp|ccomp");
-    //private static Pattern PRONOUN_REGEX = Pattern.compile("WP|WDT|PRP|WP\\$"); // TODO pronoun regex instead of string compare
+    private static Pattern PRONOUN_REGEX = Pattern.compile("WP|WDT|PRP|WP\\$");
+        // WP = wh-pronoun, WDT = wh-determiner, PRP = personal pronoun, WP$ = possessive wh-pronoun
 
     OptimumComparer optimumComparerWNLin;
     
@@ -419,8 +420,7 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         String verb = query.getVerb();// TODO .get(LemmaAnnotation.class);
         HashSet<String> dependencyMatches = new HashSet<String>(); // will add SUBJECT, VERB, OBJECT, S_PRONOUN, O_PRONOUN, LOCATION
         for (CoreLabel token : matchedTokens.get(tokenType)) { 
-            // For pronouns: WP = wh-pronoun, WDT = wh-determiner, PRP = personal pronoun, WP$ = possessive wh-pronoun
-            if (token.tag().equals("WP") || token.tag().equals("WDT") || token.tag().equals("PRP") || token.tag().equals("WP$")) {
+            if (PRONOUN_REGEX.matcher(token.tag()).find()) {
                 if (tokenType.equals("SUBJECT")) {
                     dependencyMatches.add("S_PRONOUN");
                 }
@@ -491,9 +491,8 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
         for (IndexedWord childNode : dependencies.getChildren(headNode)) {
             if (!STOPWORD_RELN_REGEX.matcher(dependencies.reln(headNode, childNode).getShortName()).find()){
                 if (tokenType.equals("SUBJECT")) {
-                    // For pronouns: WP = wh-pronoun, WDT = wh-determiner, PRP = personal pronoun, WP$ = possessive wh-pronoun
-                    if (childNode.tag().equals("WP") || childNode.tag().equals("WDT") || childNode.tag().equals("PRP") || childNode.tag().equals("WP$")) {
-                            dependencyMatches.add("O_PRONOUN");
+                    if (PRONOUN_REGEX.matcher(childNode.tag()).find()) {
+                        dependencyMatches.add("O_PRONOUN");
                     }
                     else {
                         for (CoreLabel objectToken : matchedTokens.get("OBJECT")) { 
@@ -510,9 +509,8 @@ public class SEMILARSemanticAnalysisValidator extends OneToOneValidator {
                         }
                     }
                 } else if (tokenType.equals("OBJECT")) {
-                    // For pronouns: WP = wh-pronoun, WDT = wh-determiner, PRP = personal pronoun, WP$ = possessive wh-pronoun
-                    if (childNode.tag().equals("WP") || childNode.tag().equals("WDT") || childNode.tag().equals("PRP") || childNode.tag().equals("WP$")) {
-                            dependencyMatches.add("S_PRONOUN");
+                    if (PRONOUN_REGEX.matcher(childNode.tag()).find()) {
+                        dependencyMatches.add("S_PRONOUN");
                     }                           
                 }
             }
