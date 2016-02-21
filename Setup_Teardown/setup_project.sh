@@ -5,7 +5,7 @@ libs_dir="${working_dir}../"
 semilar_dir="${libs_dir}SEMILAR/"
 key_library="postgresql-9.4.1207.jar"
 
-[ "$(python --version | grep 'Python 3')" != "" ] && python_path="$(which python)" || python_path="$(which python3)"
+[ "$(python --version 2>&1 | grep 'Python 3')" != "" ] && python_path="$(which python)" || python_path="$(which python3)"
 
 if [ "$(which brew)" != "" ] && [ "$(which brew)" != "brew not found" ]; then
 	brew update
