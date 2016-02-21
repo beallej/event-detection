@@ -37,6 +37,6 @@
 		"results"		: "validation_results"
 	},
 	"aggregator" : {
-		"global-threshold" : 0.5
+		"global-threshold" : 2
 	}
 }

@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS query_articles (
 	article integer references articles(id) ON DELETE CASCADE,
 	accuracy real default 0.0,
 	processed boolean default false,
+	notification_sent boolean default false,
 	primary key (query, article)
 );
 

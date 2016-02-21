@@ -1,6 +1,6 @@
 from twilio.rest import TwilioRestClient
-import sendgrid
-from Utils.DataSource import *
+import sendgrid, json
+from DataSource import *
 
 class Notifier:
     """
@@ -43,7 +43,6 @@ class Notifier:
             message = sendgrid.Mail()
             message.add_to(self.email)
 
-            #not sure what address goes here-- maybe test email?
             message.set_from(self.default_email)
             message.set_subject("Event Detection")
             message.set_html(text)
@@ -53,7 +52,7 @@ class Notifier:
                 print("Error " + str(status_code) + " : " + str(status_message))
 
 
-    def on_validation(self, query_id, article_id):
+    def on_validation(self, query_id, article_ids):
         """
         Notifies user on validation
         :param query: query that was validated
@@ -61,11 +60,15 @@ class Notifier:
         :return: None
         """
         query_string = " ".join(self.datasource.get_query_elements(query_id))
-        article_url = self.datasource.get_article_url(article_id)
-        article_title = self.datasource.get_article_title(article_id)
+        article_data = []
+        for article_id in article_ids:
+            article_url = self.datasource.get_article_url(article_id)
+            article_title = self.datasource.get_article_title(article_id)
+            article_data.append((article_title, article_url))
+
         
-        html = self.format_html(query_string, article_url, article_title)
-        text = self.format_plaintext(query_string, article_url, article_title)
+        html = self.format_html(query_string, article_data)
+        text = self.format_plaintext(query_string, article_data)
 
         self.phone, self.email = self.datasource.get_email_and_phone(query_id)
         self.alert_email(html)
@@ -83,18 +86,21 @@ class Notifier:
                 query_elements.append(element)
         return " ".join(query_elements)
 
-    def format_html(self, query_string, article_url, article_title):
+    def format_html(self, query_string, article_data):
         """
         formats body of email
         :param query: query that was validated
         :param article: article that validated query
         :return: html of email body
         """
-        html = "<h1>{query}</h1><p>Article: <a href=\"{url}\">{title}</a></p>"\
-            .format(query = query_string, url=article_url, title=article_title)
+        html = "<h1>{query}</h1><p>Articles:</p>".format(query = query_string)
+        for article in article_data:
+            article_title = article[0]
+            article_url = article[1]
+            html+="<p><a href=\"{url}\">{title}</a></p>".format(url=article_url, title=article_title)
         return html
 
-    def format_plaintext(self, query_string, article_url, article_title):
+    def format_plaintext(self, query_string, article_data):
         """
         formats text message
         formats body of email
@@ -102,6 +108,23 @@ class Notifier:
         :param article: article that validated query
         :return: text body
         """
-        text = "Event Detected!\nQuery: {query}\nArticle: {title}\nLink {url}"\
-            .format(query = query_string, url=article_url, title=article_title)
+        text = "Event Detected!\nQuery: {query}\nArticles: ".format(query = query_string)
+        for article in article_data:
+            article_title = article[0]
+            article_url = article[1]
+            text += "\n{title}\nLink {url}\n".format(url=article_url, title=article_title)
         return text
+
+def main():
+    notifier = Notifier()
+    json_text = ""
+    with sys.stdin as fileIn:
+        for line in fileIn:
+            json_text = json_text + line
+    json_obj = json.loads(json_text)
+
+    for query, articles in json_obj.items():
+        notifier.on_validation(int(query), articles)
+
+if __name__ == "__main__":
+    main()
