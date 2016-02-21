@@ -1,8 +1,12 @@
+import sys; import os
+sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('.'))
+
 #from matplotlib import pyplot as plt
 from scipy.cluster.hierarchy import dendrogram, linkage
 from scipy.cluster.hierarchy import fcluster
-from Cluster import Cluster
-from AbstractClusterer import AbstractClusterer
+from Clustering.Cluster import Cluster
+from Clustering.AbstractClusterer import AbstractClusterer
 import numpy as np
 
 

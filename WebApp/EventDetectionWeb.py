@@ -1,6 +1,11 @@
+import sys; import os
+sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('.'))
+
 from flask import Flask, render_template, request, redirect
-import subprocess, subprocess_helpers
-from DataSource import *
+import subprocess
+from Utils import  subprocess_helpers
+from Utils.DataSource import *
 
 app = Flask(__name__)
 dataSource = DataSource()
@@ -8,7 +13,7 @@ dataSource = DataSource()
 
 def launch_preprocessors():
     process = subprocess.Popen(
-        subprocess_helpers.python_path + " QueryProcessorDaemon.py && " + subprocess_helpers.python_path + " ArticleProcessorDaemon.py",
+        subprocess_helpers.python_path + " Daemons/QueryProcessorDaemon.py && " + subprocess_helpers.python_path + " Daemons/ArticleProcessorDaemon.py",
         executable=subprocess_helpers.executable, shell=True, universal_newlines=True)
 
 
@@ -51,6 +56,12 @@ def query(query_id):
                            "direct_obj": db_query[3], "indirect_obj": db_query[4], "loc": db_query[5]}
         return render_template("query.html", query=query_formatted, articles=articles_formatted)
     return render_template("404.html"), 404
+
+@app.route("/articles", methods=["GET"])
+def articles():
+    articles = dataSource.articles_route()
+    articles_formatted = [{"title": a[0], "source": a[1], "url": a[2]} for a in articles]
+    return render_template("articles.html", articles=articles_formatted)
 
 
 @app.errorhandler(404)

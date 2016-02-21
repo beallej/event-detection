@@ -1,10 +1,13 @@
 # This will run on the background all process all newly added query
 # Add synonym of new keywords into query_word table
 # Potentially, this will clear out query and synonym that are old too
+import sys; import os
+sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('.'))
 
-from DataSource import *
-from KeywordExtractor import *
-from Validator import Article
+from Utils.DataSource import *
+from Keywords_Wordnet.KeywordExtractor import *
+from PythonValidators.Validator import Article
 import json
 import fcntl
 import os, sys
@@ -35,7 +38,7 @@ class ArticleProcessorDaemon:
                     article_title = article[1]
                     article_url = article[3]
                     article_source = article[4]
-                    article_file = open("articles/{0}".format(article_filename), "r", encoding="utf8")
+                    article_file = open(os.getcwd()+"/articles/{0}".format(article_filename), "r", encoding="utf8")
                     body = article_file.read()
                     article_file.close()
 
@@ -45,8 +48,7 @@ class ArticleProcessorDaemon:
                     ds.add_keywords_to_article(article_id, keyword_string)
                     ds.add_article_to_query_articles(article_id)
                 except (FileNotFoundError, IOError):
-                        print(article[2])
-                        print("Wrong file or file path")
+                    print("Wrong file or file path")
         finally:
             if "--no-lock" not in sys.argv:
                 fcntl.lockf(fd, fcntl.LOCK_UN)

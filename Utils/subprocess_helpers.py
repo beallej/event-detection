@@ -1,3 +1,7 @@
+import sys; import os
+sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('.'))
+
 import subprocess
 
 executable = subprocess.check_output("which bash", shell=True, universal_newlines=True).strip() #This just gets the location of bash

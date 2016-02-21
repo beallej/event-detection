@@ -1,8 +1,11 @@
-from HierarchicalAgglomerativeClusterer import *
+import sys; import os
+sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('.'))
+
+from Clustering.HierarchicalAgglomerativeClusterer import *
 import operator
-from AbstractClusterer import *
+from Clustering.AbstractClusterer import *
 from nltk.stem.wordnet import WordNetLemmatizer
-import sys
 import json
 
 class ClusterValidator:
@@ -91,7 +94,7 @@ class ClusterValidator:
 
 
 def main():
-    # run `python ClusterValidator.py query_id_1 query_id_2 query_id_3 ...`
+    # run `python3 PythonValidators/ClusterValidator.py query_id_1 query_id_2 query_id_3 ...`
     cluster_validator = ClusterValidator()
     query_ids = [int(article_id) for article_id in sys.argv[1:]]
     validation_results = {}
