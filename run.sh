@@ -1,2 +1,6 @@
 #!/usr/bin/env bash
-java -jar "$(pwd)/pipeline.jar"
+if [[ $* == *test* ]]; then
+    java -jar "$(pwd)/validator.jar" -c configuration_test.json
+else
+    java -jar "$(pwd)/pipeline.jar"
+fi
