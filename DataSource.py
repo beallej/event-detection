@@ -7,10 +7,15 @@ import psycopg2
 import sys
 import re
 
-class DataSource:
 
+class DataSource:
     def __init__(self):
+        """
+        Create a DataSource object
+        :return: None
+        """
         try:
+            # create a connection to event_detection database
             conn = psycopg2.connect(user='root', database='event_detection')
             conn.autocommit = True
         except:
@@ -23,107 +28,163 @@ class DataSource:
             sys.exit()
 
     def get_unprocessed_queries(self):
+        """
+        Gets all queries from the database that are not yet marked as processed
+        :return: all unprocessed queries
+        """
         self.cursor.execute("SELECT q.id, q.subject, q.verb, q.direct_obj, q.indirect_obj, q.loc \
                              FROM queries q \
                              WHERE q.processed = false")
         return self.cursor.fetchall()
 
     def get_unprocessed_query_article_pairs(self):
+        """
+        Gets all query-article pairs that are not marked as processed
+        :return: all unprocessed query-article pairs
+        """
         self.cursor.execute("SELECT qa.query, qa.article FROM query_articles qa\
                             WHERE qa.processed = false")
         return self.cursor.fetchall()
 
     def get_query_synonyms(self, query_id):
+        """
+        Gets information about a query
+        :param query_id: the query to retrieve synonyms for
+        :return: word, pos, sense and synonyms for the query
+        """
         self.cursor.execute("SELECT word, pos, sense, synonyms FROM query_words WHERE query=%s", (query_id,))
         return self.cursor.fetchall()
 
     def get_article_keywords(self, article_id):
+        """
+        Gets keywords for an article
+        :param article_id: the id to retrieve keywords for
+        :return: the keywords for the article
+        """
         self.cursor.execute("SELECT keywords FROM articles WHERE id=%s", (article_id, ))
         words = self.cursor.fetchone()
         return words
 
     def get_all_article_keywords(self):
+        """
+        Gets keywords for all articles
+        :return: the keywords for all articles
+        """
         self.cursor.execute("SELECT keywords FROM articles WHERE keywords IS NOT null;")
         return self.cursor.fetchall()
 
     def get_all_titles_and_keywords(self):
+        """
+        Gets titles and keywords for all articles
+        Does not retrieve these if the keywords are null (article unprocessed)
+        :return: titles and keywords for all articles
+        """
         self.cursor.execute("SELECT title, keywords FROM articles WHERE keywords IS NOT null;")
         return self.cursor.fetchall()
 
     def get_all_article_ids_and_keywords(self):
+        """
+        Gets ids and keywords for all articles
+        Does not retrieve these if the keywords are null (article unprocessed)
+        :return: ids and keywords for all articles
+        """
         self.cursor.execute("SELECT id, keywords FROM articles WHERE keywords IS NOT null;")
         return self.cursor.fetchall()
 
     def get_articles(self):
+        """
+        Gets all article ids
+        :return: ids for all articles
+        """
         self.cursor.execute("SELECT id FROM articles")
         return self.cursor.fetchall()
 
     def get_all_article_ids_and_filenames(self):
+        """
+        Gets ids and filenames for all articles
+        :return: ids and filenames for all articles
+        """
         self.cursor.execute("SELECT id, filename FROM articles;")
         return self.cursor.fetchall()
 
     def get_article_ids_titles_filenames(self):
+        """
+        Gets ids, titles and filenames for all articles
+        :return: ids, titles and filenames for all articles
+        """
         self.cursor.execute("SELECT id, title, filename FROM articles;")
         return self.cursor.fetchall()
 
-    def insert_article_keywords(self, article_title, source, url, filename, keyword_list):
-        keywords = []
-        for pos in keyword_list:
-            for keyword in keyword_list[pos]:
-                keywords.append(keyword + "_" + pos)
-        self.cursor.execute("INSERT INTO articles (title, source, url, filename, keywords) VALUES (%s, %s, %s, %s, %s)", (article_title, source, url, filename, keywords))
-        return
-
-    def insert_query(self, userid, subject, verb, direct_obj, indirect_obj, loc):
-        """Inserts query into 'queries' table and returns the assigned query id"""
-        self.cursor.execute("INSERT INTO queries (userid, subject, verb, direct_obj, indirect_obj, loc) VALUES (%s, %s, %s, %s, %s, %s)",
-                                                 (userid, subject, verb, direct_obj, indirect_obj, loc))
-        return self.get_query_id(userid, subject, verb, direct_obj, indirect_obj, loc)
-
-    def get_query_id(self, userid, subject, verb, direct_obj, indirect_obj, loc):
-        self.cursor.execute("""SELECT id FROM queries WHERE userid=%s AND subject=%s AND verb=%s
-                                                        AND direct_obj=%s AND indirect_obj=%s AND loc=%s""",
-                                                        (userid, subject, verb, direct_obj, indirect_obj, loc))
-        return self.cursor.fetchone()
-
     def insert_query_word_synonym(self, query_id, query_word, pos_group, synonyms):
+        """
+        Inserts information about a query into query words
+        :param query_id: the id of the query
+        :param query_word: the word from the query
+        :param pos_group: to POS for the query word
+        :param synonyms: the synonyms for the query word
+        :return: None
+        """
         self.cursor.execute("INSERT INTO query_words (query, word, pos, sense, synonyms) VALUES (%s, %s ,%s, '',%s)", \
                                     (query_id, query_word, pos_group, synonyms))
 
     def post_validator_update(self, matching_prob, query_id, article_id):
+        """
+        Updates query articles after the validator is run
+        :param matching_prob: the probability of the match
+        :param query_id: the query id
+        :param article_id: the article id
+        :return: None
+        """
         self.cursor.execute("UPDATE query_articles SET processed=true, accuracy=%s WHERE query=%s AND article=%s",\
                            (matching_prob, query_id, article_id))
 
     def post_query_processor_update(self, query_id):
+        """
+        Sets a query to processed in the database
+        This involves setting it to processed in the queries table and adding a row with it and all articles
+        in the query_articles table
+        :param query_id: the query id
+        :return: None
+        """
         self.cursor.execute("UPDATE queries SET processed=true WHERE id=%s", (query_id, ))
         for article_id in self.get_articles():
             self.cursor.execute("INSERT  INTO query_articles (query, article) VALUES (%s, %s)", (query_id, article_id))
 
-    def insert_user(self, user_name, phone, email):
-        """Inserts user into 'users' table and returns the assigned user id"""
-        self.cursor.execute("INSERT INTO users (user_name, phone, email) VALUES (%s, %s, %s)",
-                                               (user_name, phone, email))
-        return self.get_user_id(user_name, phone, email)
-
-    def get_user_id(self, user_name, phone, email):
-        self.cursor.execute("SELECT id FROM users WHERE user_name=%s AND phone=%s AND email=%s", (user_name, phone, email))
-        return self.cursor.fetchone()
-
     def get_query_elements(self, query_id):
+        """
+        Gets the subject, verb, direct object, indirect object and location for a query
+        :param query_id: the query id
+        :return: the subject, verb, direct object, indirect object and location
+        """
         self.cursor.execute("SELECT subject, verb, direct_obj, indirect_obj, loc FROM queries WHERE id=%s", (query_id, ))
         elements = self.cursor.fetchone()
         elements = [element for element in elements if element is not None or element is not ""]
         return elements
 
     def get_article_url(self, article_id):
+        """
+        Gets the URL for an article
+        :param article_id: the article id
+        :return: the article URL
+        """
         self.cursor.execute("SELECT url FROM articles WHERE id=%s", (article_id, ))
         return str(self.cursor.fetchone()[0])
 
     def get_article_title(self, article_id):
+        """
+        Gets the title for an article
+        :param article_id: the article id
+        :return: the article title
+        """
         self.cursor.execute("SELECT title FROM articles WHERE id=%s", (article_id, ))
         return str(self.cursor.fetchone()[0])
 
     def get_email_and_phone(self, query_id):
+        """
+        Gets the article and phone number associated to a query
+        :param query_id: the query id
+        :return: the phone number and email
+        """
         self.cursor.execute("SELECT userid FROM queries WHERE id="+str(query_id))
         user_id = self.cursor.fetchone()[0]
         self.cursor.execute("SELECT phone FROM users WHERE id="+str(user_id))
@@ -135,37 +196,29 @@ class DataSource:
         email = str(self.cursor.fetchone()[0])
         return phone, email
 
-    def user_status(self, user_name, phone, email):
-        """Takes in a username and returns 0 if username is already taken with different phone/email,
-        1 if username is repeat, 2 if user is new"""
-        self.cursor.execute("SELECT id FROM users WHERE user_name=%s", (user_name, ))
-        username_exists = (self.cursor.fetchone() is not None)
-        self.cursor.execute("SELECT id FROM users WHERE user_name=%s AND phone=%s AND email=%s", (user_name, phone, email))
-        identical_user_exists = (self.cursor.fetchone() is not None)
-        if username_exists and not identical_user_exists: # Username already has different phone/email assigned
-            return 0
-        elif username_exists:  # Duplicate user
-            return 1
-        else:  # New user
-            return 2
-
     def get_unprocessed_articles(self):
+        """
+        Gets all unprocessed articles that need keyword extraction to be performed
+        :return: id, title, filename, url and source for all unprocessed articles
+        """
         self.cursor.execute("SELECT id, title, filename, url, source FROM articles WHERE keywords is null;")
         return self.cursor.fetchall()
 
-    def add_keywords_to_article(self, id, keyword_string):
-        self.cursor.execute("UPDATE articles SET keywords = %s WHERE id = %s", (keyword_string, id))
-
-    def set_all_unprocessed(self):
-        self.cursor.execute("UPDATE articles SET keywords = NULL")
-        self.cursor.execute("UPDATE query_articles SET processed = false")
-        self.cursor.execute("UPDATE query_articles SET accuracy = 0")
-
-    def get_all_ids_and_titles(self):
-        self.cursor.execute("SELECT id, title FROM articles;")
-        return self.cursor.fetchall()
+    def add_keywords_to_article(self, article_id, keyword_string):
+        """
+        Adds keyword JSON string to an article
+        :param article_id: the article id
+        :param keyword_string: the JSON string of keywords
+        :return: None
+        """
+        self.cursor.execute("UPDATE articles SET keywords = %s WHERE id = %s", (keyword_string, article_id))
 
     def article_processed(self, article_id):
+        """
+        Checks if an article has been processed
+        :param article_id: the id of the article
+        :return: True if the article has been processed, False otherwise
+        """
         self.cursor.execute("SELECT keywords FROM articles WHERE id = %s;", (article_id, ))
         return self.cursor.fetchone()[0] is not None
 
@@ -228,6 +281,10 @@ class DataSource:
         return True
 
     def articles_route(self):
+        """
+        Gets all queries for web app with source name strings
+        :return: the article titles, source names and URLs
+        """
         self.cursor.execute("SELECT title, s.source_name as source, url FROM articles a \
                         INNER JOIN sources s on s.id = a.source;")
         return self.cursor.fetchall()
