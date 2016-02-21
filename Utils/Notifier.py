@@ -1,6 +1,10 @@
+import sys; import os
+sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('.'))
+
 from twilio.rest import TwilioRestClient
 import sendgrid, json
-from DataSource import *
+from Utils.DataSource import *
 
 class Notifier:
     """
