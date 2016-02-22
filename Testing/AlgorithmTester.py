@@ -37,7 +37,7 @@ class AlgorithmTester:
         finds best threshold value for whether or not a query validates an algorithm
         :return: the best threshold value
         """
-        X = np.arange(.1,.4,0.0001)
+        X = np.arange(0, 1, 0.0001)
         best_threshold = 0
         best_f1 = 0
         Y = []
@@ -49,6 +49,7 @@ class AlgorithmTester:
                 best_threshold = threshold
             Y.append(f1_measure)
         self.best_threshold = best_threshold
+        return best_threshold
 
         #self.plot_threshold_and_results_multi_algorithm(X_vals, labels, Y_vals, x_label, y_label, title)
         x_label = "Threshold"
