@@ -44,12 +44,6 @@ class MatrixCreator:
         """
         return self.num_articles
 
-    def get_num_title_words(self):
-        """
-        Gets the number of columns in the matrix
-        :return:number of columns
-        """
-        return self.num_title_words
 
     def get_num_article_words(self):
         """
@@ -80,9 +74,14 @@ class MatrixCreator:
         :return: None
         """
         articles = self.ds.get_article_ids_titles_filenames()
-        self.ids = [article[0] for article in articles]
-        self.article_titles = [article[1] for article in articles]
-        self.filenames = [article[2] for article in articles]
+        self.ids = []
+        self.article_titles = []
+        self.filenames = []
+        for article in articles:
+            if os.path.isfile("articles/{}".format(article[2])):
+                self.ids.append(article[0])
+                self.article_titles.append(article[1])
+                self.filenames.append(article[2])
         self.num_articles = len(self.article_titles)
 
     def get_article_text_by_article(self):
@@ -97,7 +96,7 @@ class MatrixCreator:
         all_article_words_set = set()
 
         for idx, filename in enumerate(self.filenames):
-            article_file = open(articles_path + filename, "r", encoding="utf8")
+            article_file = open("articles/{}".format(filename), "r", encoding="utf8")
             body = article_file.read()
             article_file.close()
             tagged_items = re.match(pattern, body)
