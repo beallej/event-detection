@@ -18,3 +18,5 @@ pipeline.jar
 =======
 voting.jar
 articles_test/
+WordNet-JWI/
+stop-words.txt
