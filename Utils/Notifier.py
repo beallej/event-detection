@@ -6,6 +6,7 @@ from twilio.rest import TwilioRestClient
 import sendgrid, json
 from Utils.DataSource import *
 import requests
+import re
 
 
 class Notifier:
@@ -33,13 +34,24 @@ class Notifier:
         self.phone_client = TwilioRestClient(self.twilio_account_sid, self.twilio_auth_token)
         self.email_client = sendgrid.SendGridClient(self.sendgrid_api_key)
 
+    def check_valid_phone(self, phone):
+        if phone is None:
+            return False
+        return (re.match(r'\+1[0-9]{9}', phone) != None)
+
+    def check_valid_email(self, email):
+        if email is None:
+            return False
+        return (re.match(r'[^\.]+@[^\.]+\.[^\.]+', email) != None)
+
+
     def alert_phone(self, text):
         """
         Sends text message
         :param message: the text body
         :return: None
         """
-        if self.phone != None and self.phone != "+1":
+        if self.check_valid_phone(self.phone):
             self.phone_client.messages.create(body=text, to=self.phone, from_=self.twilio_number)
 
     def alert_email(self, text):
@@ -48,7 +60,7 @@ class Notifier:
         :param text: the email body in html
         :return: None
         """
-        if self.email != None:
+        if self.check_valid_email(self.email):
             message = sendgrid.Mail()
             message.add_to(self.email)
 
@@ -133,7 +145,6 @@ class Notifier:
         if "data" in response_json and "url" in response_json["data"]:
             return response_json["data"]["url"]
         return article_url
-
 
 def main():
     notifier = Notifier()
