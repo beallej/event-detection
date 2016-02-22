@@ -84,13 +84,18 @@ class Tester:
         plot.ylabel(y_label)
         plot.show()
 
+    def get_best_thresholds_for_all(self):
+        for alg_tester in self.alg_testers:
+            threshold = alg_tester.get_best_threshold_for_algorithm()
+            print("Best threshold for {}: {}".format(alg_tester.algorithm_name, threshold))
 
 def main():
     tester = Tester()
     # bootstrap data
     # tester.bootstrap_all()
     # test all data
-    tester.test_all()
+    # tester.test_all()
+    tester.get_best_thresholds_for_all()
 
 if __name__ == "__main__":
     main()
