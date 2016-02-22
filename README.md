@@ -10,8 +10,8 @@
   2. `ant -Dprefix='./'`
 6. Auto-run: `./install_crontab.sh`
 
-#### Running the Downloader and Validator
-1. Just do it. `./run.sh`
+#### Running the Downloader, Validator and Pipeline
+1. Just do it. `java -jar pipeline.jar`
 
 #### Running the Web App
 1. Run the application: `python3 WebApp/EventDetectionWeb.py`
