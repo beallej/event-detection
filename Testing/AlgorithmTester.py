@@ -257,7 +257,7 @@ class AlgorithmTester:
         return p_value
 
 
-    def hypothesis_test(self):
+    def hypothesis_test(self, graph=False):
         """
         Performs a statistical significance test on the data
         :return:
@@ -280,8 +280,8 @@ class AlgorithmTester:
         else:
             print("A p value of {} is not sufficient evidence to reject the null hypothesis that {} performs as well as random"\
                   "in favor of the alternative that it performs better than random. Results are not statistically significant.".format(p_value, self.algorithm_name))
-
-        self.graph_randomization_distribution_f1(randomization_distribution, test_value=test_value)
+        if graph:
+            self.graph_randomization_distribution_f1(randomization_distribution, test_value=test_value)
 
 
 
