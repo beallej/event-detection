@@ -16,3 +16,4 @@ text-rank.jar
 pipeline.jar
 voting.jar
 articles_test/
+stop-words.txt
