@@ -293,13 +293,15 @@ public class ValidatorController implements PipelineComponent, Closeable {
 					try {
 						ValidationResult[] ress = result.getZ().get();
 						for (ValidationResult res : ress) {
-							String stringVer = "(" + result.getX() + ", " + result.getY().getID() + ", " + res.getArticleID() + ") -> (" + res.getValidates() + ", " +
+							if (res.getQueryID() == null) //This updates the queryID in the object so that it continues on to other algorithms correctly.
+								res = new ValidationResult(result.getX(), res.getArticleID(), res.getValidates(), res.getInvalidates());
+							String stringVer = "(" + res.getQueryID() + ", " + result.getY().getID() + ", " + res.getArticleID() + ") -> (" + res.getValidates() + ", " +
 									(res.getInvalidates() == null ? "null" : res.getInvalidates()) + ")";
 							if (res.getValidates().isNaN() || (res.getInvalidates() != null && res.getInvalidates().isNaN())) {
 								logger.error("Cannot add " + stringVer + " to the database because it has NaN values.");
 								continue;
 							}
-							stmt.setInt(1, res.getQueryID() == null ? result.getX() : res.getQueryID());
+							stmt.setInt(1, res.getQueryID());
 							stmt.setInt(2, result.getY().getID());
 							stmt.setInt(3, res.getArticleID());
 							stmt.setFloat(4, res.getValidates().floatValue());
