@@ -6,9 +6,9 @@
 #### Installations
 1. [Install Homebrew](http://brew.sh/)
 1. Downloader (Run all commands from the root directory of the repository):
-  1. `./setup_project.sh` - Handles psycopg2, Flask, and PostgreSQL
+  1. `./Setup_Teardown/setup_project.sh` - Handles psycopg2, Flask, and PostgreSQL
   2. `ant -Dprefix='./'`
-6. Auto-run: `./install_crontab.sh`
+6. Auto-run: `./Setup_Teardown/install_crontab.sh`
 
 #### Running the Downloader, Validator and Pipeline
 1. Just do it. `java -jar pipeline.jar`
