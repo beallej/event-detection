@@ -11,8 +11,9 @@
 6. Auto-run: `./install_crontab.sh`
 
 #### Registrations
-1. Create a file in the Utils folder named `Secrets.py`, with the following text:
-```import sys; import os
+Create a file in the Utils folder named `Secrets.py`, with the following text:
+```
+import sys; import os
 sys.path.insert(0, os.path.abspath('..'))
 sys.path.insert(0, os.path.abspath('.'))
 ​
