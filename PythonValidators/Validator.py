@@ -56,16 +56,6 @@ class KeywordValidator(AbstractValidator):
         query_article_list = QueryArticleList(query)
         self.query_article_lists.append(query_article_list)
 
-    #TODO: WHAT DOES THIS DO
-    def add_to_query_article_list(self, article):
-        """
-        adds to
-        :param article: article to add to queries
-        :return: list of queries article was added to
-        """
-        queries_added_to = []
-        return queries_added_to
-
     def get_query_article_lists(self):
         """
         get_query_article_lists
@@ -293,13 +283,17 @@ class Query:
         generates synonyms for each word in the query, using only synonyms with same part of speech
         :return:
         """
-        for tagged_word in self.query_tagged:
-            if tagged_word[0].lower() not in self.stop_list:      # tagged_word[0] = word
-                if tagged_word[1] not in self.synonyms_with_tag:  # tagged_word[1] = tag
-                    self.synonyms_with_tag[tagged_word[1]] = {}
-                self.synonyms_with_tag[tagged_word[1]][tagged_word[0]] = get_synonyms(tagged_word[0],tagged_word[1])
-                # TODO actually get synonyms
+        query_stop_removed = [tagged_word for tagged_word in self.query_tagged if tagged_word[0] not in self.stop_list]
+        self.synonyms_with_tag = get_all_related_words(query_stop_removed)
+
+        # for tagged_word in self.query_tagged:
+        #     if tagged_word[0].lower() not in self.stop_list:      # tagged_word[0] = word
+        #         if tagged_word[1] not in self.synonyms_with_tag:  # tagged_word[1] = tag
+        #             self.synonyms_with_tag[tagged_word[1]] = {}
+        #         self.synonyms_with_tag[tagged_word[1]][tagged_word[0]] = get_synonyms(tagged_word[0],tagged_word[1])
+        #         # TODO actually get synonyms
         print(self.synonyms_with_tag)
+        # sys.exit(1)
     def get_synonyms(self):
         """
         :return: synonyms with their tags of the words in the query
