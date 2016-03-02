@@ -286,14 +286,6 @@ class Query:
         query_stop_removed = [tagged_word for tagged_word in self.query_tagged if tagged_word[0] not in self.stop_list]
         self.synonyms_with_tag = get_all_related_words(query_stop_removed)
 
-        # for tagged_word in self.query_tagged:
-        #     if tagged_word[0].lower() not in self.stop_list:      # tagged_word[0] = word
-        #         if tagged_word[1] not in self.synonyms_with_tag:  # tagged_word[1] = tag
-        #             self.synonyms_with_tag[tagged_word[1]] = {}
-        #         self.synonyms_with_tag[tagged_word[1]][tagged_word[0]] = get_synonyms(tagged_word[0],tagged_word[1])
-        #         # TODO actually get synonyms
-        print(self.synonyms_with_tag)
-        # sys.exit(1)
     def get_synonyms(self):
         """
         :return: synonyms with their tags of the words in the query

@@ -104,12 +104,12 @@ def get_all_related_words(tagged_sequence):
     :param tagged_sequence: a sequence of tuples in the form (word, tag)
     :return: a dictionary with hypernyms, hyponyms and synonyms lists for each word by POS
     """
-    print(tagged_sequence)
-    # sys.exit(1)
     synonyms = get_synonym_list(tagged_sequence)
     hypernyms = get_hypernym_list(tagged_sequence)
     hyponyms = get_hyponym_list(tagged_sequence)
     related_words = defaultdict(lambda: defaultdict(set))
+
+    # add all synonyms, hypernyms and hyponyms
     for pos in synonyms:
         for word in synonyms[pos]:
             related_words[pos][word].update(synonyms[pos][word])
@@ -122,11 +122,11 @@ def get_all_related_words(tagged_sequence):
         for word in hyponyms[pos]:
             related_words[pos][word].update(hyponyms[pos][word])
 
+    # switch everything from sets to list
     for pos in related_words:
         for word in related_words[pos]:
             related_words[pos][word] = list(related_words[pos][word])
-    # print(related_words)
-    # sys.exit(1)
+
     return related_words
 
 
