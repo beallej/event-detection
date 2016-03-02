@@ -7,6 +7,7 @@ import sendgrid, json
 from Utils.DataSource import *
 import requests
 import re
+from Utils.Secrets import *
 
 
 class Notifier:
@@ -14,15 +15,6 @@ class Notifier:
     Used to notify user of query detection
     """
 
-    # TODO: MOVE THIS STUFF TO A MORE SECURE LOCATION
-    default_phone = "+15073385228"
-    default_email = "event.detection.carleton@gmail.com"
-    twilio_number = "+15137269006"
-    twilio_account_sid = "AC7b50b072cd7cc54e912eb28dffd3c403"
-    twilio_auth_token = "3b8e4111c3d10fdeffc666fddd65e6a3"
-    sendgrid_api_key = "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"
-    bitly_api_login = "o_3s58or5kei"
-    bitly_api_key = "R_e8af4fe78cc54bcf869837cb2ff1c501"
     bitly_api_url = "https://api-ssl.bitly.com"
 
     def __init__(self):
@@ -31,8 +23,8 @@ class Notifier:
         :return: None
         """
         self.datasource = DataSource()
-        self.phone_client = TwilioRestClient(self.twilio_account_sid, self.twilio_auth_token)
-        self.email_client = sendgrid.SendGridClient(self.sendgrid_api_key)
+        self.phone_client = TwilioRestClient(twilio_account_sid, twilio_auth_token)
+        self.email_client = sendgrid.SendGridClient(sendgrid_api_key)
 
     def check_valid_phone(self, phone):
         if phone is None:
@@ -52,7 +44,7 @@ class Notifier:
         :return: None
         """
         if self.check_valid_phone(self.phone):
-            self.phone_client.messages.create(body=text, to=self.phone, from_=self.twilio_number)
+            self.phone_client.messages.create(body=text, to=self.phone, from_=twilio_number)
 
     def alert_email(self, text):
         """
@@ -64,7 +56,7 @@ class Notifier:
             message = sendgrid.Mail()
             message.add_to(self.email)
 
-            message.set_from(self.default_email)
+            message.set_from(from_email)
             message.set_subject("Event Detection")
             message.set_html(text)
 
@@ -137,7 +129,7 @@ class Notifier:
         :param article_url: the url to shorten
         :return: the shortened url if successful (otherwise just the article url)
         """
-        payload = {"longUrl": article_url, "login": self.bitly_api_login, "apiKey": self.bitly_api_key}
+        payload = {"longUrl": article_url, "login": bitly_api_login, "apiKey": bitly_api_key}
         response = requests.get(self.bitly_api_url + "/v3/shorten", params=payload)
         response_json = response.json()
         # look for data -> url -> short url in response_json
