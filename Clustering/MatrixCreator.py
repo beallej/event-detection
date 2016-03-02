@@ -121,7 +121,8 @@ class MatrixCreator:
         """
         Constructs an articles by words numpy array and populates it
         with tfidf values for each article-word cell.
-        :return: tfidf matrix
+        :return: tfidf matrix, or None if matrix empty (usually occurs when no articles found for some reason,
+        (for example, if working directory is not root directory)
         """
 
         # Initialize article ids and titles
@@ -137,6 +138,10 @@ class MatrixCreator:
                     matrix[article_idx, article_word_idx] += self.article_words_by_article[article_idx][article_word]
                     num_entries += 1
         self.num_entries = num_entries # Count num entries to calculate K
+
+        #if matrix is empty, we cannot use it
+        if matrix.shape == (0, 0):
+            return None
         transformer = TfidfTransformer()
         tfidf_matrix = transformer.fit_transform(matrix).toarray()
         return tfidf_matrix

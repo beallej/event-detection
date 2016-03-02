@@ -37,6 +37,10 @@ class HierarchicalAgglomerativeClusterer(AbstractClusterer):
         :return: None
         """
         matrix = self.pre_cluster()
+
+        #original matrix empty
+        if matrix is None:
+            return
         Z = self.get_cluster_matrix(matrix)
         article_titles = self.matrix_creator.get_article_titles()
 
@@ -62,6 +66,10 @@ class HierarchicalAgglomerativeClusterer(AbstractClusterer):
         :return: a list of cluster objects
         """
         matrix = self.pre_cluster()
+
+        #original matrix empty
+        if matrix is None:
+            return []
         Z = self.get_cluster_matrix(matrix)
 
         clusters = self.get_final_clusters(Z)
