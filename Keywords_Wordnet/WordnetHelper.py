@@ -100,23 +100,20 @@ def get_hyponym_list(tagged_sequence):
 
 def get_all_related_words(tagged_sequence):
     """
-    Returns a dictionary of lists of hypernyms, hyponyms and synonyms
+    Returns a dictionary of lists of hyponyms and synonyms
+    We are not using hypernyms because making our query more general is not always helpful
+    for example, an article about a "dog" should not necessarily match a query about a "poodle"
     :param tagged_sequence: a sequence of tuples in the form (word, tag)
-    :return: a dictionary with hypernyms, hyponyms and synonyms lists for each word by POS
+    :return: a dictionary with hyponyms and synonyms lists for each word by POS
     """
     synonyms = get_synonym_list(tagged_sequence)
-    hypernyms = get_hypernym_list(tagged_sequence)
     hyponyms = get_hyponym_list(tagged_sequence)
     related_words = defaultdict(lambda: defaultdict(set))
 
-    # add all synonyms, hypernyms and hyponyms
+    # add all synonyms and hyponyms
     for pos in synonyms:
         for word in synonyms[pos]:
             related_words[pos][word].update(synonyms[pos][word])
-
-    for pos in hypernyms:
-        for word in hypernyms[pos]:
-            related_words[pos][word].update(hypernyms[pos][word])
 
     for pos in hyponyms:
         for word in hyponyms[pos]:
