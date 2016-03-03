@@ -152,7 +152,7 @@ class DataSource:
         """
         self.cursor.execute("UPDATE queries SET processed=true WHERE id=%s", (query_id, ))
         for article_id in self.get_articles():
-            self.cursor.execute("INSERT  INTO query_articles (query, article) VALUES (%s, %s)", (query_id, article_id))
+            self.cursor.execute("INSERT  INTO query_articles (query, article) VALUES (%s, %s) ON CONFLICT DO NOTHING", (query_id, article_id))
 
     def get_query_elements(self, query_id):
         """
@@ -283,6 +283,13 @@ class DataSource:
         except psycopg2.IntegrityError:
             return False
         return True
+
+    def add_article_to_query_articles(self, article_id):
+        self.cursor.execute("SELECT id FROM queries;")
+        query_ids = self.cursor.fetchall()
+        for query_id in query_ids:
+            self.cursor.execute("INSERT INTO query_articles (query, article) VALUES (%s, %s) ON CONFLICT DO NOTHING", (query_id, article_id))
+        # query | article | accuracy | processed
 
     def articles_route(self):
         """

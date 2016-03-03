@@ -1,6 +1,7 @@
 package eventdetection.textrank;
 
 import java.io.BufferedWriter;
+import java.io.Flushable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
@@ -143,7 +144,7 @@ public class TextRank {
 					}
 					else if (setting == 1) {
 						try {
-							inputType = InputType.valueOf(arg);
+							inputType = InputType.valueOf(arg.toUpperCase());
 						}
 						catch (IllegalArgumentException e) {
 							logger.warn(arg + " is not a valid input type.  Using " + inputType.name() + " instead.");
@@ -151,7 +152,7 @@ public class TextRank {
 					}
 					else if (setting == 2) {
 						try {
-							outputType = OutputType.valueOf(arg);
+							outputType = OutputType.valueOf(arg.toUpperCase());
 						}
 						catch (IllegalArgumentException e) {
 							logger.warn(arg + " is not a valid output type.  Using " + outputType.name() + " instead.");
@@ -539,6 +540,8 @@ enum OutputType {
 				writer.append(border).append(e.getKey().getID().toString()).append(border).append(System.lineSeparator());
 				for (Pair<CoreMap, Double> s : e.getValue())
 					writer.append(s.getY().toString()).append(" :: ").append(converter.apply(s.getX())).append(System.lineSeparator());
+				if (writer instanceof Flushable)
+					((Flushable) writer).flush();
 			}
 		}
 		
@@ -547,6 +550,8 @@ enum OutputType {
 			Function<CoreMap, String> converter = pos ? POSTagger::tag : POSTagger::reconstructSentence;
 			for (Pair<CoreMap, Double> s : ranked)
 				writer.append(s.getY().toString()).append(" :: ").append(converter.apply(s.getX())).append(System.lineSeparator());
+			if (writer instanceof Flushable)
+				((Flushable) writer).flush();
 		}
 	};
 	

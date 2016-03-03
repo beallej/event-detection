@@ -17,5 +17,6 @@ text-rank.jar
 pipeline.jar
 voting.jar
 articles_test/
-WordNet-JWI/
 stop-words.txt
+Utils/Secrets.py
+WordNet-JWI
