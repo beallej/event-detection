@@ -1,3 +1,7 @@
+import sys; import os
+sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('.'))
+
 from PythonValidators.Validator import Query
 from Utils.DataSource import *
 
@@ -97,8 +101,8 @@ def main():
     # bootstrap data
     # tester.bootstrap_all()
     # test all data
-    # tester.test_all()
-    tester.get_best_thresholds_for_all()
+    tester.test_all()
+    #tester.get_best_thresholds_for_all()
 
 if __name__ == "__main__":
     main()
