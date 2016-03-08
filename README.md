@@ -47,5 +47,5 @@ To fill in empty strings:
 1. Navigate to the Testing directory.
 1. Unzip `articles_test` folder. Alternatively, if using your own testing data, you can create your own folder of test articles labeled `articles_test`.
 2. Run `setup_project_test.sh`
-3. To use our`psql event_detection_test < test_database.sql`. Do not do this if using your own testing data, as test_backup is a dump of our testing data.
+3. To use our test database run `create_premade_test_db.sh`. 
 4. Various testing functions can be found in `Testing/Tester.py`. Make sure you run all programs from root project directory.
