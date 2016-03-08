@@ -28,7 +28,7 @@ def main():
         json_object["articles"] = "articles/"
         json_object["db"] = "event_detection"
     elif sys.argv[1] == "test":
-        json_object["articles"] = "articles_test/"
+        json_object["articles"] = "Testing/articles_test/"
         json_object["db"] = "event_detection_test"
     myfile = open("version.json", 'w')
     json.dump(json_object, myfile)

@@ -3,7 +3,7 @@ doc
 bin
 .classpath
 articles
-articles_test
+Testing/articles_test
 venv/
 *.pyc
 .DS_STORE
@@ -16,7 +16,7 @@ validator.jar
 text-rank.jar
 pipeline.jar
 voting.jar
-articles_test/
+Testing/articles_test/
 stop-words.txt
 Utils/Secrets.py
 WordNet-JWI
