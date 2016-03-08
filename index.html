@@ -30,6 +30,8 @@
 <h3>
 <a id="josie" class="anchor" href="#josie" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Josie</h3>
 
+<p>Josie grew up in Cincinnati, Ohio. The only news she reads consists of articles her friends linked to on Facebook and satirically summarized events published on <a href="http://www.betches.com/">the Betches' website</a>, although she isn't sure those constitute as news. Some of her favorite hobbies include obsessively checking Neko Atsume and watching Jane the Virgin.</p>
+
 <h3>
 <a id="laura" class="anchor" href="#laura" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Laura</h3>
 
@@ -57,7 +59,12 @@
 
 <ol>
 <li>
-<code>./Setup_Teardown/setup_project.sh</code> - Handles psycopg2, Flask, and PostgreSQL</li>
+<code>./Setup_Teardown/setup_project.sh</code> - Handles psycopg2, Flask, and PostgreSQL. You may be asked to <a href="http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html">download the JDK</a>
+
+<ol>
+<li>Note: If postgres failes to create the database (this sometimes happens if the createdb command is executed while postgres is still starting up), run <code>./Setup_Teardown/setup_project.sh -s true</code>.</li>
+</ol>
+</li>
 <li><code>ant -Dprefix='./'</code></li>
 </ol>
 </li>
@@ -118,6 +125,18 @@ bitly_api_key = ""
 </li>
 <li>Run Ant: <code>ant -Dprefix='./'</code>
 </li>
+</ol>
+
+<h2>
+<a id="testing" class="anchor" href="#testing" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Testing</h2>
+
+<ol>
+<li>Navigate to the Testing directory.</li>
+<li>Unzip <code>articles_test</code> folder. Alternatively, if using your own testing data, you can create your own folder of test articles labeled <code>articles_test</code>.</li>
+<li>Run <code>setup_project_test.sh</code>
+</li>
+<li>To use our test database run <code>create_premade_test_db.sh</code>. </li>
+<li>Various testing functions can be found in <code>Testing/Tester.py</code>. Make sure you run all programs from root project directory.</li>
 </ol>
 
       <footer class="site-footer">
