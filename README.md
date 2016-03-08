@@ -41,3 +41,9 @@ To fill in empty strings:
 #### After Pulling New Code
 1. Update Brew: `brew update && brew upgrade`
 2. Run Ant: `ant -Dprefix='./'`
+
+#### Testing
+1. Unzip `articles_test` folder in Testing directory. Alternatively, if using your own testing data, you can create your own folder of test articles labeled `articles_test`.
+2. Run `setup_project_test.sh`
+3. To use our`psql event_detection_test < test_backup.sql`. Do not do this if using your own testing data, as test_backup is a dump of our testing data.
+4. Various testing functions can be found in `Testing/Tester.py`.
