@@ -18,13 +18,12 @@ class TestDataSource:
         :return: None
         """
         # grab the current database used in the JSON
-        db = database
         try:
             # connect to the database and set autocommit to true
-            conn = psycopg2.connect(user='root', database=db)
+            conn = psycopg2.connect(user="root", database="event_detection_test")
             conn.autocommit = True
         except psycopg2.Error:
-            print("Error: cannot connect to event_detection database")
+            print("Error: cannot connect to event_detection_test database")
             sys.exit()
         try:
             self.cursor = conn.cursor(cursor_factory=RealDictCursor)
