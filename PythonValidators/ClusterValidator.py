@@ -44,7 +44,7 @@ class ClusterValidator:
         """
         # if there are no clusters, we can't validate
         if len(self.clusters) == 0:
-            return Cluster(), 0
+            return None, 0
 
         # Need to process query and article formats
         ds = DataSource()
@@ -100,7 +100,8 @@ def main():
     validation_results = {}
     for query_id in query_ids:
         cluster, match_value = cluster_validator.validate(query_id)
-        validation_results[query_id] = {"articles": cluster.get_article_ids(), "match_value": match_value}
+        if cluster != None:
+            validation_results[query_id] = {"articles": cluster.get_article_ids(), "match_value": match_value}
 
     # prints json to standard out
     print(json.dumps(validation_results))
