@@ -48,4 +48,6 @@ To fill in empty strings:
 1. Unzip `articles_test` folder. Alternatively, if using your own testing data, you can create your own folder of test articles labeled `articles_test`.
 2. Run `setup_project_test.sh`
 3. To use our test database run `create_premade_test_db.sh`. 
+4. Execute `Utils/Globals.py test`
 4. Various testing functions can be found in `Testing/Tester.py`. Make sure you run all programs from root project directory.
+5. Make sure to execute `Utils/Globals.py` (no test this time) when you are finished with testing mode.
