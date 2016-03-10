@@ -34,6 +34,7 @@ To fill in empty strings:
 
 #### Running the Downloader, Validator and Pipeline
 1. Just do it. `java -jar pipeline.jar`
+2. One of the libraries we use, SEMILAR, has a couple bugs in it that cause occasional null pointer exceptions. These instances are fairly rare and do not affect program execution or performace in the long run.
 
 #### Running the Web App
 1. Run the application: `python3 WebApp/EventDetectionWeb.py`
