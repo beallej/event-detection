@@ -87,23 +87,18 @@
     </header>
 
     <!-- About Section -->
-    <section class="success" id="about">
+    <section id="about">
         <div class="container">
             <div class="row">
                 <div class="col-lg-12 text-center">
                     <h2>About</h2>
-                    <hr class="star-light">
+                    <hr class="star-primary">
                 </div>
             </div>
             <div class="row">
                 <div class="col-lg-12">
                     <p>One upon a time, a young visionary by the name of Jeff Ondich sat in his room reading the book Daemon by author Daniel Suarez. The book is about software created by a billionaire game designer and the goal of this software is to monitor current news. If it detects specific events in the news, it sets of a series of actions predetermined by the game designer. Now most people would have read this book and thought “Ah, that’s an interesting book”, but young Jeff detected a lucrative opportunity. He searched far and wide and assembled a team of six innocent college students to help bring this software to reality.</p>
                     <p>Now, innocent that we were, we did not share Jeff’s dreams of world domination, however we did recognize the potential in such software. Think about the time we spend on articles or newspapers, looking for specific information about an event we are interested in. Instead you could enter a sentence into an app, and the app will notify you if anything about the event pops up in current news. Furthermore it will send you a list of the most relevant articles via text or email. Together, we created a piece of software that will make sure you never have to read the news again.</p>
-                </div>
-                <div class="col-lg-8 col-lg-offset-2 text-center">
-                    <a href="#" class="btn btn-lg btn-outline">
-                        <i class="fa fa-download"></i> Download Theme
-                    </a>
                 </div>
             </div>
         </div>
@@ -205,26 +200,29 @@
                 </div>
             </div>
             <div class="row">
-                <h3>Installations</h3>
-                <ol>
-                    <li><a href="http://brew.sh/">Install Homebrew</a></li>
-                    <li>Downloader (Run all commands from the root directory of the repository):
-                        <ol type="i">
-                            <li><code>./Setup_Teardown/setup_project.sh</code> - Handles psycopg2, Flask, and PostgreSQL. You may be asked to download the JDK
-                                <ol type="a">
-                                    <li>Note: If postgres failes to create the database (this sometimes happens if the createdb command is executed while postgres is still starting up), run <code>./Setup_Teardown/setup_project.sh -s true.</code></li>
-                                </ol>
-                            </li>
-                            <li><code>ant -Dprefix='./'</code></li>
-                        </ol>
-                    </li>
-                    <li>Auto-run: <code>./Setup_Teardown/install_crontab.sh</code></li>
-                </ol>
+                <div class="col-lg-12">
+                    <h3>Installations</h3>
+                    <ol>
+                        <li><a href="http://brew.sh/">Install Homebrew</a></li>
+                        <li>Downloader (Run all commands from the root directory of the repository):
+                            <ol type="i">
+                                <li><code>./Setup_Teardown/setup_project.sh</code> - Handles psycopg2, Flask, and PostgreSQL. You may be asked to download the JDK
+                                    <ol type="a">
+                                        <li>Note: If postgres failes to create the database (this sometimes happens if the createdb command is executed while postgres is still starting up), run <code>./Setup_Teardown/setup_project.sh -s true.</code></li>
+                                    </ol>
+                                </li>
+                                <li><code>ant -Dprefix='./'</code></li>
+                            </ol>
+                        </li>
+                        <li>Auto-run: <code>./Setup_Teardown/install_crontab.sh</code></li>
+                    </ol>
+                </div>
             </div>
             <div class="row">
-                <h3>Registrations</h3>
-                Create a file in the Utils folder named Secrets.py, with the following text:
-                <pre>import sys; import os
+                <div class="col-lg-12">
+                    <h3>Registrations</h3>
+                    Create a file in the Utils folder named Secrets.py, with the following text:
+                    <pre>import sys; import os
 sys.path.insert(0, os.path.abspath('..'))
 sys.path.insert(0, os.path.abspath('.'))
 ​
@@ -236,44 +234,53 @@ sendgrid_api_key = ""
 bitly_api_login = ""
 bitly_api_key = ""</pre>
 
-                <ol>
-                    <li>Sign up for Twilio. Account SID and Auth Token can be <a href="https://www.twilio.com/user/account/settings">found here</a>. Phone number can be <a href="https://www.twilio.com/user/account/phone-numbers/incoming">found here</a>.</li>
-                    <li>Sign up for SendGrid (they have to approve you, so it may take a while). After approval, <a href="https://app.sendgrid.com/settings/api_keys">go here</a>, generate an api key, and paste it in (the long secret version that is only displayed when you generate it).</li>
-                    <li>Sign up for bitly. <a href="https://app.bitly.com/bitlinks/?actions=accountMain">Go here</a>. In the sidebar that pops up, click Advanced Settings -> API Support, and copy and paste in the api login and key displayed.</li>
-                    <li>Input any email address to send from.</li>
-                </ol>
+                    <ol>
+                        <li>Sign up for Twilio. Account SID and Auth Token can be <a href="https://www.twilio.com/user/account/settings">found here</a>. Phone number can be <a href="https://www.twilio.com/user/account/phone-numbers/incoming">found here</a>.</li>
+                        <li>Sign up for SendGrid (they have to approve you, so it may take a while). After approval, <a href="https://app.sendgrid.com/settings/api_keys">go here</a>, generate an api key, and paste it in (the long secret version that is only displayed when you generate it).</li>
+                        <li>Sign up for bitly. <a href="https://app.bitly.com/bitlinks/?actions=accountMain">Go here</a>. In the sidebar that pops up, click Advanced Settings -> API Support, and copy and paste in the api login and key displayed.</li>
+                        <li>Input any email address to send from.</li>
+                    </ol>
+                </div>
             </div>
             <div class="row">
-                <h3>Running the Downloader, Validator and Pipeline</h3>
-                <ol>
-                    <li>Just do it. <code>java -jar pipeline.jar</code></li>
-                </ol>
+                <div class="col-lg-12">
+                    <h3>Running the Downloader, Validator and Pipeline</h3>
+                    <ol>
+                        <li>Just do it. <code>java -jar pipeline.jar</code></li>
+                    </ol>
+                </div>
             </div>
             <div class="row">
-                <h3>Running the Web App</h3>
-                <ol>
-                    <li>Run the application: <code>python3 WebApp/EventDetectionWeb.py</code></li>
-                    <li>To view the application, navigate to <a href="localhost:5000">localhost:5000</a></li>
-                </ol>
+                <div class="col-lg-12">
+                    <h3>Running the Web App</h3>
+                    <ol>
+                        <li>Run the application: <code>python3 WebApp/EventDetectionWeb.py</code></li>
+                        <li>To view the application, navigate to <a href="localhost:5000">localhost:5000</a></li>
+                    </ol>
+                </div>
             </div>
             <div class="row">
-                <h3>After Pulling New Code</h3>
-                <ol>
-                    <li>Update Brew: <code>brew update && brew upgrade</code></li>
-                    <li>Run Ant: <code>ant -Dprefix='./'</code></li>
-                </ol>
+                <div class="col-lg-12">
+                    <h3>After Pulling New Code</h3>
+                    <ol>
+                        <li>Update Brew: <code>brew update && brew upgrade</code></li>
+                        <li>Run Ant: <code>ant -Dprefix='./'</code></li>
+                    </ol>
+                </div>
             </div>
             <div class="row">
-                <h3>Testing</h3>
-                <ol>
-                    <li>Navigate to the Testing directory.</li>
-                    <li>Unzip <code>articles_test</code> folder. Alternatively, if using your own testing data, you can create your own folder of test articles labeled <code>articles_test</code>.</li>
-                    <li>Run <code>./setup_project_test.sh</code></li>
-                    <li>To use our test database run <code>./create_premade_test_db.sh</code></li>
-                    <li>Execute <code>python3 Utils/Globals.py test</code></li>
-                    <li>Various testing functions can be found in <code>Testing/Tester.py</code>. Make sure you run all programs from root project directory.</li>
-                    <li>Make sure to execute <code>python3 Utils/Globals.py</code> (no test this time) when you are finished with testing mode.</li>
-                </ol>
+                <div class="col-lg-12">
+                    <h3>Testing</h3>
+                    <ol>
+                        <li>Navigate to the Testing directory.</li>
+                        <li>Unzip <code>articles_test</code> folder. Alternatively, if using your own testing data, you can create your own folder of test articles labeled <code>articles_test</code>.</li>
+                        <li>Run <code>./setup_project_test.sh</code></li>
+                        <li>To use our test database run <code>./create_premade_test_db.sh</code></li>
+                        <li>Execute <code>python3 Utils/Globals.py test</code></li>
+                        <li>Various testing functions can be found in <code>Testing/Tester.py</code>. Make sure you run all programs from root project directory.</li>
+                        <li>Make sure to execute <code>python3 Utils/Globals.py</code> (no test this time) when you are finished with testing mode.</li>
+                    </ol>
+                </div>
             </div>
         </div>
     </section>
