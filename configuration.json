@@ -10,7 +10,7 @@
 			"seconds"	: 0
 		},
 		"pos-tagging" : {
-			"enable-pos-tagging" : true,
+			"enable-pos-tagging" : true
 		}
 	},
 	"database" : {
@@ -26,7 +26,7 @@
 		"feeds"			: [],
 		"scrapers"		: ["./scrapers"],
 		"articles"		: ["./articles"],
-		"validators"	: ["./validators"],
+		"validators"	: ["./validators"]
 	},
 	"tables" : {
 		"sources"		: "sources",
