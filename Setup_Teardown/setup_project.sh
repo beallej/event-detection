@@ -78,7 +78,9 @@ else
 fi
 
 echo '-------------------Setting Up SEMILAR Libraries----------------------'
-unzip '-u' '../SEMILAR/SEMILAR-API-1.0' '-d' '../SEMILAR/'
+if ( $download_libs ); then
+	unzip '-u' '../SEMILAR/SEMILAR-API-1.0' '-d' '../SEMILAR/'
+fi
 
 if ( $repackage_corenlp ); then
 	cp "${semilar_dir}SEMILAR-API-1.0/stop-words.txt" "${working_dir}stop-words.txt"
@@ -88,9 +90,11 @@ if ( $repackage_corenlp ); then
 	jar cfm "${semilar_dir}"'SEMILAR-API-1.0/Semilar-1.0.jar' "${semilar_dir}"'SEMILAR-API-1.0/Semilar-1.0/META-INF/MANIFEST.MF' -C "${semilar_dir}"'SEMILAR-API-1.0/Semilar-1.0/' '.'
 	ant -buildfile "$(pwd)/Setup_Teardown/repackage-corenlp.xml"
 fi
-rm "${semilar_dir}"'SEMILAR-API-1.0.zip'
-rm -r "${semilar_dir}"'SEMILAR-API-1.0/Semilar-1.0'
-rm "${libs_dir}"'stanford-corenlp-full-2015-12-09.zip'
+if ( $download_libs ); then
+	rm "${semilar_dir}"'SEMILAR-API-1.0.zip'
+	rm -r "${semilar_dir}"'SEMILAR-API-1.0/Semilar-1.0'
+	rm "${libs_dir}"'stanford-corenlp-full-2015-12-09.zip'
+fi
 
 echo '------------------Setting Up PostgreSQL Database---------------------'
 if ( $setup_sql ); then
