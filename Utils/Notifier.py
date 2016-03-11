@@ -44,7 +44,10 @@ class Notifier:
         :return: None
         """
         if self.check_valid_phone(self.phone):
-            self.phone_client.messages.create(body=text, to=self.phone, from_=twilio_number)
+            try:
+                self.phone_client.messages.create(body=text, to=self.phone, from_=twilio_number)
+            except:
+                print("Twilio Error. If using a trial account, make sure phone number is verified with twilio at twilio.com/user/account/phone-numbers/verified")
 
     def alert_email(self, text):
         """
@@ -148,6 +151,8 @@ def main():
 
     for query, articles in json_obj.items():
         notifier.on_validation(int(query), articles)
+
+
 
 if __name__ == "__main__":
     main()

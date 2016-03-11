@@ -6,7 +6,7 @@
 #### Installations
 1. [Install Homebrew](http://brew.sh/)
 1. Downloader (Run all commands from the root directory of the repository):
-  1. `./Setup_Teardown/setup_project.sh` - Handles psycopg2, Flask, and PostgreSQL. You may be asked to [download the JDK] (http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html)
+  1. `./Setup_Teardown/setup_project.sh` - Handles psycopg2, Flask, and PostgreSQL. You may be asked to [download the JDK](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html)
     1. Note: If postgres failes to create the database (this sometimes happens if the createdb command is executed while postgres is still starting up), run `./Setup_Teardown/setup_project.sh -s true`.
   2. `ant -Dprefix='./'`
 6. Auto-run: `./Setup_Teardown/install_crontab.sh`
@@ -27,9 +27,9 @@ bitly_api_login = ""
 bitly_api_key = ""
 ```
 To fill in empty strings:
-  1. Sign up for Twilio. Account SID and Auth Token can be found here: https://www.twilio.com/user/account/settings. Phone number can be found here: https://www.twilio.com/user/account/phone-numbers/incoming.
-  2. Sign up for SendGrid (they have to approve you, so it may take a while). After approval, go here https://app.sendgrid.com/settings/api_keys, generate an api key, and paste it in (the long secret version that is only displayed when you generate it).
-  3. Sign up for bitly. Go here https://app.bitly.com/bitlinks/?actions=accountMain. In the sidebar that pops up, click Advanced Settings -> API Support, and copy and paste in the api login and key displayed.
+  1. Sign up for Twilio. Account SID and Auth Token can be found [here](https://www.twilio.com/user/account/settings). Phone number can be found [here]( https://www.twilio.com/user/account/phone-numbers/incoming). [Go here](https://www.twilio.com/user/account/phone-numbers/verified) to verify any phone numbers you are going to text if using Trial account. 
+  2. Sign up for SendGrid (they have to approve you, so it may take a while). After approval, go [here](https://app.sendgrid.com/settings/api_keys), generate an api key, and paste it in (the long secret version that is only displayed when you generate it).
+  3. Sign up for bitly. Go [here](https://app.bitly.com/bitlinks/?actions=accountMain). In the sidebar that pops up, click Advanced Settings -> API Support, and copy and paste in the api login and key displayed.
   4. Input any email address to send from.
 
 #### Running the Downloader, Validator and Pipeline
