@@ -2130,7 +2130,7 @@ COPY query_articles (query, article, accuracy, processed, validates) FROM stdin;
 14	133	0	f	f
 14	134	0	f	f
 14	136	0	f	f
-14	131	0	f	f
+14	131	0	t	f
 14	132	0	f	f
 14	135	0	f	f
 14	137	0	f	f
