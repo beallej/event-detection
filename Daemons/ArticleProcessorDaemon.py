@@ -47,7 +47,7 @@ class ArticleProcessorDaemon:
                     ds.add_keywords_to_article(article_id, keyword_string)
                     ds.add_article_to_query_articles(article_id)
                 except (FileNotFoundError, IOError):
-                    print("Wrong file or file path")
+                    print("Wrong file or file path", file=sys.stderr)
         finally:
             if "--no-lock" not in sys.argv:
                 fcntl.lockf(fd, fcntl.LOCK_UN)

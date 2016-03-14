@@ -1,4 +1,6 @@
 import sys; import os
+import re
+
 sys.path.insert(0, os.path.abspath('..'))
 sys.path.insert(0, os.path.abspath('.'))
 
@@ -7,13 +9,18 @@ import json
 """
 Holds global information, some of which may be changed at runtime
 """
+articles_path = "./articles/"
+database = "event_detection"
 
-file = open('version.json')
-json_object = json.loads(file.read())
-articles_path = json_object["articles"]
-database = json_object["db"]
-file.close()
-
+def overwriteSelf(*args):
+    f = open(sys.argv[0], 'r+')
+    text = f.read()
+    for arg in args:
+        text = re.sub(arg[0], arg[1], text, flags=re.MULTILINE)
+    f.seek(0)
+    f.write(text)
+    f.truncate()
+    f.close()
 
 def main():
     """
@@ -21,18 +28,18 @@ def main():
     default reuglar setup
     :return: None
     """
-    myfile = open('version.json')
+    myfile = open('configuration.json')
     json_object = json.loads(myfile.read())
     myfile.close()
     if len(sys.argv) == 1:
-        json_object["articles"] = "articles/"
-        json_object["db"] = "event_detection"
+        articles = json_object["paths"]["articles"][0]
+        if articles[-1] != "/":
+            articles = articles + "/"
+        overwriteSelf(*[["^(articles_path = ).*?$", r'\1' + '"' + articles + '"'],
+            ["^(database = ).*?$", r'\1' + '"' + json_object["database"]["name"] + '"']])
     elif sys.argv[1] == "test":
-        json_object["articles"] = "articles_test/"
-        json_object["db"] = "event_detection_test"
-    myfile = open("version.json", 'w')
-    json.dump(json_object, myfile)
-    myfile.close()
+        overwriteSelf(*[["^(articles_path = ).*?$", r'\1' + '"Testing/articles_test/"'],
+            ["^(database = ).*?$", r'\1' + '"event_detection_test"']])
 
 if __name__ == "__main__":
     main()

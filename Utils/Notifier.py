@@ -6,6 +6,8 @@ from twilio.rest import TwilioRestClient
 import sendgrid, json
 from Utils.DataSource import *
 import requests
+import re
+from Utils.Secrets import *
 
 
 class Notifier:
@@ -13,15 +15,6 @@ class Notifier:
     Used to notify user of query detection
     """
 
-    # TODO: MOVE THIS STUFF TO A MORE SECURE LOCATION
-    default_phone = "+15073385228"
-    default_email = "event.detection.carleton@gmail.com"
-    twilio_number = "+15137269006"
-    twilio_account_sid = "AC7b50b072cd7cc54e912eb28dffd3c403"
-    twilio_auth_token = "3b8e4111c3d10fdeffc666fddd65e6a3"
-    sendgrid_api_key = "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"
-    bitly_api_login = "o_3s58or5kei"
-    bitly_api_key = "R_e8af4fe78cc54bcf869837cb2ff1c501"
     bitly_api_url = "https://api-ssl.bitly.com"
 
     def __init__(self):
@@ -30,8 +23,19 @@ class Notifier:
         :return: None
         """
         self.datasource = DataSource()
-        self.phone_client = TwilioRestClient(self.twilio_account_sid, self.twilio_auth_token)
-        self.email_client = sendgrid.SendGridClient(self.sendgrid_api_key)
+        self.phone_client = TwilioRestClient(twilio_account_sid, twilio_auth_token)
+        self.email_client = sendgrid.SendGridClient(sendgrid_api_key)
+
+    def check_valid_phone(self, phone):
+        if phone is None:
+            return False
+        return (re.match(r'\+1[0-9]{9}', phone) != None)
+
+    def check_valid_email(self, email):
+        if email is None:
+            return False
+        return (re.match(r'[^\.]+@[^\.]+\.[^\.]+', email) != None)
+
 
     def alert_phone(self, text):
         """
@@ -39,8 +43,11 @@ class Notifier:
         :param message: the text body
         :return: None
         """
-        if self.phone != None and self.phone != "+1":
-            self.phone_client.messages.create(body=text, to=self.phone, from_=self.twilio_number)
+        if self.check_valid_phone(self.phone):
+            try:
+                self.phone_client.messages.create(body=text, to=self.phone, from_=twilio_number)
+            except:
+                print("Twilio Error. If using a trial account, make sure phone number is verified with twilio at twilio.com/user/account/phone-numbers/verified")
 
     def alert_email(self, text):
         """
@@ -48,11 +55,11 @@ class Notifier:
         :param text: the email body in html
         :return: None
         """
-        if self.email != None:
+        if self.check_valid_email(self.email):
             message = sendgrid.Mail()
             message.add_to(self.email)
 
-            message.set_from(self.default_email)
+            message.set_from(from_email)
             message.set_subject("Event Detection")
             message.set_html(text)
 
@@ -125,7 +132,7 @@ class Notifier:
         :param article_url: the url to shorten
         :return: the shortened url if successful (otherwise just the article url)
         """
-        payload = {"longUrl": article_url, "login": self.bitly_api_login, "apiKey": self.bitly_api_key}
+        payload = {"longUrl": article_url, "login": bitly_api_login, "apiKey": bitly_api_key}
         response = requests.get(self.bitly_api_url + "/v3/shorten", params=payload)
         response_json = response.json()
         # look for data -> url -> short url in response_json
@@ -133,7 +140,6 @@ class Notifier:
         if "data" in response_json and "url" in response_json["data"]:
             return response_json["data"]["url"]
         return article_url
-
 
 def main():
     notifier = Notifier()
@@ -145,6 +151,8 @@ def main():
 
     for query, articles in json_obj.items():
         notifier.on_validation(int(query), articles)
+
+
 
 if __name__ == "__main__":
     main()

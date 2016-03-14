@@ -22,6 +22,8 @@ class AbstractClusterer:
         """
         # Cluster by article title words
         self.matrix_creator = MatrixCreator()
+
+        #None if original matrix was empty
         matrix = self.matrix_creator.construct_matrix()
         self.article_titles = self.matrix_creator.get_article_titles()
         self.article_ids = self.matrix_creator.get_article_ids()

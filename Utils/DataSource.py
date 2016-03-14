@@ -152,7 +152,7 @@ class DataSource:
         """
         self.cursor.execute("UPDATE queries SET processed=true WHERE id=%s", (query_id, ))
         for article_id in self.get_articles():
-            self.cursor.execute("INSERT  INTO query_articles (query, article) VALUES (%s, %s)", (query_id, article_id))
+            self.cursor.execute("INSERT  INTO query_articles (query, article) VALUES (%s, %s) ON CONFLICT DO NOTHING", (query_id, article_id))
 
     def get_query_elements(self, query_id):
         """

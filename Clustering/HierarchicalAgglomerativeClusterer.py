@@ -37,6 +37,10 @@ class HierarchicalAgglomerativeClusterer(AbstractClusterer):
         :return: None
         """
         matrix = self.pre_cluster()
+
+        #original matrix empty
+        if matrix is None:
+            return
         Z = self.get_cluster_matrix(matrix)
         article_titles = self.matrix_creator.get_article_titles()
 
@@ -62,6 +66,10 @@ class HierarchicalAgglomerativeClusterer(AbstractClusterer):
         :return: a list of cluster objects
         """
         matrix = self.pre_cluster()
+
+        #original matrix empty
+        if matrix is None:
+            return []
         Z = self.get_cluster_matrix(matrix)
 
         clusters = self.get_final_clusters(Z)
@@ -87,29 +95,6 @@ class HierarchicalAgglomerativeClusterer(AbstractClusterer):
                 clusters = self.get_clusters(Z, best_dist)
                 return clusters
         return []
-
-    def get_final_clusters_max_articles(self, Z):
-        """
-        Returns clusters where the number of articles clustered is as high as possible (while still being valid)
-        This is determined by trying a bunch of maximum distances between clusters as input to the cluster function
-        and using the one that is the most fruitful.
-        :param Z: the linkage matrix
-        :return: list of clusters
-        """
-        max_dist = Z[-1][2]
-        best_dist = max_dist
-        total_articles_clustered = 0
-        for i in np.arange(0,max_dist,0.05):
-            clusters = self.get_clusters(Z, i)
-            articles_clusters_current = sum(len(cluster.article_titles) for cluster in clusters)
-            if articles_clusters_current >= total_articles_clustered:
-                total_articles_clustered = articles_clusters_current
-                best_dist = i
-            elif total_articles_clustered > 0:
-                clusters = self.get_clusters(Z, best_dist)
-                return clusters
-        return []
-
 
     def get_clusters(self, Z, distance):
         """

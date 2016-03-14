@@ -155,7 +155,7 @@ public class ArticleManager implements Closeable {
 		try (PreparedStatement stmt = connection.prepareStatement(statement)) {
 			ResultSet rs = stmt.executeQuery();
 			while (rs.next()) { //While the next row is valid
-				boolean deleted = false;
+				boolean deleted = false, found = false;
 				for (Path store : storage) {
 					if (!Files.exists(store))
 						continue;
@@ -163,6 +163,7 @@ public class ArticleManager implements Closeable {
 					Path path = store.resolve(filename);
 					if (!Files.exists(path))
 						continue;
+					found = true;
 					BasicFileAttributes attrs = Files.readAttributes(path, BasicFileAttributes.class);
 					if (attrs.creationTime().toInstant().compareTo(oldest) >= 0)
 						continue;
@@ -173,7 +174,7 @@ public class ArticleManager implements Closeable {
 						Files.delete(serialized);
 					deleted = true;
 				}
-				if (deleted) {
+				if (deleted || !found) {
 					try (Statement stm = connection.createStatement()) {
 						removed.add(rs.getInt("id"));
 						stm.executeUpdate("delete from " + table + " where id = " + rs.getLong("id"));
