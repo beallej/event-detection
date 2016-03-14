@@ -459,6 +459,10 @@ footer .footer-below {
 }
 
 .img-modal {
-    height: 300px;
-    width: 300px;
+    max-height: 300px;
+    max-width: 300px;
+}
+
+img.graph {
+    max-width: 500px;
 }
