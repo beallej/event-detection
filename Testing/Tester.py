@@ -96,13 +96,22 @@ class Tester:
             threshold = alg_tester.get_best_threshold_for_algorithm()
             print("Best threshold for {}: {}".format(alg_tester.algorithm_name, threshold))
 
+    def perform_hypothesis_tests_for_all(self, graph=False):
+        for alg_tester in self.alg_testers:
+            alg_tester.hypothesis_test(graph)
+
+
 def main():
     tester = Tester()
-    # bootstrap data
-    # tester.bootstrap_all()
-    # test all data
-    tester.test_all()
-    #tester.get_best_thresholds_for_all()
+    # check if we should get thresholds or bootstrap, or test by default
+    if len(sys.argv) > 1 and sys.argv[1] == "thresholds":
+        tester.get_best_thresholds_for_all()
+    elif len(sys.argv) > 1 and sys.argv[1] == "bootstrap":
+        tester.bootstrap_all()
+    elif len(sys.argv) > 1 and sys.argv[1] == "hypothesis":
+        tester.perform_hypothesis_tests_for_all()
+    else:
+        tester.test_all()
 
 if __name__ == "__main__":
     main()

@@ -97,7 +97,6 @@ class MatrixCreator:
 
         for idx, filename in enumerate(self.filenames):
             article_file = open(articles_path + filename, "r", encoding="utf8")
-            article_file = open("articles/{}".format(filename), "r", encoding="utf8")
             body = article_file.read()
             article_file.close()
             tagged_items = re.match(pattern, body)
