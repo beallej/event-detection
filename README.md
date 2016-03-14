@@ -6,8 +6,8 @@
 #### Installations
 1. [Install Homebrew](http://brew.sh/)
 1. Downloader (Run all commands from the root directory of the repository):
-  1. `./Setup_Teardown/setup_project.sh` - Handles psycopg2, Flask, and PostgreSQL. You may be asked to [download the JDK](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html)
-    1. Note: If postgres failes to create the database (this sometimes happens if the createdb command is executed while postgres is still starting up), run `./Setup_Teardown/setup_project.sh -s true`.
+  1.`./Setup_Teardown/setup_project.sh -s true` - Handles psycopg2, Flask, and PostgreSQL. You may be asked to [download the JDK](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html)
+    1. Note: If postgres failes to create the database (this sometimes happens if the createdb command is executed while postgres is still starting up), OR  run `./Setup_Teardown/setup_project.sh -s true`.
   2. `ant -Dprefix='./'`
 6. Auto-run: `./Setup_Teardown/install_crontab.sh`
 
