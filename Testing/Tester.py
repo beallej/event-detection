@@ -103,6 +103,20 @@ class Tester:
 
 def main():
     tester = Tester()
+    # get the specified queries
+    queries = None
+    if "-q" in sys.argv:
+        index = sys.argv.index("-q") + 1
+        if len(sys.argv) > index:
+            # will be general or specific
+            if sys.argv[index] == "general":
+                queries = [2, 14, 5, 8, 11, 17, 20, 23, 25, 29, 32, 35, 38, 43, 45]
+            elif sys.argv[index] == "specific":
+                queries = [1, 13, 4, 7, 10, 16, 19, 22, 26, 28, 31, 34, 37, 40, 44]
+            elif sys.argv[index] == "negated":
+                queries = [3, 15, 6, 9, 12, 18, 21, 24, 27, 30, 33, 36, 39, 42, 46]
+    
+        
     # check if we should get thresholds or bootstrap, or test by default
     if len(sys.argv) > 1 and sys.argv[1] == "thresholds":
         tester.get_best_thresholds_for_all()
@@ -111,7 +125,7 @@ def main():
     elif len(sys.argv) > 1 and sys.argv[1] == "hypothesis":
         tester.perform_hypothesis_tests_for_all()
     else:
-        tester.test_all()
+        tester.test_all(queries=queries)
 
 if __name__ == "__main__":
     main()
