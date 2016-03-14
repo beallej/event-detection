@@ -102,7 +102,6 @@ class Tester:
 
 
 def main():
-    tester = Tester()
     # get the specified queries
     queries = None
     if "-q" in sys.argv:
@@ -115,7 +114,7 @@ def main():
                 queries = [1, 13, 4, 7, 10, 16, 19, 22, 26, 28, 31, 34, 37, 40, 44]
             elif sys.argv[index] == "negated":
                 queries = [3, 15, 6, 9, 12, 18, 21, 24, 27, 30, 33, 36, 39, 42, 46]
-    
+    tester = Tester(queries=queries)
         
     # check if we should get thresholds or bootstrap, or test by default
     if len(sys.argv) > 1 and sys.argv[1] == "thresholds":
@@ -125,7 +124,7 @@ def main():
     elif len(sys.argv) > 1 and sys.argv[1] == "hypothesis":
         tester.perform_hypothesis_tests_for_all()
     else:
-        tester.test_all(queries=queries)
+        tester.test_all()
 
 if __name__ == "__main__":
     main()
