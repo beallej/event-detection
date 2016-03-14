@@ -78,7 +78,7 @@ class MatrixCreator:
         self.article_titles = []
         self.filenames = []
         for article in articles:
-            if os.path.isfile("articles/{}".format(article[2])):
+            if os.path.isfile(articles_path + article[2]):
                 self.ids.append(article[0])
                 self.article_titles.append(article[1])
                 self.filenames.append(article[2])
