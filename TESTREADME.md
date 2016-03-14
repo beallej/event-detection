@@ -15,3 +15,4 @@
 1. To bootstrap all enabled algorithms: `python3 Testing/Tester.py bootstrap`
 1. To get best thresholds for all enabled algorithms: `python3 Testing/Tester.py thresholds`
 1. To perform hypothesis tests for all enabled algorithms: `python3 Testing/Tester.py hypothesis`
+1. There is also the option to use only general, specific, or negated queries. To do this, run the command as usual, but specify `-q specific`, `-q general` or `-q negated` at the end
