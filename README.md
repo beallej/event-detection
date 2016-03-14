@@ -48,8 +48,7 @@ To fill in empty strings:
 4. Execute `python3 Utils/Globals.py test`
 1. Navigate to the Testing directory.
 1. Unzip `articles_test` folder. Alternatively, if using your own testing data, you can create your own folder of test articles labeled `articles_test`.
-2. Run `setup_project_test.sh`
-3. To use our test database run `create_premade_test_db.sh`.
+3. To use our test database run `create_premade_test_db.sh`. Alternatively, you can set up an empty test database with `setup_project_test.sh`.
 4. To run the vaidators and get validation results  run `java -jar validator.jar -c configuration_test.json` from root project directory.
 4. Various testing functions can be found in `Testing/Tester.py`. Make sure you run all programs from root project directory.
 5. Make sure to execute `python3 Utils/Globals.py` (no test this time) when you are finished with testing mode.
