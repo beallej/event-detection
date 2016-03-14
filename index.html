@@ -228,15 +228,15 @@
                     <ol>
                         <li><a href="http://brew.sh/">Install Homebrew</a></li>
                         <li>Downloader (Run all commands from the root directory of the repository):
-                            <ol type="i">
-                                <li><code>./Setup_Teardown/setup_project.sh</code> - Handles psycopg2, Flask, and PostgreSQL. You may be asked to download the JDK
-                                    <ol type="a">
-                                        <li>Note: If postgres failes to create the database (this sometimes happens if the createdb command is executed while postgres is still starting up), run <code>./Setup_Teardown/setup_project.sh -s true.</code></li>
-                                    </ol>
-                                </li>
-                                <li><code>ant -Dprefix='./'</code></li>
-                            </ol>
-                        </li>
+                        1.<code>./Setup_Teardown/setup_project.sh -s true</code> - Handles psycopg2, Flask, and PostgreSQL. You may be asked to <a href="http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html">download the JDK</a>
+
+                        <ol>
+                        <li>Note: If postgres failes to create the database (this sometimes happens if the createdb command is executed while postgres is still starting up), run <code>./Setup_Teardown/setup_project.sh -s true</code> again.
+
+                        <ol>
+                            <li><code>ant -Dprefix='./'</code></li>
+                        </ol></li>
+                        </ol></li>
                         <li>Auto-run: <code>./Setup_Teardown/install_crontab.sh</code></li>
                     </ol>
                 </div>
@@ -296,13 +296,13 @@ bitly_api_key = ""</pre>
                 <div class="col-lg-12">
                     <h3>Testing</h3>
                     <ol>
-                        <li>Navigate to the Testing directory.</li>
-                        <li>Unzip <code>articles_test</code> folder. Alternatively, if using your own testing data, you can create your own folder of test articles labeled <code>articles_test</code>.</li>
-                        <li>Run <code>./setup_project_test.sh</code></li>
-                        <li>To use our test database run <code>./create_premade_test_db.sh</code></li>
-                        <li>Execute <code>python3 Utils/Globals.py test</code></li>
-                        <li>Various testing functions can be found in <code>Testing/Tester.py</code>. Make sure you run all programs from root project directory.</li>
-                        <li>Make sure to execute <code>python3 Utils/Globals.py</code> (no test this time) when you are finished with testing mode.</li>
+                    <li>Execute <code>python3 Utils/Globals.py test</code></li>
+                    <li>Navigate to the Testing directory.</li>
+                    <li>Unzip <code>articles_test</code> folder. Alternatively, if using your own testing data, you can create your own folder of test articles labeled <code>articles_test</code>.</li>
+                    <li>To use our test database run <code>create_premade_test_db.sh</code>. Alternatively, you can set up an empty test database with <code>setup_project_test.sh</code>.</li>
+                    <li>To run the vaidators and get validation results  run <code>java -jar validator.jar -c configuration_test.json</code> from root project directory.</li>
+                    <li>Various testing functions can be found in <code>Testing/Tester.py</code>. Make sure you run all programs from root project directory.</li>
+                    <li>Make sure to execute <code>python3 Utils/Globals.py</code> (no test this time) when you are finished with testing mode.</li>
                     </ol>
                 </div>
             </div>
